@@ -1,16 +1,8 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from 'react-router-dom';
 
-import DefaultLayout from "../components/layouts/DefaultLayout";
-
-function PrivateRoute() {
-  const token = localStorage.getItem("token");
-  return token ? (
-    <DefaultLayout>
-      <Outlet />
-    </DefaultLayout>
-  ) : (
-    <Navigate to="/login" />
-  );
+function PrivateRoute({ children }) {
+    const token = localStorage.getItem('token');
+    return token ? children : <Navigate to="/login" />;
 }
 
 export default PrivateRoute;

@@ -4,7 +4,7 @@ function Home() {
     const { logoutUser } = useUser();
 
     return (
-        <div>
+        <div className="">
             <p>Home</p>
             <button
                 onClick={() => {

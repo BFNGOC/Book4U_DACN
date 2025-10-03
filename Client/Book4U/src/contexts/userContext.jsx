@@ -19,7 +19,7 @@ export const UserProvider = ({ children }) => {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         setUser(null);
-        navigate('/login');
+        navigate('/');
     };
 
     const updateUser = (updatedUser) => {

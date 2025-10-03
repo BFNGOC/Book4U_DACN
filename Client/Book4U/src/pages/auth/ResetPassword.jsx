@@ -1,61 +1,95 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import { resetPassword } from '../../services/api/userApi';
+import Input from '../../components/ui/Input';
+import { register } from '../../services/api/userApi';
+import { validateSetPassword } from '../../utils/validate/setPassword';
 
-function ResetPassword() {
-    const { token } = useParams(); // lấy token từ URL
+function SetPassword() {
+    const initFormData = {
+        password: '',
+        confirmPassword: '',
+    };
+
+    const [formData, setFormData] = useState(initFormData);
+    const [error, setError] = useState({});
+    const [generalError, setGeneralError] = useState('');
+
     const navigate = useNavigate();
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
-    const [message, setMessage] = useState('');
+    const tempToken = localStorage.getItem('tempToken');
+
+    useEffect(() => {
+        if (!tempToken) {
+            setGeneralError('Chưa xác thực OTP. Vui lòng đăng ký lại.');
+            navigate('/register');
+        }
+    }, [tempToken, navigate]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleValidateFormData = (formData) => {
+        const validationErrors = validateSetPassword(formData);
+        setError(validationErrors);
+        return Object.keys(validationErrors).length === 0;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (password !== confirmPassword) {
-            return setError('Mật khẩu xác nhận không khớp');
-        }
+        const isValid = handleValidateFormData(formData);
+        if (!isValid) return;
 
-        const res = await resetPassword({
-            token,
-            newPassword: password,
-        });
+        const res = await register({ tempToken, password: formData.password });
+        if (res.error) return setGeneralError(res.message);
 
-        if (res.error) {
-            setError(res.message);
-        } else {
-            setMessage(res.message);
-            setTimeout(() => {
-                navigate('/login');
-            }, 500);
-        }
+        // Clear localStorage
+        localStorage.removeItem('registerEmail');
+        localStorage.removeItem('otpVerified');
+        localStorage.removeItem('tempToken');
+
+        navigate('/profile-setup');
     };
 
     return (
-        <div>
-            <h2>Đặt lại mật khẩu</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="password"
-                    placeholder="Mật khẩu mới"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Xác nhận mật khẩu"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                />
-                <button type="submit">Đặt lại</button>
-            </form>
-            {message && <p style={{ color: 'green' }}>{message}</p>}
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+        <div className="w-full h-full flex items-center justify-center px-4">
+            <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md mt-5">
+                <h2 className="text-2xl font-bold text-center mb-6">Tạo mật khẩu</h2>
+
+                {generalError && <p className="text-red-500 text-sm mb-4">{generalError}</p>}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        label="Mật khẩu"
+                        onChange={handleChange}
+                        placeholder="Nhập mật khẩu"
+                        error={error.password}
+                    />
+
+                    <Input
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        label="Xác nhận mật khẩu"
+                        onChange={handleChange}
+                        placeholder="Nhập lại mật khẩu"
+                        error={error.confirmPassword}
+                    />
+
+                    <button
+                        type="submit"
+                        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+                    >
+                        Tiếp tục
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }
 
-export default ResetPassword;
+export default SetPassword;

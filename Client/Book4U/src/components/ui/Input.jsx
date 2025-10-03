@@ -20,7 +20,7 @@ function Input({
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
                 autoFocus={autoFocus}
                 {...props}
             />

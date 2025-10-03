@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { requestOtp, verifyOtp } from '../../services/api/userApi';
 
 function VerifyOtp() {
@@ -8,12 +7,12 @@ function VerifyOtp() {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
-    const [timer, setTimer] = useState(0); // đếm ngược thời gian
+    const [timer, setTimer] = useState(0);
 
     const navigate = useNavigate();
     const email = localStorage.getItem('registerEmail');
 
-    // Kiểm tra email hợp lệ
+    // Nếu không có email, quay lại Register
     useEffect(() => {
         if (!email) {
             setError('Email không hợp lệ. Vui lòng đăng ký lại.');
@@ -21,7 +20,7 @@ function VerifyOtp() {
         }
     }, [email, navigate]);
 
-    // Xử lý đếm ngược
+    // Đếm ngược resend OTP
     useEffect(() => {
         let interval;
         if (timer > 0) {
@@ -34,21 +33,21 @@ function VerifyOtp() {
 
     // Gửi lại OTP
     const handleResendOtp = async () => {
-        if (timer > 0) return; // chặn spam
+        if (timer > 0) return;
         setLoading(true);
         setError('');
         setMessage('');
         const res = await requestOtp({ email });
         if (res.error) {
             setError(res.message);
-            setMessage('OTP đã được gửi. Vui lòng kiểm tra email của bạn.');
         } else {
-            setTimer(60); // reset timer 60s
+            setMessage('OTP đã được gửi. Vui lòng kiểm tra email của bạn.');
+            setTimer(60);
         }
         setLoading(false);
     };
 
-    // Submit OTP
+    // Xác nhận OTP
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -58,7 +57,10 @@ function VerifyOtp() {
         }
 
         const res = await verifyOtp({ otp });
-        if (res.error) return setError(res.message);
+        if (res.error) {
+            setError(res.message);
+            return;
+        }
 
         localStorage.setItem('otpVerified', 'true');
         localStorage.setItem('tempToken', res.tempToken);
@@ -66,24 +68,58 @@ function VerifyOtp() {
     };
 
     return (
-        <div>
-            <h2>Nhập OTP</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="Mã OTP"
-                />
-                <button type="submit">Xác nhận</button>
-            </form>
+        <div className="w-full h-full flex items-center justify-center px-4">
+            <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md mt-5">
+                {/* Tiêu đề */}
+                <h2 className="text-2xl font-bold text-center mb-2">Xác thực OTP</h2>
+                <p className="text-gray-500 text-center mb-8">
+                    Chúng tôi đã gửi mã OTP tới email <span className="font-semibold">{email}</span>
+                </p>
 
-            <button onClick={handleResendOtp} disabled={loading || timer > 0}>
-                {loading ? 'Đang gửi...' : timer > 0 ? `Gửi lại OTP sau ${timer}s` : 'Gửi lại OTP'}
-            </button>
+                {/* Form nhập OTP */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Mã OTP
+                        </label>
+                        <input
+                            type="text"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            placeholder="Nhập mã OTP"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+                        {message && <p className="text-green-500 text-sm mt-1">{message}</p>}
+                    </div>
 
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {message && <p style={{ color: 'green' }}>{message}</p>}
+                    <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition cursor-pointer"
+                    >
+                        Xác nhận
+                    </button>
+                </form>
+
+                {/* Gửi lại OTP */}
+                <div className="text-center mt-6">
+                    <button
+                        onClick={handleResendOtp}
+                        disabled={loading || timer > 0}
+                        className={`text-sm font-medium ${
+                            loading || timer > 0
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-blue-600 hover:underline'
+                        }`}
+                    >
+                        {loading
+                            ? 'Đang gửi...'
+                            : timer > 0
+                            ? `Gửi lại OTP sau ${timer}s`
+                            : 'Gửi lại OTP'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

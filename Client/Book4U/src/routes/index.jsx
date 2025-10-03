@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 
+import DefaultLayout from '../components/layouts/DefaultLayout';
+
 import PrivateRoute from './PrivateRoute';
 
 import Login from '../pages/auth/Login';
@@ -15,23 +17,25 @@ import NotFound from '../pages/NotFound';
 
 function AppRoutes() {
     return (
-        <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/verify-otp" element={<VerifyOtp />} />
-            <Route path="/set-password" element={<SetPassword />} />
-            <Route path="/profile-setup" element={<ProfileSetup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <DefaultLayout>
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/verify-otp" element={<VerifyOtp />} />
+                <Route path="/set-password" element={<SetPassword />} />
+                <Route path="/profile-setup" element={<ProfileSetup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-            {/* Private Routes */}
-            <Route element={<PrivateRoute />}></Route>
+                {/* Private Routes */}
+                <Route element={<PrivateRoute />}></Route>
 
-            {/* Not Found Route */}
-            <Route path="*" element={<NotFound />} />
-        </Routes>
+                {/* Not Found Route */}
+                <Route path="*" element={<NotFound />} />
+            </Routes>
+        </DefaultLayout>
     );
 }
 

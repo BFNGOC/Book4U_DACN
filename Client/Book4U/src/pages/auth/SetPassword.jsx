@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 
 import Input from '../../components/ui/Input';
-
 import { register } from '../../services/api/userApi';
-
 import { validateSetPassword } from '../../utils/validate/setPassword';
 
 function SetPassword() {
@@ -15,15 +12,15 @@ function SetPassword() {
     };
 
     const [formData, setFormData] = useState(initFormData);
-    const [error, setError] = useState('');
+    const [errors, setErrors] = useState({}); // lỗi từng field
+    const [generalError, setGeneralError] = useState(''); // lỗi chung
 
     const navigate = useNavigate();
-
     const tempToken = localStorage.getItem('tempToken');
 
     useEffect(() => {
         if (!tempToken) {
-            setError('Chưa xác thực otp. Vui lòng đăng ký lại.');
+            setGeneralError('Chưa xác thực OTP. Vui lòng đăng ký lại.');
             navigate('/register');
         }
     }, [tempToken, navigate]);
@@ -35,8 +32,7 @@ function SetPassword() {
 
     const handleValidateFormData = (formData) => {
         const validationErrors = validateSetPassword(formData);
-        setError(validationErrors);
-
+        setErrors(validationErrors);
         return Object.keys(validationErrors).length === 0;
     };
 
@@ -44,43 +40,55 @@ function SetPassword() {
         e.preventDefault();
 
         const isValid = handleValidateFormData(formData);
-
         if (!isValid) return;
 
         const res = await register({ tempToken, password: formData.password });
-        if (res.error) return setError(res.message);
+        if (res.error) return setGeneralError(res.message);
 
+        // Clear localStorage sau khi xong
         localStorage.removeItem('registerEmail');
         localStorage.removeItem('otpVerified');
         localStorage.removeItem('tempToken');
-        navigate('/profile-setup');
+
+        navigate('/');
     };
 
     return (
-        <div>
-            <h2>Tạo mật khẩu</h2>
-            <form onSubmit={handleSubmit}>
-                <Input
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    label="Mật khẩu"
-                    onChange={handleChange}
-                    placeholder="Mật khẩu"
-                    error={error.password}
-                />
+        <div className="w-full h-full flex items-center justify-center px-4">
+            <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md mt-5">
+                <h2 className="text-2xl font-bold text-center mb-6">Tạo mật khẩu</h2>
 
-                <Input
-                    name="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    label="Xac nhận mật khẩu"
-                    onChange={handleChange}
-                    placeholder="Xac nhận mật khẩu"
-                    error={error.confirmPassword}
-                />
-                <button type="submit">Tiếp tục</button>
-            </form>
+                {generalError && <p className="text-red-500 text-sm mb-4">{generalError}</p>}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <Input
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        label="Mật khẩu"
+                        onChange={handleChange}
+                        placeholder="Mật khẩu"
+                        error={errors.password}
+                    />
+
+                    <Input
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        label="Xác nhận mật khẩu"
+                        onChange={handleChange}
+                        placeholder="Xác nhận mật khẩu"
+                        error={errors.confirmPassword}
+                    />
+
+                    <button
+                        type="submit"
+                        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+                    >
+                        Tiếp tục
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }
