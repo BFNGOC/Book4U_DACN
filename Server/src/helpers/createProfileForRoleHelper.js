@@ -1,3 +1,10 @@
+const {
+    Profile,
+    SellerProfile,
+    AdminProfile,
+    ShipperProfile,
+} = require('../models/profileModel');
+
 async function createProfileForRole(user, baseData = {}) {
     const shared = {
         userId: user._id,

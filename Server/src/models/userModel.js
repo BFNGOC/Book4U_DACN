@@ -5,7 +5,12 @@ const {
     AdminProfile,
     ShipperProfile,
 } = require('./profileModel');
-const createProfileForRole = require('../helpers/createProfileForRoleHelper');
+const {
+    createProfileForRole,
+} = require('../helpers/createProfileForRoleHelper');
+const {
+    updateProfileForRole,
+} = require('../helpers/updateProfileForRoleHelper');
 
 const userSchema = new mongoose.Schema(
     {
@@ -34,15 +39,13 @@ const userSchema = new mongoose.Schema(
 userSchema.pre('save', async function (next) {
     try {
         const user = this;
-        const oldProfile = await Profile.findOne({ userId: user._id });
         const roleChanged = user.isModified('role');
+        const existingProfile = await Profile.findOne({ userId: user._id });
 
-        if (!oldProfile) {
+        if (!existingProfile) {
             await createProfileForRole(user);
         } else if (roleChanged) {
-            const base = oldProfile.toObject();
-            await oldProfile.deleteOne();
-            await createProfileForRole(user, base);
+            await updateProfileForRole(user);
         }
 
         next();

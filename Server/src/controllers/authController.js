@@ -1,5 +1,5 @@
 const User = require('../models/userModel');
-const Profile = require('../models/profileModel');
+const { Profile } = require('../models/profileModel');
 const { verifyGoogleToken } = require('../services/googleAuth');
 const { generateOTP, sendEmailHelper } = require('../helpers/sendEmailHelper');
 const {
@@ -37,7 +37,10 @@ exports.requestOtp = async (req, res) => {
 
         res.json({ message: 'OTP đã gửi, kiểm tra email của bạn' });
     } catch (err) {
-        res.status(500).json({ message: 'Lỗi khi gửi OTP', error: err.message });
+        res.status(500).json({
+            message: 'Lỗi khi gửi OTP',
+            error: err.message,
+        });
     }
 };
 
@@ -47,7 +50,10 @@ exports.verifyOtp = async (req, res) => {
         const { otp } = req.body;
         const otpData = req.cookies.otpData;
 
-        if (!otpData) return res.status(400).json({ message: 'OTP hết hạn hoặc không tồn tại' });
+        if (!otpData)
+            return res
+                .status(400)
+                .json({ message: 'OTP hết hạn hoặc không tồn tại' });
 
         const isValid = await comparePassword(otp, otpData.otp);
         if (!isValid) return res.status(400).json({ message: 'OTP sai' });
@@ -56,7 +62,10 @@ exports.verifyOtp = async (req, res) => {
         res.clearCookie('otpData');
         res.json({ tempToken });
     } catch (err) {
-        res.status(500).json({ message: 'Lỗi khi xác minh OTP', error: err.message });
+        res.status(500).json({
+            message: 'Lỗi khi xác minh OTP',
+            error: err.message,
+        });
     }
 };
 
@@ -68,7 +77,8 @@ exports.register = async (req, res) => {
         const email = decoded.email;
 
         const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: 'Email đã được sử dụng' });
+        if (existingUser)
+            return res.status(400).json({ message: 'Email đã được sử dụng' });
 
         const hashedPassword = password ? await hashPassword(password) : null;
         const newUser = new User({ email, password: hashedPassword });
@@ -85,10 +95,14 @@ exports.loginPassword = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: 'Tài khoản không tồn tại!' });
+        if (!user)
+            return res
+                .status(404)
+                .json({ message: 'Tài khoản không tồn tại!' });
 
         const isMatchPassword = await comparePassword(password, user.password);
-        if (!isMatchPassword) return res.status(401).json({ message: 'Sai mật khẩu!' });
+        if (!isMatchPassword)
+            return res.status(401).json({ message: 'Sai mật khẩu!' });
 
         const token = generateToken({ userId: user._id });
         const profile = await Profile.findOne({ userId: user._id });
@@ -147,7 +161,8 @@ exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: 'Email không tồn tại' });
+        if (!user)
+            return res.status(404).json({ message: 'Email không tồn tại' });
 
         const { resetToken, resetExpires } = generateResetToken();
         user.resetPasswordToken = resetToken;
@@ -171,13 +186,17 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
-        if (!token || !newPassword) return res.status(400).json({ message: 'Thiếu dữ liệu' });
+        if (!token || !newPassword)
+            return res.status(400).json({ message: 'Thiếu dữ liệu' });
 
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() },
         });
-        if (!user) return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+        if (!user)
+            return res
+                .status(400)
+                .json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
 
         user.password = await hashPassword(newPassword);
         user.resetPasswordToken = undefined;
