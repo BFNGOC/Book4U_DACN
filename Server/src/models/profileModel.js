@@ -50,7 +50,7 @@ const Profile = mongoose.model('Profile', profileSchema);
 const sellerSchema = new mongoose.Schema({
     businessName: { type: String, required: true, trim: true },
     businessRegistration: { type: String, trim: true, default: null },
-    taxId: { type: String, trim: true, default: null },
+    taxId: { type: String, trim: true, required: true },
     storeLogo: { type: String, default: `/uploads/default-logo.png` },
     storeDescription: { type: String, default: null },
     businessAddress: {
