@@ -50,10 +50,7 @@ exports.verifyOtp = async (req, res) => {
         const { otp } = req.body;
         const otpData = req.cookies.otpData;
 
-        if (!otpData)
-            return res
-                .status(400)
-                .json({ message: 'OTP hết hạn hoặc không tồn tại' });
+        if (!otpData) return res.status(400).json({ message: 'OTP hết hạn hoặc không tồn tại' });
 
         const isValid = await comparePassword(otp, otpData.otp);
         if (!isValid) return res.status(400).json({ message: 'OTP sai' });
@@ -77,8 +74,7 @@ exports.register = async (req, res) => {
         const email = decoded.email;
 
         const existingUser = await User.findOne({ email });
-        if (existingUser)
-            return res.status(400).json({ message: 'Email đã được sử dụng' });
+        if (existingUser) return res.status(400).json({ message: 'Email đã được sử dụng' });
 
         const hashedPassword = password ? await hashPassword(password) : null;
         const newUser = new User({ email, password: hashedPassword });
@@ -95,14 +91,10 @@ exports.loginPassword = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user)
-            return res
-                .status(404)
-                .json({ message: 'Tài khoản không tồn tại!' });
+        if (!user) return res.status(404).json({ message: 'Tài khoản không tồn tại!' });
 
         const isMatchPassword = await comparePassword(password, user.password);
-        if (!isMatchPassword)
-            return res.status(401).json({ message: 'Sai mật khẩu!' });
+        if (!isMatchPassword) return res.status(401).json({ message: 'Sai mật khẩu!' });
 
         const token = generateToken({ userId: user._id });
         const profile = await Profile.findOne({ userId: user._id });
@@ -129,6 +121,11 @@ exports.googleLogin = async (req, res) => {
         const payload = await verifyGoogleToken(credential);
         const { email, name, picture, sub: googleId } = payload;
 
+        // Tách name thành firstName và lastName
+        const [firstName, ...lastNameParts] = name ? name.split(' ') : ['user'];
+        const lastName = lastNameParts.join(' ');
+
+        // Tìm hoặc tạo user
         let user = await User.findOne({ $or: [{ email }, { googleId }] });
         if (!user) {
             user = await User.create({ email, googleId, role: 'customer' });
@@ -137,8 +134,37 @@ exports.googleLogin = async (req, res) => {
             await user.save();
         }
 
+        // Tìm hoặc tạo profile
+        let profile = await Profile.findOne({ userId: user._id });
+        if (!profile) {
+            profile = await Profile.create({
+                userId: user._id,
+                firstName,
+                lastName,
+                avatar: picture,
+            });
+        } else {
+            // Kiểm tra tên mặc định
+            const isDefaultName =
+                !profile.firstName ||
+                profile.firstName === 'user' ||
+                profile.lastName === profile.userId.toString().slice(-5);
+            const isDefaultAvatar = !profile.avatar || profile.avatar.includes('default');
+
+            if (isDefaultName || isDefaultAvatar) {
+                if (isDefaultName) {
+                    profile.firstName = firstName;
+                    profile.lastName = lastName;
+                }
+                if (isDefaultAvatar) {
+                    profile.avatar = picture;
+                }
+                await profile.save();
+            }
+        }
+
+        // Sinh token & trả dữ liệu
         const token = generateToken({ userId: user._id });
-        const profile = await Profile.findOne({ userId: user._id });
 
         res.status(200).json({
             token,
@@ -147,11 +173,12 @@ exports.googleLogin = async (req, res) => {
                 email: user.email,
                 role: user.role,
                 createdAt: user.createdAt,
-                ...profile?._doc,
-                avatar: profile?.avatar || picture,
+                ...profile._doc,
+                avatar: profile.avatar || picture,
             },
         });
     } catch (err) {
+        console.error(err);
         res.status(401).json({ message: 'Đăng nhập Google thất bại' });
     }
 };
@@ -161,8 +188,7 @@ exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ email });
-        if (!user)
-            return res.status(404).json({ message: 'Email không tồn tại' });
+        if (!user) return res.status(404).json({ message: 'Email không tồn tại' });
 
         const { resetToken, resetExpires } = generateResetToken();
         user.resetPasswordToken = resetToken;
@@ -186,17 +212,13 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
-        if (!token || !newPassword)
-            return res.status(400).json({ message: 'Thiếu dữ liệu' });
+        if (!token || !newPassword) return res.status(400).json({ message: 'Thiếu dữ liệu' });
 
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() },
         });
-        if (!user)
-            return res
-                .status(400)
-                .json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+        if (!user) return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
 
         user.password = await hashPassword(newPassword);
         user.resetPasswordToken = undefined;
