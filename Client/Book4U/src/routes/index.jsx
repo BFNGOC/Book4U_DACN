@@ -13,6 +13,8 @@ import ForgotPassword from '../pages/auth/ForgotPassword';
 import ResetPassword from '../pages/auth/ResetPassword';
 
 import Home from '../pages/Home';
+import ProductDetails from '../pages/ProductDetails';
+
 import NotFound from '../pages/NotFound';
 
 function AppRoutes() {
@@ -28,6 +30,7 @@ function AppRoutes() {
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/product/:slug" element={<ProductDetails />} />
 
                 {/* Private Routes */}
                 <Route element={<PrivateRoute />}></Route>
