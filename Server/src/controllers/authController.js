@@ -50,7 +50,10 @@ exports.verifyOtp = async (req, res) => {
         const { otp } = req.body;
         const otpData = req.cookies.otpData;
 
-        if (!otpData) return res.status(400).json({ message: 'OTP hết hạn hoặc không tồn tại' });
+        if (!otpData)
+            return res
+                .status(400)
+                .json({ message: 'OTP hết hạn hoặc không tồn tại' });
 
         const isValid = await comparePassword(otp, otpData.otp);
         if (!isValid) return res.status(400).json({ message: 'OTP sai' });
@@ -74,7 +77,8 @@ exports.register = async (req, res) => {
         const email = decoded.email;
 
         const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: 'Email đã được sử dụng' });
+        if (existingUser)
+            return res.status(400).json({ message: 'Email đã được sử dụng' });
 
         const hashedPassword = password ? await hashPassword(password) : null;
         const newUser = new User({ email, password: hashedPassword });
@@ -91,12 +95,16 @@ exports.loginPassword = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: 'Tài khoản không tồn tại!' });
+        if (!user)
+            return res
+                .status(404)
+                .json({ message: 'Tài khoản không tồn tại!' });
 
         const isMatchPassword = await comparePassword(password, user.password);
-        if (!isMatchPassword) return res.status(401).json({ message: 'Sai mật khẩu!' });
+        if (!isMatchPassword)
+            return res.status(401).json({ message: 'Sai mật khẩu!' });
 
-        const token = generateToken({ userId: user._id });
+        const token = generateToken({ userId: user._id, role: user.role });
         const profile = await Profile.findOne({ userId: user._id });
 
         res.status(200).json({
@@ -149,7 +157,8 @@ exports.googleLogin = async (req, res) => {
                 !profile.firstName ||
                 profile.firstName === 'user' ||
                 profile.lastName === profile.userId.toString().slice(-5);
-            const isDefaultAvatar = !profile.avatar || profile.avatar.includes('default');
+            const isDefaultAvatar =
+                !profile.avatar || profile.avatar.includes('default');
 
             if (isDefaultName || isDefaultAvatar) {
                 if (isDefaultName) {
@@ -164,7 +173,7 @@ exports.googleLogin = async (req, res) => {
         }
 
         // Sinh token & trả dữ liệu
-        const token = generateToken({ userId: user._id });
+        const token = generateToken({ userId: user._id, role: user.role });
 
         res.status(200).json({
             token,
@@ -188,7 +197,8 @@ exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: 'Email không tồn tại' });
+        if (!user)
+            return res.status(404).json({ message: 'Email không tồn tại' });
 
         const { resetToken, resetExpires } = generateResetToken();
         user.resetPasswordToken = resetToken;
@@ -212,13 +222,17 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
-        if (!token || !newPassword) return res.status(400).json({ message: 'Thiếu dữ liệu' });
+        if (!token || !newPassword)
+            return res.status(400).json({ message: 'Thiếu dữ liệu' });
 
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() },
         });
-        if (!user) return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+        if (!user)
+            return res
+                .status(400)
+                .json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
 
         user.password = await hashPassword(newPassword);
         user.resetPasswordToken = undefined;

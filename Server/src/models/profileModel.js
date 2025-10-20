@@ -17,7 +17,9 @@ const profileSchema = new mongoose.Schema(
         lastName: {
             type: String,
             default: function () {
-                return this.userId.toString().slice(-5);
+                return this.userId && this.userId.toString
+                    ? this.userId.toString().slice(-5)
+                    : 'user';
             },
         },
         dateOfBirth: { type: Date, default: null },

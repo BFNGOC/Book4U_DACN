@@ -12,7 +12,7 @@ exports.createRoleRequest = async (req, res) => {
             return res.status(400).json({ message: 'Role không hợp lệ' });
 
         const existing = await RoleRequest.findOne({
-            userId: req.user.id,
+            userId: req.user.userId,
             role,
             status: 'pending',
         });
@@ -20,7 +20,7 @@ exports.createRoleRequest = async (req, res) => {
             return res.status(400).json({ message: 'Đã gửi yêu cầu trước đó' });
 
         const request = await RoleRequest.create({
-            userId: req.user.id,
+            userId: req.user.userId,
             role,
             details,
         });
@@ -36,7 +36,7 @@ exports.createRoleRequest = async (req, res) => {
 };
 
 exports.getMyRequests = async (req, res) => {
-    const requests = await RoleRequest.find({ userId: req.user.id });
+    const requests = await RoleRequest.find({ userId: req.user.userId });
     res.status(200).json({ success: true, data: requests });
 };
 

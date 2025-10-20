@@ -1,5 +1,8 @@
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
+const { Profile } = require('../models/profileModel');
+const fs = require('fs');
+const path = require('path');
 
 // [GET] /api/products
 exports.getAllProducts = async (req, res) => {
@@ -54,8 +57,23 @@ exports.createProduct = async (req, res) => {
         if (!category)
             return res.status(400).json({ message: 'Danh mục không hợp lệ' });
 
+        const profile = await Profile.findOne({ userId: req.user.userId });
+        if (!profile)
+            return res
+                .status(400)
+                .json({ message: 'Không tìm thấy hồ sơ người bán' });
+
+        const imagePaths = req.files
+            ? req.files.map((f) => `/uploads/products/${f.filename}`)
+            : [];
+
+        if (!profile)
+            return res
+                .status(400)
+                .json({ message: 'Không tìm thấy hồ sơ người bán' });
+
         const product = await Product.create({
-            sellerId: req.user.profileId, // lấy từ token auth (người bán)
+            sellerId: profile._id,
             categoryId,
             title,
             author,
@@ -66,7 +84,7 @@ exports.createProduct = async (req, res) => {
             price,
             stock,
             discount,
-            images,
+            images: imagePaths,
         });
 
         res.status(201).json(product);
@@ -78,15 +96,28 @@ exports.createProduct = async (req, res) => {
 // [PUT] /api/products/:id
 exports.updateProduct = async (req, res) => {
     try {
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            {
-                new: true,
-            }
-        );
+        const product = await Product.findById(req.params.id);
         if (!product)
             return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+
+        if (req.files && req.files.length > 0) {
+            product.images.forEach((imgPath) => {
+                const fullPath = path.join(
+                    __dirname,
+                    '..',
+                    imgPath.replace(/^\//, '')
+                );
+                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+            });
+
+            product.images = req.files.map(
+                (f) => `/uploads/products/${f.filename}`
+            );
+        }
+
+        Object.assign(product, req.body);
+        await product.save();
+
         res.json(product);
     } catch (err) {
         res.status(500).json({ message: err.message });
