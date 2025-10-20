@@ -8,16 +8,53 @@ exports.createRoleRequest = async (req, res) => {
     try {
         const { role, details } = req.body;
 
-        if (!['seller', 'shipper'].includes(role))
+        if (!['seller', 'shipper'].includes(role)) {
             return res.status(400).json({ message: 'Role không hợp lệ' });
+        }
+
+        const user = await User.findById(req.user.userId);
+        if (user.role === role) {
+            return res.status(400).json({
+                message: `Bạn đã là ${role}`,
+            });
+        }
+
+        const requiredFields =
+            role === 'seller'
+                ? ['businessName', 'taxId', 'businessAddress', 'bankDetails']
+                : [
+                      'licenseNumber',
+                      'vehicleType',
+                      'vehicleRegistration',
+                      'serviceArea',
+                      'bankDetails',
+                  ];
+
+        const missingFields = requiredFields.filter((field) => {
+            return (
+                !details[field] ||
+                (typeof details[field] === 'object' &&
+                    Object.keys(details[field]).length === 0)
+            );
+        });
+
+        if (missingFields.length) {
+            return res.status(400).json({
+                message: `Thiếu thông tin bắt buộc: ${missingFields.join(
+                    ', '
+                )}`,
+            });
+        }
 
         const existing = await RoleRequest.findOne({
             userId: req.user.userId,
             role,
             status: 'pending',
         });
-        if (existing)
+
+        if (existing) {
             return res.status(400).json({ message: 'Đã gửi yêu cầu trước đó' });
+        }
 
         const request = await RoleRequest.create({
             userId: req.user.userId,
@@ -46,21 +83,31 @@ exports.getAllRequests = async (req, res) => {
 };
 
 exports.approveRequest = async (req, res) => {
-    const request = await RoleRequest.findById(req.params.id);
-    if (!request)
-        return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
+    try {
+        const request = await RoleRequest.findById(req.params.id);
+        if (!request)
+            return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
 
-    request.status = 'approved';
-    await request.save();
+        request.status = 'approved';
+        await request.save();
 
-    // Cập nhật role user
-    const user = await User.findById(request.userId);
-    user.role = request.role;
-    await user.save();
+        // Cập nhật role user
+        const user = await User.findById(request.userId);
+        user.role = request.role;
+        await user.save();
 
-    await updateProfileForRole(user);
+        await updateProfileForRole(user);
 
-    res.status(200).json({ success: true, message: 'Đã phê duyệt yêu cầu' });
+        res.status(200).json({
+            success: true,
+            message: 'Đã phê duyệt yêu cầu',
+        });
+    } catch (err) {
+        const status = err.message.includes('Thiếu thông tin bắt buộc')
+            ? 400
+            : 500;
+        res.status(status).json({ success: false, message: err.message });
+    }
 };
 
 exports.rejectRequest = async (req, res) => {

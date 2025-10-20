@@ -18,14 +18,21 @@ async function updateProfileForRole(user) {
         addresses: existingProfile.addresses,
     };
 
-    let Model;
     let extraFields = {};
-
     switch (user.role) {
         case 'seller':
-            Model = SellerProfile;
+            // Nếu bất kỳ field required nào trống => throw error
+            if (
+                !existingProfile.businessName ||
+                !existingProfile.taxId ||
+                !existingProfile.businessAddress ||
+                !existingProfile.bankDetails
+            ) {
+                throw new Error('Thiếu thông tin bắt buộc để trở thành seller');
+            }
             extraFields = {
-                businessName: existingProfile.businessName || 'My Store',
+                businessName: existingProfile.businessName,
+                taxId: existingProfile.taxId,
                 storeLogo:
                     existingProfile.storeLogo || '/uploads/default-logo.png',
                 rating: existingProfile.rating || 0,
@@ -35,36 +42,42 @@ async function updateProfileForRole(user) {
             break;
 
         case 'shipper':
-            Model = ShipperProfile;
+            if (
+                !existingProfile.licenseNumber ||
+                !existingProfile.vehicleType ||
+                !existingProfile.vehicleRegistration ||
+                !existingProfile.serviceArea ||
+                !existingProfile.bankDetails
+            ) {
+                throw new Error(
+                    'Thiếu thông tin bắt buộc để trở thành shipper'
+                );
+            }
             extraFields = {
-                licenseNumber: existingProfile.licenseNumber || `${user._id}-L`,
-                vehicleType: existingProfile.vehicleType || 'motorcycle',
+                licenseNumber: existingProfile.licenseNumber,
+                vehicleType: existingProfile.vehicleType,
+                vehicleRegistration: existingProfile.vehicleRegistration,
+                serviceArea: existingProfile.serviceArea,
                 availability: existingProfile.availability || 'offline',
                 rating: existingProfile.rating || 0,
                 completedDeliveries: existingProfile.completedDeliveries || 0,
+                bankDetails: existingProfile.bankDetails,
             };
             break;
-
         case 'admin':
-            Model = AdminProfile;
             extraFields = {
                 department: existingProfile.department || 'operations',
                 permissions: existingProfile.permissions || ['view_analytics'],
                 hireDate: existingProfile.hireDate || Date.now(),
             };
             break;
-
-        default:
-            Model = Profile;
     }
 
-    const updatedProfile = await Model.findOneAndUpdate(
-        { userId: user._id },
-        { $set: { ...baseData, ...extraFields } },
-        { new: true, upsert: true }
-    );
+    Object.assign(existingProfile, baseData, extraFields);
 
-    return updatedProfile;
+    existingProfile.profileType = user.role;
+
+    return await existingProfile.save();
 }
 
 module.exports = { updateProfileForRole };
