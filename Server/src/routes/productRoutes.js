@@ -13,6 +13,8 @@ router.get('/category/:slug', productController.getProductsByCategorySlug);
 
 router.get('/:id', productController.getProductById);
 
+router.get('/:id/related', productController.getRelatedProducts);
+
 router.post(
     '/',
     authMiddleware,

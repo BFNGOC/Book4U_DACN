@@ -36,7 +36,6 @@ exports.getProductById = async (req, res) => {
     }
 };
 
-// [GET] /api/products/slug/:slug/products
 // [GET] /api/products/category/:slug
 exports.getProductsByCategorySlug = async (req, res) => {
     try {
@@ -50,6 +49,28 @@ exports.getProductsByCategorySlug = async (req, res) => {
             .sort({ createdAt: -1 });
 
         res.json({ category, products });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// [GET] /api/products/:id/related
+exports.getRelatedProducts = async (req, res) => {
+    try {
+        const base = await Product.findById(req.params.id);
+        if (!base)
+            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+
+        const related = await Product.find({
+            _id: { $ne: base._id },
+            categoryId: base.categoryId,
+            tags: { $in: base.tags },
+        })
+            .limit(10)
+            .populate('categoryId', 'name slug')
+            .populate('sellerId', 'firstName lastName');
+
+        res.json(related);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -70,6 +91,9 @@ exports.createProduct = async (req, res) => {
             discount,
             images,
             categoryId,
+            tags,
+            numPages,
+            format,
         } = req.body;
 
         const category = await Category.findById(categoryId);
@@ -104,6 +128,9 @@ exports.createProduct = async (req, res) => {
             stock,
             discount,
             images: imagePaths,
+            tags: tags ? tags.map((t) => t.trim()) : [],
+            numPages,
+            format,
         });
 
         res.status(201).json(product);

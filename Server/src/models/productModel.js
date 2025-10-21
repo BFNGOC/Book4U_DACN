@@ -28,6 +28,15 @@ const productSchema = new mongoose.Schema(
         discount: { type: Number, default: 0, min: 0, max: 100 },
         images: [{ type: String }],
         soldCount: { type: Number, default: 0, min: 0 },
+        tags: [{ type: String, trim: true }],
+        ratingAvg: { type: Number, default: 0, min: 0, max: 5 },
+        ratingCount: { type: Number, default: 0, min: 0 },
+        numPages: { type: Number, min: 1 },
+        format: {
+            type: String,
+            enum: ['bìa mềm', 'bìa cứng', 'ebook'],
+            default: 'bìa mềm',
+        },
     },
     { timestamps: true }
 );
