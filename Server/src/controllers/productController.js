@@ -36,6 +36,25 @@ exports.getProductById = async (req, res) => {
     }
 };
 
+// [GET] /api/products/slug/:slug/products
+// [GET] /api/products/category/:slug
+exports.getProductsByCategorySlug = async (req, res) => {
+    try {
+        const category = await Category.findOne({ slug: req.params.slug });
+        if (!category)
+            return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+
+        const products = await Product.find({ categoryId: category._id })
+            .populate('categoryId', 'name slug')
+            .populate('sellerId', 'firstName lastName')
+            .sort({ createdAt: -1 });
+
+        res.json({ category, products });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 // [POST] /api/products
 exports.createProduct = async (req, res) => {
     try {

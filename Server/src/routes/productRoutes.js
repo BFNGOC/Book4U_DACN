@@ -9,6 +9,8 @@ const uploadProduct = createUploader('products');
 
 router.get('/', productController.getAllProducts);
 
+router.get('/category/:slug', productController.getProductsByCategorySlug);
+
 router.get('/:id', productController.getProductById);
 
 router.post(
