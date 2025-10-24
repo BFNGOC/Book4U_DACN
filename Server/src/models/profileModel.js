@@ -62,6 +62,17 @@ const sellerSchema = new mongoose.Schema({
         country: { type: String, required: true, default: 'Vietnam' },
         postalCode: { type: String, trim: true },
     },
+    warehouses: [
+        {
+            name: { type: String, required: true, trim: true },
+            street: { type: String, required: true, trim: true },
+            city: { type: String, required: true, trim: true },
+            state: { type: String, trim: true },
+            country: { type: String, default: 'Vietnam' },
+            postalCode: { type: String, trim: true },
+            isDefault: { type: Boolean, default: false },
+        },
+    ],
     bankDetails: {
         accountName: { type: String, required: true, trim: true },
         accountNumber: { type: String, required: true, trim: true },

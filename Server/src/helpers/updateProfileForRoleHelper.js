@@ -26,7 +26,9 @@ async function updateProfileForRole(user) {
                 !existingProfile.businessName ||
                 !existingProfile.taxId ||
                 !existingProfile.businessAddress ||
-                !existingProfile.bankDetails
+                !existingProfile.bankDetails ||
+                !existingProfile.warehouses ||
+                existingProfile.warehouses.length === 0
             ) {
                 throw new Error('Thiếu thông tin bắt buộc để trở thành seller');
             }

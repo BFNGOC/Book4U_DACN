@@ -21,7 +21,13 @@ exports.createRoleRequest = async (req, res) => {
 
         const requiredFields =
             role === 'seller'
-                ? ['businessName', 'taxId', 'businessAddress', 'bankDetails']
+                ? [
+                      'businessName',
+                      'taxId',
+                      'businessAddress',
+                      'bankDetails',
+                      'warehouses',
+                  ]
                 : [
                       'licenseNumber',
                       'vehicleType',
