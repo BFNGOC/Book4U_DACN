@@ -12,7 +12,6 @@ function Home() {
 
     return (
         <div className="space-y-10">
-            <HeroSection />
             <CategoryList />
 
             <Section title="🤖 Gợi ý từ AI cho bạn" viewAll>

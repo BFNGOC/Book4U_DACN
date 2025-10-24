@@ -14,6 +14,7 @@ import ResetPassword from '../pages/auth/ResetPassword';
 
 import Home from '../pages/Home';
 import ProductDetails from '../pages/ProductDetails';
+import Search from '../pages/Search';
 
 import NotFound from '../pages/NotFound';
 
@@ -31,6 +32,7 @@ function AppRoutes() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/product/:slug" element={<ProductDetails />} />
+                <Route path="/search" element={<Search />} />
 
                 {/* Private Routes */}
                 <Route element={<PrivateRoute />}></Route>

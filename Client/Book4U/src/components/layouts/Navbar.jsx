@@ -1,34 +1,24 @@
 import { Link } from 'react-router-dom';
-
 import { ShoppingCart } from 'lucide-react';
-
 import { useUser } from '../../contexts/userContext';
+import SearchBar from '../common/SearchBar';
 
 function Navbar() {
     const { user, logoutUser } = useUser();
 
     return (
         <nav className="bg-white shadow fixed top-0 left-0 w-full h-16 z-50">
-            <div className="max-w-screen-xl mx-auto px-6 h-full flex items-center justify-between">
+            <div className="max-w-screen-xl mx-auto px-6 h-full flex items-center justify-between gap-6">
                 {/* Logo */}
-                <Link to="/">
-                    <div className="flex items-center">
-                        <img src="/img/Book4U-removebg.png" alt="BookHub" className="w-30 h-30" />
-                    </div>
+                <Link to="/" className="flex items-center">
+                    <img src="/img/Book4U-removebg.png" alt="BookHub" className="w-24 h-auto" />
                 </Link>
 
-                {/* Menu */}
-                <div className="flex space-x-6 text-gray-700 font-medium">
-                    <Link to="/" className="hover:text-blue-600">
-                        Trang chủ
-                    </Link>
-                    <Link to="/orders" className="hover:text-blue-600">
-                        Đơn hàng
-                    </Link>
-                </div>
+                {/* Search Bar (global) */}
+                <SearchBar />
 
                 {/* Actions */}
-                <div className="flex items-center space-x-5 relative">
+                <div className="flex items-center space-x-5">
                     {/* Cart */}
                     <div className="relative cursor-pointer">
                         <ShoppingCart className="w-6 h-6 text-gray-700" />
@@ -39,16 +29,12 @@ function Navbar() {
 
                     {user ? (
                         <div className="relative group">
-                            {/* Nút hiển thị tên user */}
                             <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
                                 {user.firstName} {user.lastName}
                             </button>
-
-                            {/* Dropdown menu */}
                             <div
                                 className="absolute right-0 top-full w-40 bg-white shadow-lg rounded-lg border py-2 
-                       opacity-0 invisible group-hover:opacity-100 group-hover:visible 
-                       transition duration-200"
+                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200"
                             >
                                 <Link
                                     to="/profile"
@@ -63,9 +49,7 @@ function Navbar() {
                                     Đơn hàng
                                 </Link>
                                 <button
-                                    onClick={() => {
-                                        logoutUser();
-                                    }}
+                                    onClick={logoutUser}
                                     className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100"
                                 >
                                     Đăng xuất
