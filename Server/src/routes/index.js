@@ -1,6 +1,6 @@
 const authRoutes = require('./authRoutes');
 const categoryRoutes = require('./categoryRoutes');
-const productRoutes = require('./productRoutes');
+const bookRoutes = require('./bookRoutes');
 const roleRequestRoutes = require('./roleRequestRoutes');
 
 function route(app) {
@@ -10,7 +10,7 @@ function route(app) {
 
     app.use('/api/auth', authRoutes);
     app.use('/api/categories', categoryRoutes);
-    app.use('/api/products', productRoutes);
+    app.use('/api/books', bookRoutes);
     app.use('/api/role-requests', roleRequestRoutes);
 }
 

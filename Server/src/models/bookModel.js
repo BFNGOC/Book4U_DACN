@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 
-const productSchema = new mongoose.Schema(
+const bookSchema = new mongoose.Schema(
     {
         sellerId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -41,11 +41,11 @@ const productSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-productSchema.pre('save', function (next) {
+bookSchema.pre('save', function (next) {
     if (this.isModified('title') || !this.slug) {
         this.slug = slugify(this.title, { lower: true, strict: true });
     }
     next();
 });
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model('Book', bookSchema);

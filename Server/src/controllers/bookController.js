@@ -1,67 +1,67 @@
-const Product = require('../models/productModel');
+const Book = require('../models/bookModel');
 const Category = require('../models/categoryModel');
 const { Profile } = require('../models/profileModel');
 const fs = require('fs');
 const path = require('path');
 
-// [GET] /api/products
-exports.getAllProducts = async (req, res) => {
+// [GET] /api/books
+exports.getAllBooks = async (req, res) => {
     try {
         const filter = {};
         if (req.query.categoryId) filter.categoryId = req.query.categoryId;
         if (req.query.sellerId) filter.sellerId = req.query.sellerId;
 
-        const products = await Product.find(filter)
+        const books = await Book.find(filter)
             .populate('categoryId', 'name')
             .populate('sellerId', 'firstName lastName')
             .sort({ createdAt: -1 });
 
-        res.json(products);
+        res.json(books);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// [GET] /api/products/:id
-exports.getProductById = async (req, res) => {
+// [GET] /api/books/:id
+exports.getBookById = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id)
+        const book = await Book.findById(req.params.id)
             .populate('categoryId', 'name')
             .populate('sellerId', 'firstName lastName');
-        if (!product)
-            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
-        res.json(product);
+        if (!book)
+            return res.status(404).json({ message: 'Không tìm thấy sách' });
+        res.json(book);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// [GET] /api/products/category/:slug
-exports.getProductsByCategorySlug = async (req, res) => {
+// [GET] /api/books/category/:slug
+exports.getBooksByCategorySlug = async (req, res) => {
     try {
         const category = await Category.findOne({ slug: req.params.slug });
         if (!category)
             return res.status(404).json({ message: 'Không tìm thấy danh mục' });
 
-        const products = await Product.find({ categoryId: category._id })
+        const books = await Book.find({ categoryId: category._id })
             .populate('categoryId', 'name slug')
             .populate('sellerId', 'firstName lastName')
             .sort({ createdAt: -1 });
 
-        res.json({ category, products });
+        res.json({ category, books });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// [GET] /api/products/:id/related
-exports.getRelatedProducts = async (req, res) => {
+// [GET] /api/books/:id/related
+exports.getRelatedBooks = async (req, res) => {
     try {
-        const base = await Product.findById(req.params.id);
+        const base = await Book.findById(req.params.id);
         if (!base)
-            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+            return res.status(404).json({ message: 'Không tìm thấy sách' });
 
-        const related = await Product.find({
+        const related = await Book.find({
             _id: { $ne: base._id },
             categoryId: base.categoryId,
             tags: { $in: base.tags },
@@ -76,8 +76,8 @@ exports.getRelatedProducts = async (req, res) => {
     }
 };
 
-// [POST] /api/products
-exports.createProduct = async (req, res) => {
+// [POST] /api/books
+exports.createBook = async (req, res) => {
     try {
         const {
             title,
@@ -107,7 +107,7 @@ exports.createProduct = async (req, res) => {
                 .json({ message: 'Không tìm thấy hồ sơ người bán' });
 
         const imagePaths = req.files
-            ? req.files.map((f) => `/uploads/products/${f.filename}`)
+            ? req.files.map((f) => `/uploads/books/${f.filename}`)
             : [];
 
         if (!profile)
@@ -115,7 +115,7 @@ exports.createProduct = async (req, res) => {
                 .status(400)
                 .json({ message: 'Không tìm thấy hồ sơ người bán' });
 
-        const product = await Product.create({
+        const book = await Book.create({
             sellerId: profile._id,
             categoryId,
             title,
@@ -133,21 +133,21 @@ exports.createProduct = async (req, res) => {
             format,
         });
 
-        res.status(201).json(product);
+        res.status(201).json(book);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// [PUT] /api/products/:id
-exports.updateProduct = async (req, res) => {
+// [PUT] /api/books/:id
+exports.updateBook = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
-        if (!product)
-            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+        const book = await Book.findById(req.params.id);
+        if (!book)
+            return res.status(404).json({ message: 'Không tìm thấy sách' });
 
         if (req.files && req.files.length > 0) {
-            product.images.forEach((imgPath) => {
+            book.images.forEach((imgPath) => {
                 const fullPath = path.join(
                     __dirname,
                     '..',
@@ -156,27 +156,25 @@ exports.updateProduct = async (req, res) => {
                 if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
             });
 
-            product.images = req.files.map(
-                (f) => `/uploads/products/${f.filename}`
-            );
+            book.images = req.files.map((f) => `/uploads/books/${f.filename}`);
         }
 
-        Object.assign(product, req.body);
-        await product.save();
+        Object.assign(book, req.body);
+        await book.save();
 
-        res.json(product);
+        res.json(book);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
-// [DELETE] /api/products/:id
-exports.deleteProduct = async (req, res) => {
+// [DELETE] /api/books/:id
+exports.deleteBook = async (req, res) => {
     try {
-        const product = await Product.findByIdAndDelete(req.params.id);
-        if (!product)
-            return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
-        res.json({ message: 'Đã xóa sản phẩm thành công' });
+        const book = await Book.findByIdAndDelete(req.params.id);
+        if (!book)
+            return res.status(404).json({ message: 'Không tìm thấy sách' });
+        res.json({ message: 'Đã xóa sách thành công' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
