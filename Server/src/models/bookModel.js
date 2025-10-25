@@ -14,6 +14,7 @@ const bookSchema = new mongoose.Schema(
             required: true,
         },
         title: { type: String, required: true, trim: true },
+        slug: { type: String, unique: true },
         author: { type: String, required: true, trim: true },
         publisher: { type: String, trim: true },
         publicationYear: {

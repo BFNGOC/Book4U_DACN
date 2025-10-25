@@ -31,11 +31,6 @@ router.put(
     bookController.updateBook
 );
 
-router.delete(
-    '/:id',
-    authMiddleware,
-    roleMiddleware('seller'),
-    bookController.deleteBook
-);
+router.delete('/:id', authMiddleware, roleMiddleware('seller'), bookController.deleteBook);
 
 module.exports = router;
