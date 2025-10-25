@@ -3,6 +3,8 @@ const categoryRoutes = require('./categoryRoutes');
 const bookRoutes = require('./bookRoutes');
 const roleRequestRoutes = require('./roleRequestRoutes');
 const searchRoutes = require('./searchRoutes');
+const uploadRoutes = require('./uploadRoutes');
+const phoneVerificationRoutes = require('./phoneVerificationRoutes');
 
 function route(app) {
     app.get('/', (req, res) => {
@@ -14,6 +16,8 @@ function route(app) {
     app.use('/api/books', bookRoutes);
     app.use('/api/role-requests', roleRequestRoutes);
     app.use('/api/search', searchRoutes);
+    app.use('/api/uploads', uploadRoutes);
+    app.use('/api/phone', phoneVerificationRoutes);
 }
 
 module.exports = route;

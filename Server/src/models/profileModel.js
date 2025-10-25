@@ -24,6 +24,9 @@ const profileSchema = new mongoose.Schema(
         },
         dateOfBirth: { type: Date, default: null },
         primaryPhone: { type: String, trim: true, default: null },
+        isPhoneVerified: { type: Boolean, default: false },
+        phoneVerificationCode: { type: String },
+        phoneVerificationExpires: { type: Date },
 
         avatar: {
             type: String,
@@ -52,6 +55,7 @@ const Profile = mongoose.model('Profile', profileSchema);
 const sellerSchema = new mongoose.Schema({
     businessName: { type: String, required: true, trim: true },
     businessRegistration: { type: String, trim: true, default: null },
+    businessLicenseImages: [{ type: String, required: false }],
     taxId: { type: String, trim: true, required: true },
     storeLogo: { type: String, default: `/uploads/default-logo.png` },
     storeDescription: { type: String, default: null },
@@ -84,6 +88,11 @@ const sellerSchema = new mongoose.Schema({
     commissionRate: { type: Number, default: 10 },
     isVerified: { type: Boolean, default: false },
     verificationDate: { type: Date, default: null },
+    identificationNumber: { type: String, required: true, trim: true },
+    identificationImages: {
+        front: { type: String, required: true },
+        back: { type: String, required: true },
+    },
 });
 
 const adminSchema = new mongoose.Schema({
@@ -142,6 +151,11 @@ const shipperSchema = new mongoose.Schema({
     },
     isVerified: { type: Boolean, default: false },
     verificationDate: { type: Date, default: null },
+    identificationNumber: { type: String, required: true, trim: true },
+    identificationImages: {
+        front: { type: String, required: true },
+        back: { type: String, required: true },
+    },
 });
 
 const SellerProfile = Profile.discriminator('seller', sellerSchema);

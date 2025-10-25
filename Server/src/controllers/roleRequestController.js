@@ -27,6 +27,8 @@ exports.createRoleRequest = async (req, res) => {
                       'businessAddress',
                       'bankDetails',
                       'warehouses',
+                      'identificationNumber',
+                      'identificationImages',
                   ]
                 : [
                       'licenseNumber',
@@ -34,6 +36,8 @@ exports.createRoleRequest = async (req, res) => {
                       'vehicleRegistration',
                       'serviceArea',
                       'bankDetails',
+                      'identificationNumber',
+                      'identificationImages',
                   ];
 
         const missingFields = requiredFields.filter((field) => {
@@ -43,6 +47,16 @@ exports.createRoleRequest = async (req, res) => {
                     Object.keys(details[field]).length === 0)
             );
         });
+
+        if (
+            role === 'seller' &&
+            details.businessRegistration &&
+            !details.businessLicenseImages
+        ) {
+            return res.status(400).json({
+                message: 'Thiếu hình ảnh giấy đăng ký kinh doanh',
+            });
+        }
 
         if (missingFields.length) {
             return res.status(400).json({
