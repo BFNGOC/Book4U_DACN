@@ -4,13 +4,17 @@ const {
     verifyPhoneNumber,
 } = require('../services/firebaseAuthService');
 
-const sendPhoneVerification = async (req, res) => {
+exports.sendPhoneVerification = async (req, res) => {
     try {
         const { phoneNumber } = req.body;
-        const userId = req.user._id; // Thay đổi từ .id sang ._id
+        const userId = req.user.userId;
 
-        console.log('User ID:', userId);
-        console.log('Request user:', req.user);
+        console.log('Sending verification for:', {
+            userId,
+            phoneNumber,
+            userDetails: req.user,
+        });
+
         if (!phoneNumber) {
             return res.status(400).json({
                 success: false,
@@ -18,18 +22,21 @@ const sendPhoneVerification = async (req, res) => {
             });
         }
 
-        // Check if phone number is already verified for another user
-        const existingProfile = await Profile.findOne({
-            primaryPhone: phoneNumber,
-            isPhoneVerified: true,
-            userId: { $ne: userId },
-        });
-
-        if (existingProfile) {
+        const phoneRegex = /^\+84[0-9]{9}$/;
+        if (!phoneRegex.test(phoneNumber)) {
             return res.status(400).json({
                 success: false,
-                message:
-                    'This phone number is already verified by another user',
+                message: 'Số không hợp lệ. Số phải có định dạng +84xxxxxxxxx',
+            });
+        }
+
+        const userProfile = await Profile.findOne({ userId: userId });
+        console.log('Found profile:', userProfile);
+
+        if (!userProfile) {
+            return res.status(404).json({
+                success: false,
+                message: 'User profile not found',
             });
         }
 
@@ -44,21 +51,15 @@ const sendPhoneVerification = async (req, res) => {
             });
         }
 
-        // Update profile with phone number
+        // Update profile with new phone number
         await Profile.findOneAndUpdate(
-            { userId },
+            { userId: userId },
             {
                 primaryPhone: phoneNumber,
                 isPhoneVerified: false,
-            }
+            },
+            { new: true }
         );
-
-        // Return the token in response
-        res.cookie('phoneVerificationToken', otpResult.token, {
-            maxAge: 5 * 60 * 1000, // 5 minutes
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-        });
 
         res.status(200).json({
             success: true,
@@ -75,10 +76,15 @@ const sendPhoneVerification = async (req, res) => {
     }
 };
 
-const verifyPhone = async (req, res) => {
+exports.verifyPhone = async (req, res) => {
     try {
         const { code } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.userId;
+
+        console.log('Verifying OTP with:', {
+            userId,
+            code: '****' + (code || '').slice(-2),
+        });
 
         if (!code) {
             return res.status(400).json({
@@ -88,12 +94,8 @@ const verifyPhone = async (req, res) => {
         }
 
         console.log('Searching for profile with userId:', userId);
-        const profile = await Profile.findOne({ userId });
+        const profile = await Profile.findOne({ userId: userId });
         console.log('Found profile:', profile);
-
-        // Thử tìm tất cả profile để xem có gì
-        const allProfiles = await Profile.find({});
-        console.log('All profiles:', allProfiles);
 
         if (!profile) {
             return res.status(404).json({
@@ -102,14 +104,13 @@ const verifyPhone = async (req, res) => {
             });
         }
 
-        if (profile.isPhoneVerified) {
+        if (!profile.primaryPhone) {
             return res.status(400).json({
                 success: false,
-                message: 'Phone number is already verified',
+                message: 'No phone number found for verification',
             });
         }
 
-        // Verify through Firebase
         const verificationResult = await verifyPhoneNumber(
             profile.primaryPhone,
             code
@@ -118,16 +119,16 @@ const verifyPhone = async (req, res) => {
         if (!verificationResult.success) {
             return res.status(400).json({
                 success: false,
-                message: verificationResult.message || 'Verification failed',
+                message: 'Invalid verification code',
                 error: verificationResult.error,
             });
         }
 
-        // Update profile verification status
-        await Profile.findOneAndUpdate({ userId }, { isPhoneVerified: true });
-
-        // Clear session cookie
-        res.clearCookie('phoneVerificationSession');
+        await Profile.findOneAndUpdate(
+            { userId: userId },
+            { isPhoneVerified: true },
+            { new: true }
+        );
 
         res.status(200).json({
             success: true,
@@ -141,9 +142,4 @@ const verifyPhone = async (req, res) => {
             error: error.message,
         });
     }
-};
-
-module.exports = {
-    sendPhoneVerification,
-    verifyPhone,
 };
