@@ -1,4 +1,4 @@
-import axiosPublic from '../../utils/api/axiosPublic';
+import axiosPublic from '../../utils/api/axiosPublic.js';
 
 const API_URL = 'api/search';
 
@@ -21,7 +21,7 @@ const fetchBooks = async (endpoint, queryParams, errorMsg) => {
     }
 };
 
-export const searchBooks = (params) =>
+export const suggestBooks = (params) =>
     fetchBooks(`${API_URL}/suggest`, params, 'Lỗi khi tìm kiếm sách.');
 
 export const getSearchResults = (params) =>

@@ -1,49 +1,50 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { products } from '../../data/products';
-
-// Hàm loại bỏ dấu tiếng Việt
-const removeVietnameseTones = (str) => {
-    return str
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D');
-};
+import { suggestBooks } from '../../services/api/searchApi';
+import Loading from './Loading';
 
 function SearchBar() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(() => {
+        // 🔁 Lấy từ localStorage khi component mount
+        return localStorage.getItem('searchTerm') || '';
+    });
     const [results, setResults] = useState([]);
     const [showResults, setShowResults] = useState(false);
+    const [isAllResults, setIsAllResults] = useState(false);
+    const [loading, setLoading] = useState(false);
     const wrapperRef = useRef(null);
 
-    // Lọc sản phẩm
-    const handleFiltered = () => {
-        const term = removeVietnameseTones(searchTerm.trim().toLowerCase());
-        if (term === '') {
+    // 🔎 Gọi API gợi ý
+    const handleFiltered = async () => {
+        if (!searchTerm.trim()) {
             setResults([]);
+            setLoading(false);
             return;
         }
 
-        const filtered = products.filter((p) => {
-            const title = removeVietnameseTones(p.title.toLowerCase());
-            const author = removeVietnameseTones(p.author.toLowerCase());
-            const tags = p.tags.map((t) => removeVietnameseTones(t.toLowerCase()));
-            return (
-                title.includes(term) ||
-                author.includes(term) ||
-                tags.some((tag) => tag.includes(term))
-            );
-        });
+        setLoading(true);
+        const result = await suggestBooks({ q: searchTerm });
 
-        setResults(filtered);
+        if (result.success) {
+            setResults(result.data);
+            setIsAllResults(result.meta?.total > 5);
+        } else {
+            console.error(result.message);
+        }
+
+        setLoading(false);
     };
 
+    // 🕐 Debounce 500ms khi nhập
     useEffect(() => {
-        handleFiltered();
+        const delayDebounce = setTimeout(() => {
+            handleFiltered();
+            localStorage.setItem('searchTerm', searchTerm);
+        }, 500);
+        return () => clearTimeout(delayDebounce);
     }, [searchTerm]);
 
-    // Click ra ngoài thì ẩn dropdown
+    // 🖱️ Click ra ngoài thì ẩn dropdown
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -56,6 +57,7 @@ function SearchBar() {
 
     return (
         <div ref={wrapperRef} className="relative w-full max-w-md">
+            {/* 🔍 Ô nhập */}
             <div className="flex items-center border rounded-full overflow-hidden bg-gray-50 focus-within:ring-2 focus-within:ring-blue-400">
                 <input
                     type="text"
@@ -73,12 +75,14 @@ function SearchBar() {
                 </button>
             </div>
 
-            {/* Dropdown kết quả */}
+            {/* 📦 Dropdown kết quả */}
             {showResults && (
-                <div className="absolute left-0 right-0 mt-2 bg-white border rounded-xl shadow-lg max-h-80 overflow-y-auto z-50 text-left">
-                    {results.length > 0 ? (
+                <div className="absolute left-0 right-0 mt-2 bg-white border rounded-xl shadow-lg max-h-96 overflow-y-auto z-50 text-left">
+                    {loading ? (
+                        <Loading context="Đang tìm kiếm..." />
+                    ) : results.length > 0 ? (
                         <>
-                            {results.slice(0, 5).map((book, index) => (
+                            {results.map((book, index) => (
                                 <Link
                                     to={`/product/${book.slug}`}
                                     key={index}
@@ -102,13 +106,18 @@ function SearchBar() {
                                     </div>
                                 </Link>
                             ))}
+
                             {/* Nút xem tất cả */}
-                            <Link
-                                to={`/search?keyword=${encodeURIComponent(searchTerm)}`}
-                                className="block text-center py-2 text-blue-600 hover:bg-blue-50 font-medium"
-                            >
-                                🔍 Xem tất cả kết quả cho “{searchTerm}”
-                            </Link>
+                            {isAllResults && (
+                                <Link
+                                    to={`/search?q=${encodeURIComponent(
+                                        searchTerm
+                                    )}&page=1&limit=10`}
+                                    className="block text-center py-2 text-blue-600 hover:bg-blue-50 font-medium"
+                                >
+                                    🔍 Xem tất cả kết quả cho “{searchTerm}”
+                                </Link>
+                            )}
                         </>
                     ) : searchTerm.trim() ? (
                         <div className="py-3 text-center text-gray-500 text-sm">

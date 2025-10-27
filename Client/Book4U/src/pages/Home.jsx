@@ -1,4 +1,3 @@
-import HeroSection from '../components/home/HeroSection';
 import CategoryList from '../components/home/CategoryList';
 import Section from '../components/home/Section';
 import BookCard from '../components/home/BookCard';
