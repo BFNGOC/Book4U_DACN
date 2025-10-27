@@ -14,6 +14,11 @@ function Navbar() {
                     <img src="/img/Book4U-removebg.png" alt="BookHub" className="w-24 h-auto" />
                 </Link>
 
+                {/* role-registration */}
+                <Link to="/role/select" className="flex items-center">
+                    Đồng hành cùng chúng tôi
+                </Link>
+
                 {/* Search Bar (global) */}
                 <SearchBar />
 

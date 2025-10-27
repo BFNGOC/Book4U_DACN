@@ -15,6 +15,7 @@ import ResetPassword from '../pages/auth/ResetPassword';
 import Home from '../pages/Home';
 import ProductDetails from '../pages/ProductDetails';
 import Search from '../pages/Search';
+import RoleSelection from '../pages/role/RoleSelection';
 
 import NotFound from '../pages/NotFound';
 
@@ -36,7 +37,7 @@ function AppRoutes() {
 
                 {/* Private Routes */}
                 <Route element={<PrivateRoute />}></Route>
-
+                <Route path="/role/select" element={<RoleSelection />} />
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />
             </Routes>
