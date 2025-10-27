@@ -1,0 +1,184 @@
+import { useEffect, useState } from "react";
+import ProgressSteps from "@/components/ui/ProgressSteps";
+import Input from "@/components/ui/Input";
+import WarehouseModal from "@/components/warehouse/WarehouseModal";
+import { useNavigate } from "react-router-dom";
+
+const SellerStep2 = () => {
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null); // để edit
+  const [editMode, setEditMode] = useState(false);
+  const [provinces, setProvinces] = useState([]);
+  const [address, setAddress] = useState({
+    province: "",
+    district: "",
+    ward: "",
+    detail: "",
+  });
+  const [bank, setBank] = useState({
+    name: "",
+    number: "",
+    bank: "",
+  });
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    fetch("https://provinces.open-api.vn/api/?depth=3")
+      .then((res) => res.json())
+      .then(setProvinces);
+  }, []);
+
+
+  const handleNext = () => {
+    const newErrors = {};
+
+    if (warehouses.length === 0)
+      newErrors.warehouse = "Vui lòng tạo ít nhất một kho hàng trước khi tiếp tục.";
+    if (!bank.name.trim())
+      newErrors.name = "Vui lòng nhập tên chủ tài khoản";
+    if (!bank.number.trim())
+      newErrors.number = "Vui lòng nhập số tài khoản";
+    if (!bank.bank.trim())
+      newErrors.bank = "Vui lòng nhập tên ngân hàng";
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    navigate("/role/seller/verification");
+  };
+
+  const steps = ["Thông tin Shop", "Cài đặt vận chuyển", "Định danh", "Hoàn tất"];
+  const currentStep = 1;
+
+  return (
+    <div className="max-w-5xl mx-auto p-6 bg-white">
+      <ProgressSteps steps={steps} currentStep={currentStep} />
+
+      {/* --- KHỐI 1: KHO HÀNG --- */}
+      <div className="bg-white border border-gray-300 p-6 mb-8">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-semibold">Kho lấy và trả hàng</h2>
+          <button
+            onClick={() => {
+              setEditMode(false);
+              setSelectedWarehouse(null);
+              setShowModal(true);
+            }}
+            className="bg-white hover:bg-blue-50 text-blue-600 px-2 py-2 rounded-md cursor-pointer transition border-2 border-blue-600"
+          >
+            + Tạo kho hàng mới
+          </button>
+        </div>
+        {/* Hiển thị nội dung */}
+        {warehouses.length === 0 ? (
+          <p className="text-sm text-gray-500 mb-4">
+            Vui lòng tạo ít nhất một địa chỉ kho để lấy và trả hàng.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {warehouses.map((w, index) => (
+              <div
+                key={index}
+                className="bg-gray-50 p-4 text-gray-700 relative"
+              >
+                <button
+                  onClick={() => {
+                    setSelectedWarehouse(w);
+                    setEditMode(true);
+                    setShowModal(true);
+                  }}
+                  className="absolute cursor-pointer top-2 right-2 text-sm text-blue-600 border border-blue-600 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  Chỉnh sửa
+                </button>
+
+                <h4 className="font-semibold mb-2">Kho hàng #{index + 1}</h4>
+                <p>
+                  <strong>Họ tên:</strong> {w.name}
+                </p>
+                <p>
+                  <strong>Số điện thoại:</strong> {w.phone}
+                </p>
+                <p>
+                  <strong>Địa chỉ:</strong> {w.detail}, {w.ward}, {w.district},{" "}
+                  {w.province}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {errors.warehouse && (
+          <p className="text-red-500 text-sm mt-2">{errors.warehouse}</p>
+        )}
+      </div>
+
+      {/* --- MODAL --- */}
+      {showModal && (
+        <WarehouseModal
+          onClose={() => setShowModal(false)}
+          onSave={(data) => {
+            if (editMode) {
+              // cập nhật kho cũ
+              setWarehouses((prev) =>
+                prev.map((w) =>
+                  w === selectedWarehouse ? { ...w, ...data } : w
+                )
+              );
+            } else {
+              // thêm kho mới
+              setWarehouses((prev) => [...prev, data]);
+            }
+            setShowModal(false);
+          }}
+          defaultData={editMode ? selectedWarehouse : null}
+        />
+      )}
+
+      {/* --- KHỐI 2: TÀI KHOẢN NGÂN HÀNG --- */}
+      <div className="bg-white border border-gray-300 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Tài khoản ngân hàng</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Input
+            label="Tên chủ tài khoản *"
+            name="accountName"
+            value={bank.name}
+            onChange={(e) => setBank({ ...bank, name: e.target.value })}
+            error={errors.name}
+          />
+          <Input
+            label="Số tài khoản *"
+            name="accountNumber"
+            value={bank.number}
+            onChange={(e) => setBank({ ...bank, number: e.target.value })}
+            error={errors.number}
+          />
+          <Input
+            label="Ngân hàng *"
+            name="bankName"
+            value={bank.bank}
+            onChange={(e) => setBank({ ...bank, bank: e.target.value })}
+            error={errors.bank}
+          />
+        </div>
+      </div>
+
+      {/* --- NÚT --- */}
+      <div className="flex justify-end mt-8">
+        <button
+          onClick={handleNext}
+          className="bg-orange-600 text-white px-6 py-2.5 rounded-md hover:bg-orange-700 transition"
+        >
+          Tiếp theo
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default SellerStep2;

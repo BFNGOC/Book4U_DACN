@@ -46,7 +46,13 @@ function AppRoutes() {
                         </PrivateRoute>
                     }
                 />
-                <Route path="/role/select" element={<RoleSelection />} />
+                <Route 
+                    path="/role/select" 
+                    element={
+                        <PrivateRoute>
+                            <RoleSelection />
+                        </PrivateRoute>} 
+                />
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />
             </Routes>

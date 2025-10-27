@@ -1,6 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const RoleSelect = () => {
+  const navigate = useNavigate();
   const roles = [
     {
       id: "seller",
@@ -19,8 +21,7 @@ const RoleSelect = () => {
   ];
 
   const handleSelect = (role) => {
-    alert(`Bạn đã chọn đăng ký làm: ${role}`);
-    // navigate(`/role/${role}`);
+    navigate(`/role/${role}/info`);
   };
 
   return (
