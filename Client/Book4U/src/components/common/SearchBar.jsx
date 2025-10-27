@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { suggestBooks } from '../../services/api/searchApi';
 import Loading from './Loading';
+import API_URL from '../../configs/api';
 
 function SearchBar() {
     const [searchTerm, setSearchTerm] = useState(() => {
@@ -82,30 +83,35 @@ function SearchBar() {
                         <Loading context="Đang tìm kiếm..." />
                     ) : results.length > 0 ? (
                         <>
-                            {results.map((book, index) => (
-                                <Link
-                                    to={`/product/${book.slug}`}
-                                    key={index}
-                                    className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0"
-                                >
-                                    <img
-                                        src={book.images[0]}
-                                        alt={book.title}
-                                        className="w-10 h-14 object-cover rounded-md border"
-                                    />
-                                    <div className="overflow-hidden">
-                                        <h4 className="font-semibold text-gray-800 truncate">
-                                            {book.title}
-                                        </h4>
-                                        <p className="text-sm text-gray-500 truncate">
-                                            {book.author}
-                                        </p>
-                                        <p className="text-sm text-blue-600 font-semibold">
-                                            {book.price.toLocaleString('vi-VN')}₫
-                                        </p>
-                                    </div>
-                                </Link>
-                            ))}
+                            {results.map(
+                                (book, index) => (
+                                    console.log(book),
+                                    (
+                                        <Link
+                                            to={`/product/${book.slug}`}
+                                            key={index}
+                                            className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b last:border-b-0"
+                                        >
+                                            <img
+                                                src={`${API_URL}${book.images[0]}`}
+                                                alt={book.title}
+                                                className="w-10 h-14 object-cover rounded-md border"
+                                            />
+                                            <div className="overflow-hidden">
+                                                <h4 className="font-semibold text-gray-800 truncate">
+                                                    {book.title}
+                                                </h4>
+                                                <p className="text-sm text-gray-500 truncate">
+                                                    {book.author}
+                                                </p>
+                                                <p className="text-sm text-blue-600 font-semibold">
+                                                    {book.price.toLocaleString('vi-VN')}₫
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    )
+                                )
+                            )}
 
                             {/* Nút xem tất cả */}
                             {isAllResults && (

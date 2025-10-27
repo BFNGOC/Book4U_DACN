@@ -1,11 +1,17 @@
+import API_URL from '../../configs/api';
+
 function BookCard({ images, title, author, rating, price, discount }) {
     const discountedPrice = price * (1 - discount / 100);
 
     return (
         <div className="bg-white shadow-md rounded-2xl p-4 hover:-translate-y-1 transition">
-            <img src={images[0]} alt={title} className="h-48 w-full object-cover rounded-xl mb-3" />
+            <img
+                src={`${API_URL}${images[0]}`}
+                alt={title}
+                className="h-48 w-full object-cover rounded-xl mb-3"
+            />
             <h3 className="font-semibold line-clamp-1">{title}</h3>
-            <p className="text-gray-500 text-sm mb-1">by {author}</p>
+            <p className="text-gray-500 text-sm mb-1">{author}</p>
             <div className="text-yellow-500 mb-2">⭐ {rating}</div>
             <div className="mb-2">
                 <span className="text-blue-600 font-bold">

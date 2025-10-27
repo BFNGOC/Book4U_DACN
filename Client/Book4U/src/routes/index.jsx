@@ -17,6 +17,8 @@ import ProductDetails from '../pages/ProductDetails';
 import Search from '../pages/Search';
 import RoleSelection from '../pages/role/RoleSelection';
 
+import DailyDiscover from '../pages/DailyDiscover';
+
 import NotFound from '../pages/NotFound';
 
 function AppRoutes() {
@@ -36,7 +38,14 @@ function AppRoutes() {
                 <Route path="/search" element={<Search />} />
 
                 {/* Private Routes */}
-                <Route element={<PrivateRoute />}></Route>
+                <Route
+                    path="/daily-discover"
+                    element={
+                        <PrivateRoute>
+                            <DailyDiscover />
+                        </PrivateRoute>
+                    }
+                />
                 <Route path="/role/select" element={<RoleSelection />} />
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />

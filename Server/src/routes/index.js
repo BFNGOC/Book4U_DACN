@@ -5,6 +5,7 @@ const roleRequestRoutes = require('./roleRequestRoutes');
 const searchRoutes = require('./searchRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const phoneVerificationRoutes = require('./phoneVerificationRoutes');
+const recommendRoutes = require('./recommendRoutes');
 
 function route(app) {
     app.get('/', (req, res) => {
@@ -18,6 +19,7 @@ function route(app) {
     app.use('/api/search', searchRoutes);
     app.use('/api/uploads', uploadRoutes);
     app.use('/api/phone', phoneVerificationRoutes);
+    app.use('/api/recommend', recommendRoutes);
 }
 
 module.exports = route;
