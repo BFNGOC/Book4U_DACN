@@ -1,7 +1,16 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 
-const ImageUpload = ({ label, name, onChange, value }) => {
+const ImageUpload = ({
+    label,
+    name,
+    onChange,
+    value,
+    placeholder = 'Chọn ảnh để tải lên',
+    icon: Icon = Upload,
+    width = 'w-40',
+    height = 'h-40',
+}) => {
     const [preview, setPreview] = useState(
         typeof value === 'string' ? value : null
     );
@@ -26,7 +35,9 @@ const ImageUpload = ({ label, name, onChange, value }) => {
                     {label}
                 </label>
             )}
-            <div className="relative w-40 h-40 border border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 overflow-hidden">
+
+            <div
+                className={`relative ${width} ${height} border border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 overflow-hidden`}>
                 {preview ? (
                     <>
                         <img
@@ -38,14 +49,17 @@ const ImageUpload = ({ label, name, onChange, value }) => {
                             type="button"
                             onClick={handleRemove}
                             className="absolute top-1 right-1 bg-white rounded-full shadow p-1">
-                            <X size={16} className="cursor-pointer" />
+                            <X
+                                size={16}
+                                className="cursor-pointer text-gray-600"
+                            />
                         </button>
                     </>
                 ) : (
                     <label className="flex flex-col items-center justify-center h-full w-full cursor-pointer">
-                        <span className="text-3xl text-gray-400">+</span>
-                        <p className="text-center text-sm text-gray-600 px-2 mt-1">
-                            Tải lên logo cửa hàng
+                        <Icon size={28} className="text-gray-400 mb-1" />
+                        <p className="text-center text-sm text-gray-600 px-2">
+                            {placeholder}
                         </p>
                         <input
                             type="file"

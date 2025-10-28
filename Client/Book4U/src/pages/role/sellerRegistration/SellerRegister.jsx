@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SellerStep1 from './SellerStep1';
 import SellerStep2 from './SellerStep2';
 import SellerStep3 from './SellerStep3';
@@ -6,15 +6,30 @@ import SellerStep4 from './SellerStep4';
 import ProgressSteps from '@/components/ui/ProgressSteps';
 
 export default function SellerRegister() {
-    // Bước hiện tại (0-3)
     const [currentStep, setCurrentStep] = useState(0);
-
-    // Dữ liệu form chung
     const [formData, setFormData] = useState({
         shopInfo: {},
         shipping: {},
         verification: {},
     });
+
+    // --- Load từ localStorage khi mở lại ---
+    useEffect(() => {
+        const saved = localStorage.getItem('sellerRegister');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            setFormData(parsed.formData || {});
+            setCurrentStep(parsed.currentStep || 0);
+        }
+    }, []);
+
+    // --- Mỗi khi thay đổi, lưu lại ---
+    useEffect(() => {
+        localStorage.setItem(
+            'sellerRegister',
+            JSON.stringify({ formData, currentStep })
+        );
+    }, [formData, currentStep]);
 
     const steps = [
         'Thông tin Shop',
@@ -24,14 +39,11 @@ export default function SellerRegister() {
     ];
 
     const handleNext = (data) => {
-        // lưu data của step hiện tại
         const updated = { ...formData };
         if (currentStep === 0) updated.shopInfo = data;
         if (currentStep === 1) updated.shipping = data;
         if (currentStep === 2) updated.verification = data;
         setFormData(updated);
-
-        // qua bước kế tiếp
         setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
     };
 
@@ -40,7 +52,6 @@ export default function SellerRegister() {
     return (
         <div className="max-w-6xl mx-auto p-6 bg-white rounded-2xl shadow">
             <ProgressSteps steps={steps} currentStep={currentStep} />
-
             <div className="mt-8">
                 {currentStep === 0 && (
                     <SellerStep1 data={formData.shopInfo} onNext={handleNext} />

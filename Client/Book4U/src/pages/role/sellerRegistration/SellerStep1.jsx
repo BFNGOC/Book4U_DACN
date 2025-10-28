@@ -1,17 +1,25 @@
 import { useUser } from '@/contexts/userContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Input from '@/components/ui/Input';
 import ImageUpload from '@/components/ui/ImageUpload';
 
-const SellerStep1 = ({ data, onNext }) => {
+const SellerStep1 = ({ data = {}, onNext }) => {
     const { user } = useUser();
     const [form, setForm] = useState({
-        businessName: '',
-        storeLogo: '',
-        phone: '',
+        businessName: data.businessName || '',
+        storeLogo: data.storeLogo || '',
+        phone: data.phone || '',
     });
 
     const [errors, setErrors] = useState({});
+
+    // useEffect(() => {
+    //     setForm({
+    //         businessName: data.businessName || '',
+    //         phone: data.phone || '',
+    //         address: data.address || '',
+    //     });
+    // }, [data]);
 
     const handleNext = () => {
         const newErrors = {};
@@ -53,6 +61,7 @@ const SellerStep1 = ({ data, onNext }) => {
 
                 <ImageUpload
                     label="Logo cửa hàng"
+                    placeholder="Tải lên logo cửa hàng"
                     name="storeLogo"
                     value={form.storeLogo}
                     onChange={(file) => setForm({ ...form, storeLogo: file })}

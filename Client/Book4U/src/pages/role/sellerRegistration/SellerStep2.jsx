@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import Input from '@/components/ui/Input';
 import WarehouseModal from '@/components/warehouse/WarehouseModal';
-import { useNavigate } from 'react-router-dom';
 import { provinceApi } from '@/services/api/provinceApi';
+import { bankApi } from '@/services/api/bankApi';
 
 const SellerStep2 = ({ data, onNext, onBack }) => {
-    const navigate = useNavigate();
     const [showModal, setShowModal] = useState(false);
-    const [warehouses, setWarehouses] = useState([]);
+    const [warehouses, setWarehouses] = useState(() => data?.warehouses || []);
     const [selectedWarehouse, setSelectedWarehouse] = useState(null); // để edit
     const [editMode, setEditMode] = useState(false);
     const [provinces, setProvinces] = useState([]);
@@ -17,12 +16,20 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
         ward: '',
         detail: '',
     });
-    const [bank, setBank] = useState({
-        name: '',
-        number: '',
-        bank: '',
-    });
+    const [banks, setBanks] = useState([]);
+    const [bank, setBank] = useState(
+        () => data?.bank || { name: '', number: '', bank: '', branch: '' }
+    );
     const [errors, setErrors] = useState({});
+
+    // useEffect(() => {
+    //     if (data) {
+    //         setWarehouses(data.warehouses || []);
+    //         setBank(
+    //             data.bank || { name: '', number: '', bank: '', branch: '' }
+    //         );
+    //     }
+    // }, [data]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -32,17 +39,32 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
         fetchData();
     }, []);
 
+    useEffect(() => {
+        const fetchBanks = async () => {
+            const result = await bankApi.getAll();
+            if (result.success) {
+                setBanks(result.data);
+            } else {
+                console.error(result.message);
+            }
+        };
+
+        fetchBanks();
+    }, []);
+
     const handleNext = () => {
         const newErrors = {};
 
         if (warehouses.length === 0)
             newErrors.warehouse =
                 'Vui lòng tạo ít nhất một kho hàng trước khi tiếp tục.';
+        if (!bank.bank.trim()) newErrors.bank = 'Vui lòng nhập tên ngân hàng';
+        if (!bank.branch.trim())
+            newErrors.branch = 'Vui lòng nhập chi nhánh ngân hàng';
         if (!bank.name.trim())
             newErrors.name = 'Vui lòng nhập tên chủ tài khoản';
         if (!bank.number.trim())
             newErrors.number = 'Vui lòng nhập số tài khoản';
-        if (!bank.bank.trim()) newErrors.bank = 'Vui lòng nhập tên ngân hàng';
 
         setErrors(newErrors);
         if (Object.keys(newErrors).length > 0) return;
@@ -145,6 +167,38 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Ngân hàng *
+                        </label>
+                        <select
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                            value={bank.bank}
+                            onChange={(e) =>
+                                setBank({ ...bank, bank: e.target.value })
+                            }>
+                            <option value="">Chọn ngân hàng</option>
+                            {banks.map((b) => (
+                                <option key={b.code} value={b.short_name}>
+                                    {b.short_name} - {b.name}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.bank && (
+                            <p className="text-red-500 text-sm mt-1">
+                                {errors.bank}
+                            </p>
+                        )}
+                    </div>
+                    <Input
+                        label="Chi nhánh *"
+                        name="branch"
+                        value={bank.branch}
+                        onChange={(e) =>
+                            setBank({ ...bank, branch: e.target.value })
+                        }
+                        error={errors.branch}
+                    />
                     <Input
                         label="Tên chủ tài khoản *"
                         name="accountName"
@@ -162,15 +216,6 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
                             setBank({ ...bank, number: e.target.value })
                         }
                         error={errors.number}
-                    />
-                    <Input
-                        label="Ngân hàng *"
-                        name="bankName"
-                        value={bank.bank}
-                        onChange={(e) =>
-                            setBank({ ...bank, bank: e.target.value })
-                        }
-                        error={errors.bank}
                     />
                 </div>
             </div>

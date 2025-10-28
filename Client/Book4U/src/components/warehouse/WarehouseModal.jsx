@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import Input from '@/components/ui/Input';
+import AddressSelector from '@/components/common/AddressSelector.jsx';
 import { provinceApi } from '@/services/api/provinceApi.js';
 
 const WarehouseModal = ({ onClose, onSave, defaultData }) => {
-    const [provinces, setProvinces] = useState([]);
-    const [districts, setDistricts] = useState([]);
-    const [wards, setWards] = useState([]);
     const [errors, setErrors] = useState({});
 
     const [form, setForm] = useState(
@@ -19,75 +17,7 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
         }
     );
 
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            const provinceRes = await provinceApi.getAll(1);
-            if (provinceRes.success) setProvinces(provinceRes.data);
-
-            if (defaultData?.provinceCode) {
-                const districtRes = await provinceApi.getDistricts(
-                    defaultData.provinceCode
-                );
-                if (districtRes.success)
-                    setDistricts(districtRes.data.districts || []);
-            }
-
-            if (defaultData?.districtCode) {
-                const wardRes = await provinceApi.getWards(
-                    defaultData.districtCode
-                );
-                if (wardRes.success) setWards(wardRes.data.wards || []);
-            }
-
-            // set lại form
-            setForm({
-                name: defaultData?.name || '',
-                phone: defaultData?.phone || '',
-                province: defaultData?.provinceCode || '',
-                district: defaultData?.districtCode || '',
-                ward: defaultData?.wardCode || '',
-                detail: defaultData?.detail || '',
-            });
-        };
-
-        fetchInitialData();
-    }, [defaultData]);
-
-    // 🔹 Khi chọn Tỉnh
-    const handleProvinceChange = async (e) => {
-        const provinceCode = e.target.value;
-        setForm((prev) => ({
-            ...prev,
-            province: provinceCode,
-            district: '',
-            ward: '',
-        }));
-        setDistricts([]);
-        setWards([]);
-
-        if (provinceCode) {
-            const res = await provinceApi.getDistricts(provinceCode);
-            if (res.success) setDistricts(res.data.districts || []);
-        }
-    };
-
-    // 🔹 Khi chọn Quận/Huyện
-    const handleDistrictChange = async (e) => {
-        const districtCode = e.target.value;
-        setForm((prev) => ({
-            ...prev,
-            district: districtCode,
-            ward: '',
-        }));
-        setWards([]);
-
-        if (districtCode) {
-            const res = await provinceApi.getWards(districtCode);
-            if (res.success) setWards(res.data.wards || []);
-        }
-    };
-
-    const handleSave = () => {
+    const handleSave = async () => {
         const newErrors = {};
         if (!form.name.trim()) newErrors.name = 'Vui lòng nhập họ tên';
         if (!form.phone.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại';
@@ -101,9 +31,18 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
         setErrors(newErrors);
         if (Object.keys(newErrors).length > 0) return;
 
+        // Lấy tên địa lý từ API
+        const provinceRes = await provinceApi.getAll(1);
+        const provinces = provinceRes.data || [];
         const provinceObj = provinces.find((p) => p.code == form.province);
-        const districtObj = districts.find((d) => d.code == form.district);
-        const wardObj = wards.find((w) => w.code == form.ward);
+
+        const districtRes = await provinceApi.getDistricts(form.province);
+        const districtObj = districtRes.data?.districts?.find(
+            (d) => d.code == form.district
+        );
+
+        const wardRes = await provinceApi.getWards(form.district);
+        const wardObj = wardRes.data?.wards?.find((w) => w.code == form.ward);
 
         onSave({
             ...form,
@@ -142,71 +81,12 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
                         error={errors.phone}
                     />
 
-                    <select
-                        className="border rounded-md px-3 py-2 w-full"
-                        value={form.province}
-                        onChange={handleProvinceChange}>
-                        <option value="">Chọn Tỉnh/Thành phố</option>
-                        {provinces.map((p) => (
-                            <option key={p.code} value={p.code}>
-                                {p.name}
-                            </option>
-                        ))}
-                    </select>
-                    {errors.province && (
-                        <p className="text-red-500 text-sm">
-                            {errors.province}
-                        </p>
-                    )}
-
-                    <select
-                        className="border rounded-md px-3 py-2 w-full"
-                        value={form.district}
-                        onChange={handleDistrictChange}
-                        disabled={!districts.length}>
-                        <option value="">Chọn Quận/Huyện</option>
-                        {districts.map((d) => (
-                            <option key={d.code} value={d.code}>
-                                {d.name}
-                            </option>
-                        ))}
-                    </select>
-                    {errors.district && (
-                        <p className="text-red-500 text-sm">
-                            {errors.district}
-                        </p>
-                    )}
-
-                    <select
-                        className="border rounded-md px-3 py-2 w-full"
-                        value={form.ward}
-                        onChange={(e) =>
-                            setForm({ ...form, ward: e.target.value })
-                        }
-                        disabled={!wards.length}>
-                        <option value="">Chọn Phường/Xã</option>
-                        {wards.map((w) => (
-                            <option key={w.code} value={w.code}>
-                                {w.name}
-                            </option>
-                        ))}
-                    </select>
-                    {errors.ward && (
-                        <p className="text-red-500 text-sm">{errors.ward}</p>
-                    )}
-
-                    <textarea
-                        placeholder="Địa chỉ chi tiết"
-                        className="border rounded-md px-3 py-2 w-full"
-                        rows={2}
-                        value={form.detail}
-                        onChange={(e) =>
-                            setForm({ ...form, detail: e.target.value })
-                        }
+                    <AddressSelector
+                        value={form}
+                        onChange={(newAddr) => setForm({ ...form, ...newAddr })}
+                        errors={errors}
+                        defaultData={defaultData}
                     />
-                    {errors.detail && (
-                        <p className="text-red-500 text-sm">{errors.detail}</p>
-                    )}
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">
