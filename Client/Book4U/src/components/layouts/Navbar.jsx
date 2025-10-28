@@ -11,12 +11,11 @@ function Navbar() {
             <div className="max-w-screen-xl mx-auto px-6 h-full flex items-center justify-between gap-6">
                 {/* Logo */}
                 <Link to="/" className="flex items-center">
-                    <img src="/img/Book4U-removebg.png" alt="BookHub" className="w-24 h-auto" />
-                </Link>
-
-                {/* role-registration */}
-                <Link to="/role/select" className="flex items-center">
-                    Đồng hành cùng chúng tôi
+                    <img
+                        src="/img/Book4U-removebg.png"
+                        alt="BookHub"
+                        className="w-24 h-auto"
+                    />
                 </Link>
 
                 {/* Search Bar (global) */}
@@ -39,24 +38,26 @@ function Navbar() {
                             </button>
                             <div
                                 className="absolute right-0 top-full w-40 bg-white shadow-lg rounded-lg border py-2 
-                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200"
-                            >
+                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200">
                                 <Link
                                     to="/profile"
-                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                >
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
                                     Trang cá nhân
                                 </Link>
                                 <Link
                                     to="/orders"
-                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                                >
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
                                     Đơn hàng
+                                </Link>
+                                {/* role-registration */}
+                                <Link
+                                    to="register/role/select"
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    Đồng hành cùng chúng tôi
                                 </Link>
                                 <button
                                     onClick={logoutUser}
-                                    className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100"
-                                >
+                                    className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100">
                                     Đăng xuất
                                 </button>
                             </div>
@@ -65,14 +66,12 @@ function Navbar() {
                         <div className="space-x-1">
                             <Link
                                 to="/register"
-                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
-                            >
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">
                                 Đăng ký
                             </Link>
                             <Link
                                 to="/login"
-                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
-                            >
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
                                 Đăng nhập
                             </Link>
                         </div>

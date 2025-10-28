@@ -22,17 +22,71 @@ async function updateProfileForRole(user) {
     switch (user.role) {
         case 'seller':
             // Nếu bất kỳ field required nào trống => throw error
+            // Kiểm tra các field cơ bản
+            if (!existingProfile.businessName?.trim()) {
+                throw new Error('Thiếu tên doanh nghiệp (businessName)');
+            }
+            if (!existingProfile.taxId?.trim()) {
+                throw new Error('Thiếu mã số thuế (taxId)');
+            }
+
+            // Kiểm tra địa chỉ kinh doanh
             if (
-                !existingProfile.businessName ||
-                !existingProfile.taxId ||
                 !existingProfile.businessAddress ||
-                !existingProfile.bankDetails ||
-                !existingProfile.warehouses ||
-                existingProfile.warehouses.length === 0 ||
-                !existingProfile.identificationNumber ||
-                !existingProfile.identificationImages
+                !existingProfile.businessAddress.street ||
+                !existingProfile.businessAddress.city ||
+                !existingProfile.businessAddress.country
             ) {
-                throw new Error('Thiếu thông tin bắt buộc để trở thành seller');
+                throw new Error(
+                    'Thiếu thông tin địa chỉ kinh doanh (businessAddress)'
+                );
+            }
+
+            // Kiểm tra thông tin ngân hàng
+            if (
+                !existingProfile.bankDetails ||
+                !existingProfile.bankDetails.accountName ||
+                !existingProfile.bankDetails.accountNumber ||
+                !existingProfile.bankDetails.bankName ||
+                !existingProfile.bankDetails.branchName
+            ) {
+                throw new Error('Thiếu thông tin ngân hàng');
+            }
+
+            // Kiểm tra kho hàng
+            if (
+                !existingProfile.warehouses ||
+                existingProfile.warehouses.length === 0
+            ) {
+                throw new Error('Phải có ít nhất một kho hàng (warehouses)');
+            }
+
+            // Kiểm tra chi tiết từng kho
+            for (const [index, w] of existingProfile.warehouses.entries()) {
+                if (!w.name || !w.street || !w.city) {
+                    throw new Error(
+                        `Kho hàng #${index + 1} thiếu thông tin địa chỉ`
+                    );
+                }
+                if (!w.managerName || !w.managerPhone) {
+                    throw new Error(
+                        `Kho hàng #${index + 1} thiếu người phụ trách`
+                    );
+                }
+            }
+
+            // Kiểm tra giấy tờ định danh
+            if (!existingProfile.identificationNumber?.trim()) {
+                throw new Error('Thiếu số định danh (identificationNumber)');
+            }
+            if (
+                !existingProfile.identificationImages ||
+                !existingProfile.identificationImages.front ||
+                !existingProfile.identificationImages.back
+            ) {
+                throw new Error(
+                    'Thiếu hình ảnh CCCD/CMND (identificationImages)'
+                );
             }
             extraFields = {
                 businessName: existingProfile.businessName,

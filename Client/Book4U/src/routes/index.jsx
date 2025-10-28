@@ -15,7 +15,9 @@ import ResetPassword from '../pages/auth/ResetPassword';
 import Home from '../pages/Home';
 import ProductDetails from '../pages/ProductDetails';
 import Search from '../pages/Search';
+
 import RoleSelection from '../pages/role/RoleSelection';
+import SellerRegister from '../pages/role/sellerRegistration/SellerRegister';
 
 import DailyDiscover from '../pages/DailyDiscover';
 
@@ -33,7 +35,10 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route
+                    path="/reset-password/:token"
+                    element={<ResetPassword />}
+                />
                 <Route path="/product/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
 
@@ -46,12 +51,21 @@ function AppRoutes() {
                         </PrivateRoute>
                     }
                 />
-                <Route 
-                    path="/role/select" 
+                <Route
+                    path="register/role/select"
                     element={
                         <PrivateRoute>
                             <RoleSelection />
-                        </PrivateRoute>} 
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="register/seller/"
+                    element={
+                        <PrivateRoute>
+                            <SellerRegister />
+                        </PrivateRoute>
+                    }
                 />
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />
