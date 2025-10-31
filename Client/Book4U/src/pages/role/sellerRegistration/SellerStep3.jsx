@@ -4,10 +4,11 @@ import Input from '@/components/ui/Input';
 import ImageUpload from '@/components/ui/ImageUpload';
 import AddressSelector from '@/components/common/AddressSelector';
 
-const SellerStep3 = ({ data = {}, onNext, onBack }) => {
+const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
     const [type, setType] = useState(() => data.type || 'personal');
     const [info, setInfo] = useState(() => ({
-        fullName: data.info?.fullName || '',
+        lastName: data.info?.lastName || '',
+        firstName: data.info?.firstName || '',
         idNumber: data.info?.idNumber || '',
         taxId: data.info?.taxId || '',
         businessLicense: data.info?.businessLicense || null,
@@ -17,10 +18,25 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
     }));
     const [errors, setErrors] = useState({});
 
+    useEffect(() => {
+        setType(data.type || 'personal');
+        setInfo({
+            lastName: data.info?.lastName || '',
+            firstName: data.info?.firstName || '',
+            idNumber: data.info?.idNumber || '',
+            taxId: data.info?.taxId || '',
+            businessLicense: data.info?.businessLicense || null,
+            idFront: data.info?.idFront || null,
+            idBack: data.info?.idBack || null,
+            address: data.info?.address || {},
+        });
+    }, [data]);
+
     const validate = () => {
         const newErrors = {};
-        if (!info.fullName.trim())
-            newErrors.fullName = 'Vui lòng nhập họ và tên';
+        if (!info.lastName.trim())
+            newErrors.lastName = 'Vui lòng nhập họ và tên đệm';
+        if (!info.firstName.trim()) newErrors.firstName = 'Vui lòng nhập tên';
         if (!info.idNumber.trim())
             newErrors.idNumber = 'Vui lòng nhập số định danh';
         if (!info.idFront)
@@ -49,8 +65,23 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
         return Object.keys(newErrors).length === 0;
     };
 
+    const handleChange = (key, value) => {
+        const updated = { ...info, [key]: value };
+        setInfo(updated);
+        onUpdate && onUpdate({ type, info: updated });
+    };
+
+    const handleTypeChange = (newType) => {
+        setType(newType);
+        onUpdate && onUpdate({ type: newType, info });
+    };
+
     const handleNext = () => {
         if (!validate()) return;
+        if (!agreed) {
+            setAgreeError(true);
+            return;
+        }
         onNext({ type, info });
     };
 
@@ -63,7 +94,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
             {/* --- Chọn loại tài khoản --- */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                 <div
-                    onClick={() => setType('personal')}
+                    onClick={() => handleTypeChange('personal')}
                     className={`border rounded-xl p-4 cursor-pointer flex flex-col items-center ${
                         type === 'personal'
                             ? 'border-blue-500 bg-blue-50'
@@ -85,7 +116,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
                 </div>
 
                 <div
-                    onClick={() => setType('business')}
+                    onClick={() => handleTypeChange('business')}
                     className={`border rounded-xl p-4 cursor-pointer flex flex-col items-center ${
                         type === 'business'
                             ? 'border-blue-500 bg-blue-50'
@@ -109,21 +140,29 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
 
             {/* --- Form nhập thông tin --- */}
             <div className="space-y-5">
-                <Input
-                    label="Họ và tên người ký hợp đồng *"
-                    value={info.fullName}
-                    onChange={(e) =>
-                        setInfo({ ...info, fullName: e.target.value })
-                    }
-                    error={errors.fullName}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                    <Input
+                        label="Họ và tên đệm *"
+                        value={info.lastName}
+                        onChange={(e) =>
+                            handleChange('lastName', e.target.value)
+                        }
+                        error={errors.lastName}
+                    />
+                    <Input
+                        label="Tên *"
+                        value={info.firstName}
+                        onChange={(e) =>
+                            handleChange('firstName', e.target.value)
+                        }
+                        error={errors.firstName}
+                    />
+                </div>
 
                 <Input
                     label="Số định danh / CCCD *"
                     value={info.idNumber}
-                    onChange={(e) =>
-                        setInfo({ ...info, idNumber: e.target.value })
-                    }
+                    onChange={(e) => handleChange('idNumber', e.target.value)}
                     error={errors.idNumber}
                 />
 
@@ -134,9 +173,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
                             label="Ảnh mặt trước CCCD"
                             placeholder="Tải lên ảnh mặt trước"
                             value={info.idFront}
-                            onChange={(file) =>
-                                setInfo({ ...info, idFront: file })
-                            }
+                            onChange={(file) => handleChange('idFront', file)}
                         />
                         {errors.idFront && (
                             <p className="text-red-500 text-sm mt-1">
@@ -149,9 +186,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
                             label="Ảnh mặt sau CCCD"
                             placeholder="Tải lên ảnh mặt sau"
                             value={info.idBack}
-                            onChange={(file) =>
-                                setInfo({ ...info, idBack: file })
-                            }
+                            onChange={(file) => handleChange('idBack', file)}
                         />
                         {errors.idBack && (
                             <p className="text-red-500 text-sm mt-1">
@@ -165,9 +200,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
                     <Input
                         label="Mã số thuế thu nhập cá nhân *"
                         value={info.taxId}
-                        onChange={(e) =>
-                            setInfo({ ...info, taxId: e.target.value })
-                        }
+                        onChange={(e) => handleChange('taxId', e.target.value)}
                         error={errors.taxId}
                     />
                 ) : (
@@ -186,10 +219,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
                                 placeholder="Tải lên giấy phép kinh doanh"
                                 value={info.businessLicense}
                                 onChange={(file) =>
-                                    setInfo({
-                                        ...info,
-                                        businessLicense: file,
-                                    })
+                                    handleChange('businessLicense', file)
                                 }
                             />
                             {errors.businessLicense && (
@@ -201,13 +231,20 @@ const SellerStep3 = ({ data = {}, onNext, onBack }) => {
                     </>
                 )}
 
-                <AddressSelector
-                    value={info.address || {}}
-                    onChange={(addr) => setInfo({ ...info, address: addr })}
-                />
-                {errors.address && (
-                    <p className="text-red-500 text-sm">{errors.address}</p>
-                )}
+                <div>
+                    <label className="block text-lg font-medium text-gray-700 mb-1">
+                        {type === 'personal'
+                            ? 'Địa chỉ liên hệ *'
+                            : 'Địa chỉ doanh nghiệp *'}
+                    </label>
+                    <AddressSelector
+                        value={info.address || {}}
+                        onChange={(addr) => handleChange('address', addr)}
+                    />
+                    {errors.address && (
+                        <p className="text-red-500 text-sm">{errors.address}</p>
+                    )}
+                </div>
             </div>
 
             <div className="flex justify-between mt-8">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 
 const ImageUpload = ({
@@ -15,11 +15,26 @@ const ImageUpload = ({
         typeof value === 'string' ? value : null
     );
 
+    useEffect(() => {
+        if (typeof value === 'string') {
+            setPreview(value);
+        } else {
+            if (!value) {
+                setPreview(null);
+            }
+        }
+    }, [value]);
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setPreview(URL.createObjectURL(file));
-            onChange(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result;
+                setPreview(base64);
+                onChange(base64);
+            };
+            reader.readAsDataURL(file);
         }
     };
 

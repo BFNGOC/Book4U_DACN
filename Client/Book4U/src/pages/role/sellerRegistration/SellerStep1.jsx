@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Input from '@/components/ui/Input';
 import ImageUpload from '@/components/ui/ImageUpload';
 
-const SellerStep1 = ({ data = {}, onNext }) => {
+const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     const { user } = useUser();
     const [form, setForm] = useState({
         businessName: data.businessName || '',
@@ -13,13 +13,25 @@ const SellerStep1 = ({ data = {}, onNext }) => {
 
     const [errors, setErrors] = useState({});
 
-    // useEffect(() => {
-    //     setForm({
-    //         businessName: data.businessName || '',
-    //         phone: data.phone || '',
-    //         address: data.address || '',
-    //     });
-    // }, [data]);
+    useEffect(() => {
+        setForm({
+            businessName: data.businessName || '',
+            storeLogo: data.storeLogo || null,
+            phone: data.phone || '',
+        });
+    }, [data]);
+
+    const handleFileChange = (key, file) => {
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setForm((prevForm) => ({ ...prevForm, [key]: reader.result }));
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setForm((prevForm) => ({ ...prevForm, [key]: null }));
+        }
+    };
 
     const handleNext = () => {
         const newErrors = {};
@@ -46,11 +58,17 @@ const SellerStep1 = ({ data = {}, onNext }) => {
                         placeholder="Nhập tên shop"
                         value={form.businessName}
                         onChange={(e) => {
-                            if (e.target.value.length <= 30)
+                            if (e.target.value.length <= 30) {
+                                const updated = {
+                                    ...form,
+                                    businessName: e.target.value,
+                                };
                                 setForm({
                                     ...form,
                                     businessName: e.target.value,
                                 });
+                                onUpdate && onUpdate(updated);
+                            }
                         }}
                         error={errors.businessName}
                     />
@@ -64,7 +82,11 @@ const SellerStep1 = ({ data = {}, onNext }) => {
                     placeholder="Tải lên logo cửa hàng"
                     name="storeLogo"
                     value={form.storeLogo}
-                    onChange={(file) => setForm({ ...form, storeLogo: file })}
+                    onChange={(base64) => {
+                        const updated = { ...form, storeLogo: base64 };
+                        setForm({ ...form, storeLogo: base64 });
+                        onUpdate && onUpdate(updated);
+                    }}
                 />
 
                 <div className="overflow-x-auto">
@@ -81,9 +103,11 @@ const SellerStep1 = ({ data = {}, onNext }) => {
                     name="phone"
                     placeholder="0xxxxxxxxx"
                     value={form.phone}
-                    onChange={(e) =>
-                        setForm({ ...form, phone: e.target.value })
-                    }
+                    onChange={(e) => {
+                        const updated = { ...form, phone: e.target.value };
+                        setForm(updated);
+                        onUpdate && onUpdate(updated);
+                    }}
                     error={errors.phone}
                     maxLength={10}
                 />

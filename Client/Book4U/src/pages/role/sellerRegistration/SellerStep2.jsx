@@ -4,7 +4,7 @@ import WarehouseModal from '@/components/warehouse/WarehouseModal';
 import { provinceApi } from '@/services/api/provinceApi';
 import { bankApi } from '@/services/api/bankApi';
 
-const SellerStep2 = ({ data, onNext, onBack }) => {
+const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
     const [showModal, setShowModal] = useState(false);
     const [warehouses, setWarehouses] = useState(() => data?.warehouses || []);
     const [selectedWarehouse, setSelectedWarehouse] = useState(null); // để edit
@@ -22,22 +22,14 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
     );
     const [errors, setErrors] = useState({});
 
-    // useEffect(() => {
-    //     if (data) {
-    //         setWarehouses(data.warehouses || []);
-    //         setBank(
-    //             data.bank || { name: '', number: '', bank: '', branch: '' }
-    //         );
-    //     }
-    // }, [data]);
-
     useEffect(() => {
-        const fetchData = async () => {
-            const res = await provinceApi.getAll();
-            if (res.success) setProvinces(res.data);
-        };
-        fetchData();
-    }, []);
+        if (data) {
+            setWarehouses(data.warehouses || []);
+            setBank(
+                data.bank || { name: '', number: '', bank: '', branch: '' }
+            );
+        }
+    }, [data]);
 
     useEffect(() => {
         const fetchBanks = async () => {
@@ -153,6 +145,11 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
                             setWarehouses((prev) => [...prev, data]);
                         }
                         setShowModal(false);
+                        onUpdate &&
+                            onUpdate({
+                                warehouses: [...warehouses, data],
+                                bank,
+                            });
                     }}
                     defaultData={editMode ? selectedWarehouse : null}
                 />
@@ -174,9 +171,15 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
                         <select
                             className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                             value={bank.bank}
-                            onChange={(e) =>
-                                setBank({ ...bank, bank: e.target.value })
-                            }>
+                            onChange={(e) => {
+                                const updated = {
+                                    ...bank,
+                                    bank: e.target.value,
+                                };
+                                setBank(updated);
+                                onUpdate &&
+                                    onUpdate({ warehouses, bank: updated });
+                            }}>
                             <option value="">Chọn ngân hàng</option>
                             {banks.map((b) => (
                                 <option key={b.code} value={b.short_name}>
@@ -194,34 +197,40 @@ const SellerStep2 = ({ data, onNext, onBack }) => {
                         label="Chi nhánh *"
                         name="branch"
                         value={bank.branch}
-                        onChange={(e) =>
-                            setBank({ ...bank, branch: e.target.value })
-                        }
+                        onChange={(e) => {
+                            const updated = { ...bank, branch: e.target.value };
+                            setBank(updated);
+                            onUpdate && onUpdate({ warehouses, bank: updated });
+                        }}
                         error={errors.branch}
                     />
                     <Input
                         label="Tên chủ tài khoản *"
                         name="accountName"
                         value={bank.name}
-                        onChange={(e) =>
-                            setBank({ ...bank, name: e.target.value })
-                        }
+                        onChange={(e) => {
+                            const updated = { ...bank, name: e.target.value };
+                            setBank(updated);
+                            onUpdate && onUpdate({ warehouses, bank: updated });
+                        }}
                         error={errors.name}
                     />
                     <Input
                         label="Số tài khoản *"
                         name="accountNumber"
                         value={bank.number}
-                        onChange={(e) =>
-                            setBank({ ...bank, number: e.target.value })
-                        }
+                        onChange={(e) => {
+                            const updated = { ...bank, number: e.target.value };
+                            setBank(updated);
+                            onUpdate && onUpdate({ warehouses, bank: updated });
+                        }}
                         error={errors.number}
                     />
                 </div>
             </div>
 
             {/* --- NÚT --- */}
-            <div className="flex justify-end mt-8">
+            <div className="flex justify-between mt-8">
                 <button
                     onClick={onBack}
                     className="border border-gray-400 text-gray-600 px-6 py-2.5 rounded-md hover:bg-gray-100 transition">

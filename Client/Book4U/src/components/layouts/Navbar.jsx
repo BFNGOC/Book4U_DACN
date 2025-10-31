@@ -3,8 +3,29 @@ import { ShoppingCart } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
 import SearchBar from '../common/SearchBar';
 
+const roleConfigs = {
+    customer: {
+        label: 'Đồng hành cùng chúng tôi',
+        link: '/register/role/select',
+    },
+    seller: {
+        label: 'Quản lý cửa hàng',
+        link: '/dashboard/seller',
+    },
+    shipper: {
+        label: 'Quản lý vận chuyển',
+        link: '/dashboard/shipper',
+    },
+};
+
 function Navbar() {
     const { user, logoutUser } = useUser();
+
+    const currentRole = user?.role || 'customer';
+    const { label, link } = roleConfigs[currentRole] || {
+        label: 'Vai trò không xác định',
+        link: '/',
+    };
 
     return (
         <nav className="bg-white shadow fixed top-0 left-0 w-full h-16 z-50">
@@ -51,9 +72,9 @@ function Navbar() {
                                 </Link>
                                 {/* role-registration */}
                                 <Link
-                                    to="register/role/select"
+                                    to={link}
                                     className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
-                                    Đồng hành cùng chúng tôi
+                                    {label}
                                 </Link>
                                 <button
                                     onClick={logoutUser}
