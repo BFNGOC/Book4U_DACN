@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getSearchResults } from '../services/api/searchApi.js';
-import BookCard from '../components/ui/BookCard.jsx';
+import BookCard from '../components/ui/cards/BookCard.jsx';
 import Section from '../components/home/Section';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Loading from '../components/common/Loading.jsx';

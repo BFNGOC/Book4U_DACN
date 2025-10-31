@@ -5,12 +5,7 @@ import { fetchHandler } from './fetchHandler.js';
 const BOOK_API_URL = 'api/books';
 
 export const getAllBooks = (params) =>
-    fetchHandler(
-        axiosPublic,
-        BOOK_API_URL,
-        params,
-        'Lỗi khi lấy danh sách sách.'
-    );
+    fetchHandler(axiosPublic, BOOK_API_URL, params, 'Lỗi khi lấy danh sách sách.');
 
 export const getBooksByCategorySlug = (slug, params) =>
     fetchHandler(
@@ -21,20 +16,13 @@ export const getBooksByCategorySlug = (slug, params) =>
     );
 
 export const getBookById = (id) =>
-    fetchHandler(
-        axiosPublic,
-        `${BOOK_API_URL}/${id}`,
-        {},
-        'Lỗi khi lấy chi tiết sách.'
-    );
+    fetchHandler(axiosPublic, `${BOOK_API_URL}/${id}`, {}, 'Lỗi khi lấy chi tiết sách.');
+
+export const getBookBySlug = (slug) =>
+    fetchHandler(axiosPublic, `${BOOK_API_URL}/slug/${slug}`, {}, 'Lỗi khi lấy chi tiết sách.');
 
 export const getRelatedBooks = (id) =>
-    fetchHandler(
-        axiosPublic,
-        `${BOOK_API_URL}/${id}/related`,
-        {},
-        'Lỗi khi lấy sách liên quan.'
-    );
+    fetchHandler(axiosPublic, `${BOOK_API_URL}/${id}/related`, {}, 'Lỗi khi lấy sách liên quan.');
 
 export const createBook = (formData) =>
     fetchHandler(
@@ -57,10 +45,4 @@ export const updateBook = (id, formData) =>
     );
 
 export const deleteBook = (id) =>
-    fetchHandler(
-        axiosPrivate,
-        `${BOOK_API_URL}/${id}`,
-        {},
-        'Lỗi khi xóa sách.',
-        'DELETE'
-    );
+    fetchHandler(axiosPrivate, `${BOOK_API_URL}/${id}`, {}, 'Lỗi khi xóa sách.', 'DELETE');

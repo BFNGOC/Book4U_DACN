@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserRecommendations } from '../services/api/recommendApi.js';
-import BookCard from '../components/ui/BookCard.jsx';
+import BookCard from '../components/ui/cards/BookCard.jsx';
 import Section from '../components/home/Section';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import Loading from '../components/common/Loading.jsx';
@@ -26,7 +26,6 @@ function DailyDiscover() {
                 setLoading(true);
                 const response = await getUserRecommendations({ page });
 
-                console.log('Response gợi ý:', response);
                 if (response.success) {
                     setBooks(response.data);
                     setTotal(response.meta?.totalItems || 0);

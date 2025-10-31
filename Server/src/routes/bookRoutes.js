@@ -11,6 +11,8 @@ router.get('/', bookController.getAllBooks);
 
 router.get('/category/:slug', bookController.getBooksByCategorySlug);
 
+router.get('/slug/:slug', bookController.getBookBySlug);
+
 router.get('/:id', bookController.getBookById);
 
 router.get('/:id/related', bookController.getRelatedBooks);

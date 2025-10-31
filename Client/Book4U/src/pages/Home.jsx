@@ -1,6 +1,6 @@
 import CategoryList from '../components/home/CategoryList';
 import Section from '../components/home/Section';
-import BookCard from '../components/ui/BookCard.jsx';
+import BookCard from '../components/ui/cards/BookCard.jsx';
 
 import { useEffect, useState } from 'react';
 import { getUserRecommendations } from '../services/api/recommendApi.js';
@@ -32,7 +32,6 @@ function Home() {
         fetchRecommendations();
     }, []);
 
-    console.log('Đề xuất người dùng:', recommendations);
     const featuredBooks = products.filter((p) => p.isFeatured);
     const aiSuggested = products.filter((p) => p.rating >= 4.5);
 
