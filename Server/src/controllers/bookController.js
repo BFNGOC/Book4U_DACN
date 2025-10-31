@@ -12,26 +12,56 @@ exports.getAllBooks = async (req, res) => {
         if (req.query.sellerId) filter.sellerId = req.query.sellerId;
 
         const books = await Book.find(filter)
-            .populate('categoryId', 'name')
+            .populate('categoryId', 'name slug')
             .populate('sellerId', 'firstName lastName')
             .sort({ createdAt: -1 });
 
-        res.json(books);
+        return res.status(200).json({
+            success: true,
+            count: books.length,
+            data: books,
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi lấy danh sách sách:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
 
 // [GET] /api/books/:id
 exports.getBookById = async (req, res) => {
     try {
-        const book = await Book.findById(req.params.id)
-            .populate('categoryId', 'name')
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu tham số id.',
+            });
+        }
+
+        const book = await Book.findById(id)
+            .populate('categoryId', 'name slug')
             .populate('sellerId', 'firstName lastName');
-        if (!book) return res.status(404).json({ message: 'Không tìm thấy sách' });
-        res.json(book);
+
+        if (!book) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy sách.',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: book,
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi lấy sách theo id:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
 
@@ -41,7 +71,9 @@ exports.getBookBySlug = async (req, res) => {
         const { slug } = req.params;
 
         if (!slug) {
-            return res.status(400).json({ message: 'Slug không được để trống.' });
+            return res
+                .status(400)
+                .json({ message: 'Slug không được để trống.' });
         }
 
         const book = await Book.findOne({ slug })
@@ -68,25 +100,56 @@ exports.getBookBySlug = async (req, res) => {
 // [GET] /api/books/category/:slug
 exports.getBooksByCategorySlug = async (req, res) => {
     try {
-        const category = await Category.findOne({ slug: req.params.slug });
-        if (!category) return res.status(404).json({ message: 'Không tìm thấy danh mục' });
+        const { slug } = req.params;
+        if (!slug)
+            return res.status(400).json({
+                success: false,
+                message: 'Slug danh mục không được để trống.',
+            });
+
+        const category = await Category.findOne({ slug });
+        if (!category)
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy danh mục.',
+            });
 
         const books = await Book.find({ categoryId: category._id })
             .populate('categoryId', 'name slug')
             .populate('sellerId', 'firstName lastName')
             .sort({ createdAt: -1 });
 
-        res.json({ category, books });
+        return res.status(200).json({
+            success: true,
+            category,
+            count: books.length,
+            data: books,
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi lấy sách theo danh mục:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
 
 // [GET] /api/books/:id/related
 exports.getRelatedBooks = async (req, res) => {
     try {
-        const base = await Book.findById(req.params.id);
-        if (!base) return res.status(404).json({ message: 'Không tìm thấy sách' });
+        const { id } = req.params;
+        if (!id)
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu tham số id.',
+            });
+
+        const base = await Book.findById(id);
+        if (!base)
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy sách gốc.',
+            });
 
         const related = await Book.find({
             _id: { $ne: base._id },
@@ -97,97 +160,144 @@ exports.getRelatedBooks = async (req, res) => {
             .populate('categoryId', 'name slug')
             .populate('sellerId', 'firstName lastName');
 
-        res.json(related);
+        return res.status(200).json({
+            success: true,
+            count: related.length,
+            data: related,
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi lấy sách liên quan:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
 
 // [POST] /api/books
 exports.createBook = async (req, res) => {
     try {
-        const {
-            title,
-            author,
-            publisher,
-            publicationYear,
-            language,
-            description,
-            price,
-            stock,
-            discount,
-            images,
-            categoryId,
-            tags,
-            numPages,
-            format,
-        } = req.body;
+        const body = req.body;
+        const required = ['title', 'price', 'categoryId', 'stock', 'language'];
+        const missing = required.filter((f) => !body[f]);
+        if (missing.length) {
+            return res.status(400).json({
+                success: false,
+                message: `Thiếu thông tin bắt buộc: ${missing.join(', ')}`,
+            });
+        }
 
-        const category = await Category.findById(categoryId);
-        if (!category) return res.status(400).json({ message: 'Danh mục không hợp lệ' });
+        const category = await Category.findById(body.categoryId);
+        if (!category)
+            return res.status(400).json({
+                success: false,
+                message: 'Danh mục không hợp lệ.',
+            });
 
         const profile = await Profile.findOne({ userId: req.user.userId });
-        if (!profile) return res.status(400).json({ message: 'Không tìm thấy hồ sơ người bán' });
+        if (!profile)
+            return res.status(400).json({
+                success: false,
+                message: 'Không tìm thấy hồ sơ người bán.',
+            });
 
-        const imagePaths = req.files ? req.files.map((f) => `/uploads/books/${f.filename}`) : [];
-
-        if (!profile) return res.status(400).json({ message: 'Không tìm thấy hồ sơ người bán' });
+        const imagePaths = req.files
+            ? req.files.map((f) => `/uploads/books/${f.filename}`)
+            : [];
 
         const book = await Book.create({
+            ...body,
             sellerId: profile._id,
-            categoryId,
-            title,
-            author,
-            publisher,
-            publicationYear,
-            language,
-            description,
-            price,
-            stock,
-            discount,
             images: imagePaths,
-            tags: tags ? tags.map((t) => t.trim()) : [],
-            numPages,
-            format,
+            tags: body.tags ? body.tags.map((t) => t.trim()) : [],
         });
 
-        res.status(201).json(book);
+        return res.status(201).json({
+            success: true,
+            message: 'Đã tạo sách thành công.',
+            data: book,
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi tạo sách:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
 
 // [PUT] /api/books/:id
 exports.updateBook = async (req, res) => {
     try {
-        const book = await Book.findById(req.params.id);
-        if (!book) return res.status(404).json({ message: 'Không tìm thấy sách' });
-
-        if (req.files && req.files.length > 0) {
-            book.images.forEach((imgPath) => {
-                const fullPath = path.join(__dirname, '..', imgPath.replace(/^\//, ''));
-                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+        const { id } = req.params;
+        if (!id)
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu tham số id.',
             });
 
+        const book = await Book.findById(id);
+        if (!book)
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy sách.',
+            });
+
+        if (req.files && req.files.length > 0) {
+            for (const imgPath of book.images) {
+                const fullPath = path.join(
+                    __dirname,
+                    '..',
+                    imgPath.replace(/^\//, '')
+                );
+                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+            }
             book.images = req.files.map((f) => `/uploads/books/${f.filename}`);
         }
 
         Object.assign(book, req.body);
         await book.save();
 
-        res.json(book);
+        return res.status(200).json({
+            success: true,
+            message: 'Cập nhật sách thành công.',
+            data: book,
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi cập nhật sách:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
 
 // [DELETE] /api/books/:id
 exports.deleteBook = async (req, res) => {
     try {
-        const book = await Book.findByIdAndDelete(req.params.id);
-        if (!book) return res.status(404).json({ message: 'Không tìm thấy sách' });
-        res.json({ message: 'Đã xóa sách thành công' });
+        const { id } = req.params;
+        if (!id)
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu tham số id.',
+            });
+
+        const book = await Book.findByIdAndDelete(id);
+        if (!book)
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy sách.',
+            });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Đã xóa sách thành công.',
+        });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('❌ Lỗi khi xóa sách:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };
