@@ -53,25 +53,33 @@ const profileSchema = new mongoose.Schema(
 const Profile = mongoose.model('Profile', profileSchema);
 
 const sellerSchema = new mongoose.Schema({
-    businessName: { type: String, required: true, trim: true },
+    businessType: {
+        type: String,
+        enum: ['individual', 'business'],
+        required: true,
+    },
+    businessName: { type: String, trim: true, default: null },
     businessRegistration: { type: String, trim: true, default: null },
     businessLicenseImages: [{ type: String, required: false }],
     taxId: { type: String, trim: true, required: true },
+    storeName: { type: String, trim: true, required: true },
     storeLogo: { type: String, default: `/uploads/default-logo.png` },
     storeDescription: { type: String, default: null },
     businessAddress: {
-        street: { type: String, required: true, trim: true },
-        city: { type: String, required: true, trim: true },
-        state: { type: String, trim: true },
+        street: { type: String, required: true, trim: true }, // Số nhà, tên đường
+        ward: { type: String, required: true, trim: true }, // Xã / Phường / Thị trấn
+        district: { type: String, required: true, trim: true }, // Quận / Huyện / Thị xã
+        province: { type: String, required: true, trim: true }, // Tỉnh / Thành phố trực thuộc TW
         country: { type: String, required: true, default: 'Vietnam' },
         postalCode: { type: String, trim: true },
     },
+
     warehouses: [
         {
-            name: { type: String, required: true, trim: true },
-            street: { type: String, required: true, trim: true },
-            city: { type: String, required: true, trim: true },
-            state: { type: String, trim: true },
+            street: { type: String, required: true, trim: true }, // Số nhà, đường
+            ward: { type: String, required: true, trim: true }, // Xã / Phường
+            district: { type: String, required: true, trim: true }, // Quận / Huyện
+            province: { type: String, required: true, trim: true }, // Tỉnh / Thành phố
             country: { type: String, default: 'Vietnam' },
             postalCode: { type: String, trim: true },
             isDefault: { type: Boolean, default: false },
@@ -132,8 +140,8 @@ const shipperSchema = new mongoose.Schema({
     vehicleRegistration: { type: String, required: true, trim: true },
     serviceArea: [
         {
-            city: { type: String, required: true, trim: true },
-            districts: [{ type: String, required: true, trim: true }],
+            district: { type: String, required: true, trim: true }, // Quận / Huyện / Thị xã
+            province: { type: String, required: true, trim: true }, // Tỉnh / Thành phố trực thuộc TW
         },
     ],
     availability: {

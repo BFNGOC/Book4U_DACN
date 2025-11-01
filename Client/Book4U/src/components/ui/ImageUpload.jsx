@@ -28,13 +28,11 @@ const ImageUpload = ({
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result;
-                setPreview(base64);
-                onChange(base64);
-            };
-            reader.readAsDataURL(file);
+            const previewUrl = URL.createObjectURL(file);
+            setPreview(previewUrl);
+
+            // gửi file thật về component cha để upload lên server
+            onChange(file);
         }
     };
 

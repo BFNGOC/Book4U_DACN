@@ -6,13 +6,19 @@ function Input({
     value,
     onChange,
     autoFocus = false,
+    helperText,
     error,
     ...props
 }) {
     return (
         <div>
             {label && (
-                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {label}
+                </label>
+            )}
+            {helperText && (
+                <p className="text-sm text-gray-500 mb-1">{helperText}</p>
             )}
             <input
                 type={type}

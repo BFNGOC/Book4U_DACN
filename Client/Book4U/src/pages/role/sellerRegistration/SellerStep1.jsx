@@ -2,11 +2,12 @@ import { useUser } from '@/contexts/userContext';
 import { useState, useEffect } from 'react';
 import Input from '@/components/ui/Input';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { uploadStoreLogo } from '@/services/api/uploadApi';
 
 const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     const { user } = useUser();
     const [form, setForm] = useState({
-        businessName: data.businessName || '',
+        storeName: data.storeName || '',
         storeLogo: data.storeLogo || '',
         phone: data.phone || '',
     });
@@ -15,30 +16,45 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
 
     useEffect(() => {
         setForm({
-            businessName: data.businessName || '',
+            storeName: data.storeName || '',
             storeLogo: data.storeLogo || null,
             phone: data.phone || '',
         });
     }, [data]);
 
-    const handleFileChange = (key, file) => {
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setForm((prevForm) => ({ ...prevForm, [key]: reader.result }));
-            };
-            reader.readAsDataURL(file);
-        } else {
-            setForm((prevForm) => ({ ...prevForm, [key]: null }));
+    const handleFileChange = async (file) => {
+        if (!file) return;
+
+        try {
+            const res = await uploadStoreLogo(file);
+            console.log('Upload response:', res);
+            if (res.success && res.data?.path) {
+                const logoPath = res.data.path;
+
+                const updatedForm = { ...form, storeLogo: logoPath };
+                setForm(updatedForm);
+
+                localStorage.setItem(
+                    'sellerRegister',
+                    JSON.stringify({
+                        ...JSON.parse(
+                            localStorage.getItem('sellerRegister') || '{}'
+                        ),
+                        formData: { ...form, storeLogo: logoPath },
+                    })
+                );
+            }
+        } catch (error) {
+            console.error(error);
         }
     };
 
     const handleNext = () => {
         const newErrors = {};
-        if (!form.businessName.trim())
-            newErrors.businessName = 'Vui lòng nhập tên shop';
-        if (form.businessName.length > 30)
-            newErrors.businessName = 'Tên shop không vượt quá 30 ký tự';
+        if (!form.storeName.trim())
+            newErrors.storeName = 'Vui lòng nhập tên shop';
+        if (form.storeName.length > 30)
+            newErrors.storeName = 'Tên shop không vượt quá 30 ký tự';
         if (!/^0\d{9}$/.test(form.phone))
             newErrors.phone = 'Số điện thoại không hợp lệ';
 
@@ -49,31 +65,31 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto p-8 bg-white rounded-2xl shadow">
+        <div className="max-w-5xl mx-auto p-8 bg-white rounded-2xl">
             <div className="space-y-5">
                 <div>
                     <Input
                         label="Tên Shop *"
-                        name="businessName"
+                        name="storeName"
                         placeholder="Nhập tên shop"
-                        value={form.businessName}
+                        value={form.storeName}
                         onChange={(e) => {
                             if (e.target.value.length <= 30) {
                                 const updated = {
                                     ...form,
-                                    businessName: e.target.value,
+                                    storeName: e.target.value,
                                 };
                                 setForm({
                                     ...form,
-                                    businessName: e.target.value,
+                                    storeName: e.target.value,
                                 });
                                 onUpdate && onUpdate(updated);
                             }
                         }}
-                        error={errors.businessName}
+                        error={errors.storeName}
                     />
                     <div className="text-right text-sm text-gray-500 mt-1">
-                        {form.businessName.length}/30
+                        {form.storeName.length}/30
                     </div>
                 </div>
 
@@ -81,12 +97,12 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
                     label="Logo cửa hàng"
                     placeholder="Tải lên logo cửa hàng"
                     name="storeLogo"
-                    value={form.storeLogo}
-                    onChange={(base64) => {
-                        const updated = { ...form, storeLogo: base64 };
-                        setForm({ ...form, storeLogo: base64 });
-                        onUpdate && onUpdate(updated);
-                    }}
+                    value={
+                        form.storeLogo
+                            ? `${import.meta.env.VITE_API_URL}${form.storeLogo}`
+                            : null
+                    }
+                    onChange={handleFileChange}
                 />
 
                 <div className="overflow-x-auto">
@@ -116,7 +132,7 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
             <div className="flex justify-end mt-6">
                 <button
                     onClick={handleNext}
-                    className="bg-orange-600 cursor-pointer text-white px-6 py-2 rounded hover:bg-orange-700 transition">
+                    className="bg-blue-500 cursor-pointer text-white px-6 py-2 rounded hover:bg-blue-600 transition">
                     Tiếp theo
                 </button>
             </div>

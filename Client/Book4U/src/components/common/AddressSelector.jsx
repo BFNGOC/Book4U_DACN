@@ -6,13 +6,40 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
 
+    // 🧩 Ghi đúng chỗ trong localStorage
+    const saveToLocalStorage = (updatedAddress) => {
+        const saved = JSON.parse(
+            localStorage.getItem('sellerRegister') || '{}'
+        );
+        localStorage.setItem(
+            'sellerRegister',
+            JSON.stringify({
+                ...saved,
+                formData: {
+                    ...saved.formData,
+                    verification: {
+                        ...saved.formData?.verification,
+                        info: {
+                            ...saved.formData?.verification?.info,
+                            address: updatedAddress,
+                        },
+                    },
+                },
+            })
+        );
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             const provinceRes = await provinceApi.getAll(1);
             if (provinceRes.success) setProvinces(provinceRes.data);
 
-            const { provinceCode, districtCode, wardCode, detail } =
-                defaultData || {};
+            const provinceCode =
+                defaultData?.provinceCode || value.province || '';
+            const districtCode =
+                defaultData?.districtCode || value.district || '';
+            const wardCode = defaultData?.wardCode || value.ward || '';
+            const detail = defaultData?.detail || value.detail || '';
 
             if (provinceCode) {
                 const districtRes = await provinceApi.getDistricts(
@@ -28,12 +55,14 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
             }
 
             if (defaultData) {
-                onChange({
+                const updated = {
                     province: provinceCode || '',
                     district: districtCode || '',
                     ward: wardCode || '',
                     detail: detail || '',
-                });
+                };
+                onChange(updated);
+                saveToLocalStorage(updated);
             }
         };
 
@@ -42,12 +71,18 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
 
     const handleProvinceChange = async (e) => {
         const provinceCode = e.target.value;
-        onChange({
+        const provinceObj = provinces.find((p) => p.code == provinceCode);
+        const updated = {
             province: provinceCode,
             district: '',
             ward: '',
             detail: value.detail,
-        });
+            provinceName: provinceObj?.name || '',
+        };
+
+        onChange(updated);
+        saveToLocalStorage(updated);
+
         setDistricts([]);
         setWards([]);
 
@@ -59,7 +94,17 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
 
     const handleDistrictChange = async (e) => {
         const districtCode = e.target.value;
-        onChange({ ...value, district: districtCode, ward: '' });
+        const districtObj = districts.find((d) => d.code == districtCode);
+        const updated = {
+            ...value,
+            district: districtCode,
+            ward: '',
+            districtName: districtObj?.name || '',
+        };
+
+        onChange(updated);
+        saveToLocalStorage(updated);
+
         setWards([]);
 
         if (districtCode) {
@@ -68,15 +113,34 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
         }
     };
 
+    const handleWardChange = (e) => {
+        const wardCode = e.target.value;
+        const wardObj = wards.find((w) => w.code == wardCode);
+        const updated = {
+            ...value,
+            ward: wardCode,
+            wardName: wardObj?.name || '',
+        };
+
+        onChange(updated);
+        saveToLocalStorage(updated);
+    };
+
+    const handleDetailChange = (e) => {
+        const updated = { ...value, detail: e.target.value };
+        onChange(updated);
+        saveToLocalStorage(updated);
+    };
+
     return (
         <div className="space-y-4">
-            {/* --- Province --- */}
+            {/* Province */}
             <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
                     Tỉnh / Thành phố <span className="text-red-500">*</span>
                 </label>
                 <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
                     value={value.province || ''}
                     onChange={handleProvinceChange}>
                     <option value="">-- Chọn Tỉnh/Thành phố --</option>
@@ -93,13 +157,13 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
                 )}
             </div>
 
-            {/* --- District --- */}
+            {/* District */}
             <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
                     Quận / Huyện <span className="text-red-500">*</span>
                 </label>
                 <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition disabled:bg-gray-100"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
                     value={value.district || ''}
                     onChange={handleDistrictChange}
                     disabled={!districts.length}>
@@ -117,17 +181,15 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
                 )}
             </div>
 
-            {/* --- Ward --- */}
+            {/* Ward */}
             <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
                     Phường / Xã <span className="text-red-500">*</span>
                 </label>
                 <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition disabled:bg-gray-100"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
                     value={value.ward || ''}
-                    onChange={(e) =>
-                        onChange({ ...value, ward: e.target.value })
-                    }
+                    onChange={handleWardChange}
                     disabled={!wards.length}>
                     <option value="">-- Chọn Phường/Xã --</option>
                     {wards.map((w) => (
@@ -141,19 +203,17 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
                 )}
             </div>
 
-            {/* --- Detail --- */}
+            {/* Detail */}
             <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
                     Địa chỉ chi tiết <span className="text-red-500">*</span>
                 </label>
                 <textarea
                     placeholder="Số nhà, tên đường..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
                     rows={2}
                     value={value.detail || ''}
-                    onChange={(e) =>
-                        onChange({ ...value, detail: e.target.value })
-                    }
+                    onChange={handleDetailChange}
                 />
                 {errors.detail && (
                     <p className="text-red-500 text-xs mt-1">{errors.detail}</p>

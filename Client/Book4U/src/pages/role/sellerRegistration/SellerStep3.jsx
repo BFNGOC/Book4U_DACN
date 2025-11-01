@@ -3,14 +3,21 @@ import { Info, Building2, User2 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import ImageUpload from '@/components/ui/ImageUpload';
 import AddressSelector from '@/components/common/AddressSelector';
+import { createRoleRequest } from '@/services/api/roleRequestApi';
+import {
+    uploadIdentification,
+    uploadBusinessLicense,
+} from '@/services/api/uploadApi';
 
-const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
-    const [type, setType] = useState(() => data.type || 'personal');
+const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate }) => {
     const [info, setInfo] = useState(() => ({
+        businessType: data.info?.businessType || 'individual',
         lastName: data.info?.lastName || '',
         firstName: data.info?.firstName || '',
         idNumber: data.info?.idNumber || '',
         taxId: data.info?.taxId || '',
+        businessName: data.info?.businessName || '',
+        businessRegistration: data.info?.businessRegistration || '',
         businessLicense: data.info?.businessLicense || null,
         idFront: data.info?.idFront || null,
         idBack: data.info?.idBack || null,
@@ -19,8 +26,10 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        setType(data.type || 'personal');
         setInfo({
+            businessType: data.info?.businessType || 'individual',
+            businessName: data.info?.businessName || '',
+            businessRegistration: data.info?.businessRegistration || '',
             lastName: data.info?.lastName || '',
             firstName: data.info?.firstName || '',
             idNumber: data.info?.idNumber || '',
@@ -34,6 +43,8 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
 
     const validate = () => {
         const newErrors = {};
+        if (info.businessType === 'business' && !info.businessName.trim())
+            newErrors.businessName = 'Vui lòng nhập tên doanh nghiệp';
         if (!info.lastName.trim())
             newErrors.lastName = 'Vui lòng nhập họ và tên đệm';
         if (!info.firstName.trim()) newErrors.firstName = 'Vui lòng nhập tên';
@@ -43,10 +54,15 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
             newErrors.idFront = 'Vui lòng tải lên mặt trước CCCD';
         if (!info.idBack) newErrors.idBack = 'Vui lòng tải lên mặt sau CCCD';
 
-        if (type === 'personal') {
+        if (info.businessType === 'individual') {
             if (!info.taxId.trim())
                 newErrors.taxId = 'Vui lòng nhập mã số thuế thu nhập cá nhân';
         } else {
+            if (!info.businessName.trim())
+                newErrors.businessName = 'Vui lòng nhập tên doanh nghiệp';
+            if (!info.businessRegistration.trim())
+                newErrors.businessRegistration =
+                    'Vui lòng nhập mã số đăng ký kinh doanh';
             if (!info.taxId.trim())
                 newErrors.taxId = 'Vui lòng nhập mã số đăng ký kinh doanh';
             if (!info.businessLicense)
@@ -68,47 +84,149 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
     const handleChange = (key, value) => {
         const updated = { ...info, [key]: value };
         setInfo(updated);
-        onUpdate && onUpdate({ type, info: updated });
+        onUpdate && onUpdate({ info: updated });
     };
 
-    const handleTypeChange = (newType) => {
-        setType(newType);
-        onUpdate && onUpdate({ type: newType, info });
-    };
+    const handleFileUpload = async (type, file) => {
+        if (!file) return;
+        try {
+            let res;
+            if (type === 'idFront' || type === 'idBack') {
+                res = await uploadIdentification([file]);
+            } else if (type === 'businessLicense') {
+                res = await uploadBusinessLicense([file]);
+            }
 
-    const handleNext = () => {
-        if (!validate()) return;
-        if (!agreed) {
-            setAgreeError(true);
-            return;
+            if (res?.success && res.data?.paths?.length) {
+                const imagePath = res.data.paths[0];
+                const updated = { ...info, [type]: imagePath };
+                setInfo(updated);
+                onUpdate && onUpdate({ info: updated });
+
+                const saved = JSON.parse(
+                    localStorage.getItem('sellerRegister') || '{}'
+                );
+                localStorage.setItem(
+                    'sellerRegister',
+                    JSON.stringify({
+                        ...saved,
+                        formData: {
+                            ...saved.formData,
+                            info: updated,
+                        },
+                    })
+                );
+            } else {
+                console.error('Upload failed:', res);
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error);
         }
-        onNext({ type, info });
+    };
+
+    const handleNext = async () => {
+        if (!validate()) return;
+
+        try {
+            // ✅ Lấy dữ liệu từ localStorage (vì SellerRegister đã lưu toàn bộ form)
+            const saved = localStorage.getItem('sellerRegister');
+            const fullData = saved ? JSON.parse(saved).formData : {};
+            const shopInfo = fullData?.shopInfo || {};
+            const shipping = fullData?.shipping || {};
+            const verification = info;
+
+            const payload = {
+                role: 'seller',
+                details: {
+                    storeName: shopInfo.storeName || '',
+                    businessType: verification.businessType || 'individual',
+                    businessName:
+                        verification.businessType === 'business'
+                            ? verification.businessName || ''
+                            : '',
+                    businessRegistration:
+                        verification.businessType === 'business'
+                            ? verification.businessRegistration || ''
+                            : '',
+                    businessLicenseImages:
+                        verification.businessType === 'business'
+                            ? Array.isArray(verification.businessLicense)
+                                ? verification.businessLicense
+                                : verification.businessLicense
+                                ? [verification.businessLicense]
+                                : []
+                            : [],
+                    taxId: verification.taxId || '',
+                    businessAddress: {
+                        street:
+                            verification.address?.detail ||
+                            verification.address?.street ||
+                            '',
+                        ward: verification.address?.wardName || '',
+                        district: verification.address?.districtName || '',
+                        province: verification.address?.provinceName || '',
+                    },
+                    bankDetails: {
+                        accountName: shipping.bank?.name || '',
+                        accountNumber: shipping.bank?.number || '',
+                        bankName: shipping.bank?.bank || '',
+                        branchName: shipping.bank?.branch || '',
+                    },
+                    warehouses:
+                        shipping.warehouses?.map((w) => ({
+                            street: w.detail || '',
+                            ward: w.ward || '',
+                            district: w.district || '',
+                            province: w.province || '',
+                            managerName: w.name || '',
+                            managerPhone: w.phone || '',
+                        })) || [],
+                    identificationNumber: verification.idNumber || '',
+                    identificationImages: {
+                        front: verification.idFront || '',
+                        back: verification.idBack || '',
+                    },
+                },
+            };
+            console.log('Payload for role request:', payload);
+
+            const response = await createRoleRequest(payload);
+
+            if (response.success) {
+                console.log('✅ Gửi yêu cầu seller thành công:', response.data);
+                onNext({ info: verification });
+            } else {
+                alert(
+                    response.message ||
+                        'Gửi yêu cầu thất bại, vui lòng thử lại.'
+                );
+            }
+        } catch (error) {
+            console.error('❌ Lỗi khi gửi yêu cầu đăng ký vai trò:', error);
+            alert('Gửi yêu cầu thất bại, vui lòng thử lại.');
+        }
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
-            <h2 className="text-xl font-semibold mb-6">
-                Thông tin người ký hợp đồng
-            </h2>
-
+        <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl">
             {/* --- Chọn loại tài khoản --- */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                 <div
-                    onClick={() => handleTypeChange('personal')}
-                    className={`border rounded-xl p-4 cursor-pointer flex flex-col items-center ${
-                        type === 'personal'
+                    onClick={() => handleChange('businessType', 'individual')}
+                    className={`border rounded-md p-4 cursor-pointer flex flex-col items-center ${
+                        info.businessType === 'individual'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-300 hover:border-gray-400'
                     }`}>
                     <User2
                         className={`w-8 h-8 mb-2 ${
-                            type === 'personal'
+                            info.businessType === 'individual'
                                 ? 'text-blue-500'
                                 : 'text-gray-400'
                         }`}
                     />
                     <p className="font-medium">Tài khoản Cá nhân</p>
-                    {type === 'personal' && (
+                    {info.businessType === 'individual' && (
                         <span className="mt-2 bg-blue-500 text-white px-4 py-1 rounded text-sm">
                             Đã chọn
                         </span>
@@ -116,21 +234,21 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                 </div>
 
                 <div
-                    onClick={() => handleTypeChange('business')}
-                    className={`border rounded-xl p-4 cursor-pointer flex flex-col items-center ${
-                        type === 'business'
+                    onClick={() => handleChange('businessType', 'business')}
+                    className={`border rounded-md p-4 cursor-pointer flex flex-col items-center ${
+                        info.businessType === 'business'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-300 hover:border-gray-400'
                     }`}>
                     <Building2
                         className={`w-8 h-8 mb-2 ${
-                            type === 'business'
+                            info.businessType === 'business'
                                 ? 'text-blue-500'
                                 : 'text-gray-400'
                         }`}
                     />
                     <p className="font-medium">Tài khoản Doanh nghiệp</p>
-                    {type === 'business' && (
+                    {info.businessType === 'business' && (
                         <span className="mt-2 bg-blue-500 text-white px-4 py-1 rounded text-sm">
                             Đã chọn
                         </span>
@@ -140,9 +258,15 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
 
             {/* --- Form nhập thông tin --- */}
             <div className="space-y-5">
+                <label className="block text-lg font-medium text-gray-700 mb-1">
+                    {info.businessType === 'individual'
+                        ? 'Thông tin cá nhân'
+                        : 'Thông tin người đại diện'}
+                </label>
                 <div className="grid grid-cols-2 gap-4">
                     <Input
                         label="Họ và tên đệm *"
+                        placeholder="Nhập họ và tên đệm"
                         value={info.lastName}
                         onChange={(e) =>
                             handleChange('lastName', e.target.value)
@@ -151,6 +275,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                     />
                     <Input
                         label="Tên *"
+                        placeholder="Nhập tên"
                         value={info.firstName}
                         onChange={(e) =>
                             handleChange('firstName', e.target.value)
@@ -161,6 +286,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
 
                 <Input
                     label="Số định danh / CCCD *"
+                    placeholder="Nhập số định danh hoặc CCCD"
                     value={info.idNumber}
                     onChange={(e) => handleChange('idNumber', e.target.value)}
                     error={errors.idNumber}
@@ -172,8 +298,16 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                         <ImageUpload
                             label="Ảnh mặt trước CCCD"
                             placeholder="Tải lên ảnh mặt trước"
-                            value={info.idFront}
-                            onChange={(file) => handleChange('idFront', file)}
+                            value={
+                                info.idFront
+                                    ? `${import.meta.env.VITE_API_URL}${
+                                          info.idFront
+                                      }`
+                                    : null
+                            }
+                            onChange={(file) =>
+                                handleFileUpload('idFront', file)
+                            }
                         />
                         {errors.idFront && (
                             <p className="text-red-500 text-sm mt-1">
@@ -185,8 +319,16 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                         <ImageUpload
                             label="Ảnh mặt sau CCCD"
                             placeholder="Tải lên ảnh mặt sau"
-                            value={info.idBack}
-                            onChange={(file) => handleChange('idBack', file)}
+                            value={
+                                info.idBack
+                                    ? `${import.meta.env.VITE_API_URL}${
+                                          info.idBack
+                                      }`
+                                    : null
+                            }
+                            onChange={(file) =>
+                                handleFileUpload('idBack', file)
+                            }
                         />
                         {errors.idBack && (
                             <p className="text-red-500 text-sm mt-1">
@@ -196,20 +338,48 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                     </div>
                 </div>
 
-                {type === 'personal' ? (
+                {info.businessType === 'individual' ? (
                     <Input
                         label="Mã số thuế thu nhập cá nhân *"
+                        placeholder="Nhập mã số thuế thu nhập cá nhân"
                         value={info.taxId}
                         onChange={(e) => handleChange('taxId', e.target.value)}
                         error={errors.taxId}
                     />
                 ) : (
                     <>
+                        <label className="block text-lg font-medium text-gray-700 mb-1">
+                            Thông tin doanh nghiệp
+                        </label>
                         <Input
-                            label="Mã số đăng ký kinh doanh *"
+                            label="Tên doanh nghiệp *"
+                            placeholder="Nhập tên doanh nghiệp"
+                            value={info.businessName}
+                            onChange={(e) =>
+                                handleChange('businessName', e.target.value)
+                            }
+                            error={errors.taxId}
+                        />
+                        <Input
+                            label="Mã số thuế doanh nghiệp *"
+                            placeholder="Nhập mã số thuế doanh nghiệp"
+                            helperText="Mã số đầu trên giấy Đăng ký kinh doanh."
                             value={info.taxId}
                             onChange={(e) =>
-                                setInfo({ ...info, taxId: e.target.value })
+                                handleChange('taxId', e.target.value)
+                            }
+                            error={errors.taxId}
+                        />
+                        <Input
+                            label="Mã số đăng ký kinh doanh *"
+                            placeholder="Nhập mã số đăng ký kinh doanh"
+                            helperText="Trùng với mã số thuế doanh nghiệp trên giấy Đăng ký kinh doanh."
+                            value={info.businessRegistration}
+                            onChange={(e) =>
+                                handleChange(
+                                    'businessRegistration',
+                                    e.target.value
+                                )
                             }
                             error={errors.taxId}
                         />
@@ -217,9 +387,15 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                             <ImageUpload
                                 label="Giấy phép đăng ký kinh doanh"
                                 placeholder="Tải lên giấy phép kinh doanh"
-                                value={info.businessLicense}
+                                value={
+                                    info.businessLicense
+                                        ? `${import.meta.env.VITE_API_URL}${
+                                              info.businessLicense
+                                          }`
+                                        : null
+                                }
                                 onChange={(file) =>
-                                    handleChange('businessLicense', file)
+                                    handleFileUpload('businessLicense', file)
                                 }
                             />
                             {errors.businessLicense && (
@@ -233,13 +409,31 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
 
                 <div>
                     <label className="block text-lg font-medium text-gray-700 mb-1">
-                        {type === 'personal'
-                            ? 'Địa chỉ liên hệ *'
-                            : 'Địa chỉ doanh nghiệp *'}
+                        {info.businessType === 'individual'
+                            ? 'Địa chỉ liên hệ'
+                            : 'Địa chỉ doanh nghiệp'}
                     </label>
                     <AddressSelector
                         value={info.address || {}}
-                        onChange={(addr) => handleChange('address', addr)}
+                        onChange={(addr) => {
+                            const updated = { ...info, address: addr };
+                            setInfo(updated);
+                            onUpdate && onUpdate({ info: updated });
+
+                            const saved = JSON.parse(
+                                localStorage.getItem('sellerRegister') || '{}'
+                            );
+                            localStorage.setItem(
+                                'sellerRegister',
+                                JSON.stringify({
+                                    ...saved,
+                                    formData: {
+                                        ...saved.formData,
+                                        info: updated,
+                                    },
+                                })
+                            );
+                        }}
                     />
                     {errors.address && (
                         <p className="text-red-500 text-sm">{errors.address}</p>
@@ -247,15 +441,15 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate, phone }) => {
                 </div>
             </div>
 
-            <div className="flex justify-between mt-8">
+            <div className="flex justify-end mt-8">
                 <button
                     onClick={onBack}
-                    className="border border-gray-400 text-gray-600 px-6 py-2 rounded hover:bg-gray-100">
+                    className="border border-gray-400 cursor-pointer text-gray-600 px-6 py-2 mr-2 rounded hover:bg-gray-100 transition">
                     Quay lại
                 </button>
                 <button
                     onClick={handleNext}
-                    className="bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700">
+                    className="bg-blue-500 cursor-pointer text-white px-6 py-2 rounded hover:bg-blue-600 transition">
                     Tiếp theo
                 </button>
             </div>

@@ -5,8 +5,30 @@ const {
     ShipperProfile,
 } = require('../models/profileModel');
 
-async function updateProfileForRole(user) {
-    let existingProfile = await Profile.findOne({ userId: user._id });
+async function updateProfileForRole(user, existingProfile = null) {
+    if (!existingProfile) {
+        // Tìm profile dựa trên role để chắc chắn lấy đúng discriminator
+        switch (user.role) {
+            case 'seller':
+                existingProfile = await SellerProfile.findOne({
+                    userId: user._id,
+                });
+                break;
+            case 'shipper':
+                existingProfile = await ShipperProfile.findOne({
+                    userId: user._id,
+                });
+                break;
+            case 'admin':
+                existingProfile = await AdminProfile.findOne({
+                    userId: user._id,
+                });
+                break;
+            default:
+                existingProfile = await Profile.findOne({ userId: user._id });
+        }
+    }
+
     if (!existingProfile) return null;
 
     const baseData = {
@@ -23,19 +45,43 @@ async function updateProfileForRole(user) {
         case 'seller':
             // Nếu bất kỳ field required nào trống => throw error
             // Kiểm tra các field cơ bản
-            if (!existingProfile.businessName?.trim()) {
+            if (!existingProfile.businessType) {
+                throw new Error('Thiếu loại hình kinh doanh (businessType)');
+            }
+            if (!existingProfile.storeName?.trim()) {
                 throw new Error('Thiếu tên doanh nghiệp (businessName)');
             }
             if (!existingProfile.taxId?.trim()) {
                 throw new Error('Thiếu mã số thuế (taxId)');
             }
 
+            // Nếu là doanh nghiệp thì validate thêm
+            if (existingProfile.businessType === 'business') {
+                if (!existingProfile.businessName?.trim()) {
+                    throw new Error('Thiếu tên doanh nghiệp (businessName)');
+                }
+                if (!existingProfile.businessRegistration?.trim()) {
+                    throw new Error(
+                        'Thiếu mã đăng ký kinh doanh (businessRegistration)'
+                    );
+                }
+                if (
+                    !existingProfile.businessLicenseImages ||
+                    !existingProfile.businessLicenseImages.length
+                ) {
+                    throw new Error(
+                        'Thiếu hình ảnh giấy đăng ký kinh doanh (businessLicenseImages)'
+                    );
+                }
+            }
+
             // Kiểm tra địa chỉ kinh doanh
             if (
                 !existingProfile.businessAddress ||
                 !existingProfile.businessAddress.street ||
-                !existingProfile.businessAddress.city ||
-                !existingProfile.businessAddress.country
+                !existingProfile.businessAddress.ward ||
+                !existingProfile.businessAddress.district ||
+                !existingProfile.businessAddress.province
             ) {
                 throw new Error(
                     'Thiếu thông tin địa chỉ kinh doanh (businessAddress)'
@@ -63,7 +109,7 @@ async function updateProfileForRole(user) {
 
             // Kiểm tra chi tiết từng kho
             for (const [index, w] of existingProfile.warehouses.entries()) {
-                if (!w.name || !w.street || !w.city) {
+                if (!w.street || !w.ward || !w.district || !w.province) {
                     throw new Error(
                         `Kho hàng #${index + 1} thiếu thông tin địa chỉ`
                     );
@@ -89,13 +135,15 @@ async function updateProfileForRole(user) {
                 );
             }
             extraFields = {
+                businessType: existingProfile.businessType,
+                storeName: existingProfile.storeName,
+                storeLogo:
+                    existingProfile.storeLogo || '/uploads/default-logo.png',
+                storeDescription: existingProfile.storeDescription,
                 businessName: existingProfile.businessName,
                 businessRegistration: existingProfile.businessRegistration,
                 businessLicenseImages: existingProfile.businessLicenseImages,
                 taxId: existingProfile.taxId,
-                storeLogo:
-                    existingProfile.storeLogo || '/uploads/default-logo.png',
-                storeDescription: existingProfile.storeDescription,
                 businessAddress: existingProfile.businessAddress,
                 warehouses: existingProfile.warehouses,
                 bankDetails: existingProfile.bankDetails,

@@ -70,7 +70,7 @@ export default function SellerRegister() {
 
     const steps = [
         'Thông tin Shop',
-        'Cài đặt vận chuyển',
+        'Kho hàng và ngân hàng',
         'Định danh',
         'Hoàn tất',
     ];
