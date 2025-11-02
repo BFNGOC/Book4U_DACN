@@ -1,11 +1,14 @@
 import { useUser } from '@/contexts/userContext';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Input from '@/components/ui/Input';
 import ImageUpload from '@/components/ui/ImageUpload';
+import ConfirmModal from '@/components/ui/modals/ConfirmModal';
 import { uploadStoreLogo } from '@/services/api/uploadApi';
 
 const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     const { user } = useUser();
+    const navigate = useNavigate();
     const [form, setForm] = useState({
         storeName: data.storeName || '',
         storeLogo: data.storeLogo || '',
@@ -13,6 +16,7 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     });
 
     const [errors, setErrors] = useState({});
+    const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
         setForm({
@@ -27,7 +31,6 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
 
         try {
             const res = await uploadStoreLogo(file);
-            console.log('Upload response:', res);
             if (res.success && res.data?.path) {
                 const logoPath = res.data.path;
 
@@ -62,6 +65,12 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
         if (Object.keys(newErrors).length > 0) return;
 
         onNext(form);
+    };
+
+    const handleCancelConfirm = () => {
+        localStorage.removeItem('userRoleSelected');
+        localStorage.removeItem('sellerRegister');
+        navigate('/register/role/select');
     };
 
     return (
@@ -131,10 +140,25 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
 
             <div className="flex justify-end mt-6">
                 <button
+                    onClick={() => setShowConfirm(true)}
+                    className="border border-gray-400 cursor-pointer text-gray-600 px-6 py-2 mr-2 rounded hover:bg-gray-100 transition">
+                    Hủy
+                </button>
+                <button
                     onClick={handleNext}
                     className="bg-blue-500 cursor-pointer text-white px-6 py-2 rounded hover:bg-blue-600 transition">
                     Tiếp theo
                 </button>
+
+                <ConfirmModal
+                    open={showConfirm}
+                    title="Xác nhận hủy đăng ký"
+                    message="Bạn có chắc muốn hủy đăng ký và quay lại chọn vai trò không?"
+                    confirmText="Có, hủy đăng ký"
+                    cancelText="Không"
+                    onConfirm={handleCancelConfirm}
+                    onCancel={() => setShowConfirm(false)}
+                />
             </div>
         </div>
     );

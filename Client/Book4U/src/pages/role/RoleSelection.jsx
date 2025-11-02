@@ -21,6 +21,7 @@ const RoleSelect = () => {
     ];
 
     const handleSelect = (role) => {
+        localStorage.setItem('userRoleSelected', role);
         navigate(`/register/${role}`);
     };
 

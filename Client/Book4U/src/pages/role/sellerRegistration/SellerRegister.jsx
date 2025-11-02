@@ -5,6 +5,8 @@ import SellerStep3 from './SellerStep3';
 import SellerStep4 from './SellerStep4';
 import ProgressSteps from '@/components/ui/ProgressSteps';
 import Loading from '@/components/common/Loading';
+import { getMyRoleRequests } from '@/services/api/roleRequestApi';
+import { useNavigate } from 'react-router-dom';
 
 export default function SellerRegister() {
     const [currentStep, setCurrentStep] = useState(0);
@@ -19,26 +21,71 @@ export default function SellerRegister() {
     const [loaded, setLoaded] = useState(false);
     const hasLoadedRef = useRef(false); // ✅ flag ngăn vòng lặp
 
-    // --- Load từ localStorage khi khởi tạo ---
     useEffect(() => {
-        const saved = localStorage.getItem('sellerRegister');
-        if (saved) {
+        const init = async () => {
             try {
-                const parsed = JSON.parse(saved);
-                if (parsed.formData) {
-                    setFormData(parsed.formData);
+                let parsed = null;
+                const res = await getMyRoleRequests();
+
+                if (res?.success && Array.isArray(res.data)) {
+                    const latestSellerRequest = res.data
+                        .filter((r) => r.role === 'seller')
+                        .sort(
+                            (a, b) =>
+                                new Date(b.createdAt).getTime() -
+                                new Date(a.createdAt).getTime()
+                        )[0];
+
+                    // kiểm tra bị reject
+                    if (latestSellerRequest?.status === 'rejected') {
+                        const lastRejectedId =
+                            localStorage.getItem('lastRejectedId');
+                        if (latestSellerRequest._id !== lastRejectedId) {
+                            localStorage.setItem(
+                                'lastRejectedId',
+                                latestSellerRequest._id
+                            );
+
+                            // Giữ form cũ nhưng quay lại bước đầu tiên
+                            const saved =
+                                localStorage.getItem('sellerRegister');
+                            const parsedSaved = saved
+                                ? JSON.parse(saved)
+                                : { formData, currentStep: 0 };
+                            parsed = { ...parsedSaved, currentStep: 0 };
+                            localStorage.setItem(
+                                'sellerRegister',
+                                JSON.stringify(parsed)
+                            );
+
+                            // ✅ cập nhật state ngay lập tức
+                            setCurrentStep(0);
+                        } else {
+                            const saved =
+                                localStorage.getItem('sellerRegister');
+                            parsed = saved ? JSON.parse(saved) : null;
+                        }
+                    } else {
+                        const saved = localStorage.getItem('sellerRegister');
+                        parsed = saved ? JSON.parse(saved) : null;
+                    }
                 }
-                if (typeof parsed.currentStep === 'number')
-                    setCurrentStep(parsed.currentStep);
+
+                // ✅ chỉ load nếu chưa reset
+                if (parsed) {
+                    if (parsed.formData) setFormData(parsed.formData);
+                    if (typeof parsed.currentStep === 'number')
+                        setCurrentStep(parsed.currentStep);
+                }
             } catch (err) {
-                console.error('Lỗi đọc localStorage:', err);
+                console.error('Lỗi khi khởi tạo:', err);
                 localStorage.removeItem('sellerRegister');
+            } finally {
+                hasLoadedRef.current = true;
+                setLoaded(true);
             }
-        }
-        setTimeout(() => {
-            hasLoadedRef.current = true;
-            setLoaded(true);
-        }, 100);
+        };
+        init();
     }, []);
 
     // --- Hàm lưu an toàn ---

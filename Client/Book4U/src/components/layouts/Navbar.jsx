@@ -2,19 +2,25 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
 import SearchBar from '../common/SearchBar';
+import { getMyRoleRequests } from '@/services/api/roleRequestApi';
 
 const roleConfigs = {
     customer: {
+        getLink: () => {
+            const savedRole = localStorage.getItem('userRoleSelected');
+            if (savedRole === 'seller') return '/register/seller';
+            if (savedRole === 'shipper') return '/register/shipper';
+            return '/register/role/select';
+        },
         label: 'Đồng hành cùng chúng tôi',
-        link: '/register/role/select',
     },
     seller: {
+        getLink: () => '/dashboard/seller',
         label: 'Quản lý cửa hàng',
-        link: '/dashboard/seller',
     },
     shipper: {
+        getLink: () => '/dashboard/shipper',
         label: 'Quản lý vận chuyển',
-        link: '/dashboard/shipper',
     },
 };
 
@@ -22,10 +28,8 @@ function Navbar() {
     const { user, logoutUser } = useUser();
 
     const currentRole = user?.role || 'customer';
-    const { label, link } = roleConfigs[currentRole] || {
-        label: 'Vai trò không xác định',
-        link: '/',
-    };
+    const { label, getLink } = roleConfigs[currentRole] || {};
+    const link = getLink ? getLink() : '/';
 
     return (
         <nav className="bg-white shadow fixed top-0 left-0 w-full h-16 z-50">

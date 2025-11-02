@@ -9,7 +9,14 @@ import {
     uploadBusinessLicense,
 } from '@/services/api/uploadApi';
 
-const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate }) => {
+const SellerStep3 = ({
+    data = {},
+    onNext,
+    onBack,
+    onUpdate,
+    startCreatingRequest,
+    finishCreatingRequest,
+}) => {
     const [info, setInfo] = useState(() => ({
         businessType: data.info?.businessType || 'individual',
         lastName: data.info?.lastName || '',
@@ -128,6 +135,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate }) => {
         if (!validate()) return;
 
         try {
+            startCreatingRequest?.();
             // ✅ Lấy dữ liệu từ localStorage (vì SellerRegister đã lưu toàn bộ form)
             const saved = localStorage.getItem('sellerRegister');
             const fullData = saved ? JSON.parse(saved).formData : {};
@@ -192,8 +200,9 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate }) => {
 
             const response = await createRoleRequest(payload);
 
+            finishCreatingRequest?.();
+
             if (response.success) {
-                console.log('✅ Gửi yêu cầu seller thành công:', response.data);
                 onNext({ info: verification });
             } else {
                 alert(
@@ -202,6 +211,7 @@ const SellerStep3 = ({ data = {}, onNext, onBack, onUpdate }) => {
                 );
             }
         } catch (error) {
+            finishCreatingRequest?.();
             console.error('❌ Lỗi khi gửi yêu cầu đăng ký vai trò:', error);
             alert('Gửi yêu cầu thất bại, vui lòng thử lại.');
         }
