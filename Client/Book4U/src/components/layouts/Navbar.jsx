@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
 import SearchBar from '../common/SearchBar';
-import { getMyRoleRequests } from '@/services/api/roleRequestApi';
 
 const roleConfigs = {
     customer: {

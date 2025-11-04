@@ -43,6 +43,10 @@ exports.createRoleRequest = async (req, res) => {
 
         let missingFields = [];
 
+        if (!details.firstName?.trim()) missingFields.push('firstName');
+        if (!details.lastName?.trim()) missingFields.push('lastName');
+        if (!details.primaryPhone?.trim()) missingFields.push('primaryPhone');
+
         if (role === 'seller') {
             const {
                 storeName,
@@ -207,11 +211,21 @@ exports.approveRequest = async (req, res) => {
                 .status(404)
                 .json({ success: false, message: 'Không tìm thấy yêu cầu' });
 
-        // Cập nhật trạng thái
+        if (request.status === 'approved')
+            return res.status(400).json({
+                success: false,
+                message: 'Yêu cầu này đã được phê duyệt trước đó',
+            });
+        if (request.status === 'rejected')
+            return res.status(400).json({
+                success: false,
+                message: 'Yêu cầu này đã bị từ chối, không thể phê duyệt lại',
+            });
+
         request.status = 'approved';
         await request.save();
 
-        // Cập nhật vai trò người dùng
+        // Cập nhật role user
         const user = await User.findById(request.userId);
         if (!user)
             return res
@@ -221,30 +235,52 @@ exports.approveRequest = async (req, res) => {
         user.role = request.role;
         await user.save();
 
-        // ✅ Cập nhật đúng loại profile
         let profile;
-        if (request.role === 'seller') {
-            profile = await SellerProfile.findOne({ userId: user._id });
 
-            if (profile) {
+        if (request.role === 'seller') {
+            let baseProfile =
+                (await SellerProfile.findOne({ userId: user._id })) ||
+                (await Profile.findOne({ userId: user._id }));
+
+            if (baseProfile) {
+                profile = await SellerProfile.findById(baseProfile._id);
+                if (!profile) {
+                    profile = new SellerProfile(baseProfile.toObject());
+                    profile.isNew = false;
+                    profile._id = baseProfile._id;
+                }
+
                 _.merge(profile, request.details);
+                profile.profileType = 'seller';
                 await profile.save();
             } else {
                 profile = await SellerProfile.create({
                     userId: user._id,
                     ...request.details,
+                    profileType: 'seller',
                 });
             }
         } else if (request.role === 'shipper') {
-            profile = await ShipperProfile.findOne({ userId: user._id });
+            let baseProfile =
+                (await ShipperProfile.findOne({ userId: user._id })) ||
+                (await Profile.findOne({ userId: user._id }));
 
-            if (profile) {
+            if (baseProfile) {
+                profile = await ShipperProfile.findById(baseProfile._id);
+                if (!profile) {
+                    profile = new ShipperProfile(baseProfile.toObject());
+                    profile.isNew = false;
+                    profile._id = baseProfile._id;
+                }
+
                 _.merge(profile, request.details);
+                profile.profileType = 'shipper';
                 await profile.save();
             } else {
                 profile = await ShipperProfile.create({
                     userId: user._id,
                     ...request.details,
+                    profileType: 'shipper',
                 });
             }
         }
@@ -280,6 +316,17 @@ exports.rejectRequest = async (req, res) => {
             return res
                 .status(404)
                 .json({ success: false, message: 'Không tìm thấy yêu cầu' });
+
+        if (request.status === 'rejected')
+            return res.status(400).json({
+                success: false,
+                message: 'Yêu cầu này đã bị từ chối trước đó',
+            });
+        if (request.status === 'approved')
+            return res.status(400).json({
+                success: false,
+                message: 'Yêu cầu này đã được phê duyệt, không thể từ chối',
+            });
 
         request.status = 'rejected';
         request.reason = reason || 'Không được phê duyệt';

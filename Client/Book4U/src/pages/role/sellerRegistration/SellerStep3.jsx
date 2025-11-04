@@ -8,6 +8,7 @@ import {
     uploadIdentification,
     uploadBusinessLicense,
 } from '@/services/api/uploadApi';
+import { useUser } from '@/contexts/userContext';
 
 const SellerStep3 = ({
     data = {},
@@ -17,10 +18,11 @@ const SellerStep3 = ({
     startCreatingRequest,
     finishCreatingRequest,
 }) => {
+    const { user } = useUser();
     const [info, setInfo] = useState(() => ({
         businessType: data.info?.businessType || 'individual',
-        lastName: data.info?.lastName || '',
-        firstName: data.info?.firstName || '',
+        lastName: data.info?.lastName || user?.lastName || '',
+        firstName: data.info?.firstName || user?.firstName || '',
         idNumber: data.info?.idNumber || '',
         taxId: data.info?.taxId || '',
         businessName: data.info?.businessName || '',
@@ -48,6 +50,8 @@ const SellerStep3 = ({
         });
     }, [data]);
 
+    const isNumber = (value) => /^[0-9]+$/.test(value.trim());
+
     const validate = () => {
         const newErrors = {};
         if (info.businessType === 'business' && !info.businessName.trim())
@@ -55,23 +59,37 @@ const SellerStep3 = ({
         if (!info.lastName.trim())
             newErrors.lastName = 'Vui lòng nhập họ và tên đệm';
         if (!info.firstName.trim()) newErrors.firstName = 'Vui lòng nhập tên';
-        if (!info.idNumber.trim())
+        if (!info.idNumber.trim()) {
             newErrors.idNumber = 'Vui lòng nhập số định danh';
+        } else if (!isNumber(info.idNumber)) {
+            newErrors.idNumber = 'Số định danh phải là số';
+        }
         if (!info.idFront)
             newErrors.idFront = 'Vui lòng tải lên mặt trước CCCD';
         if (!info.idBack) newErrors.idBack = 'Vui lòng tải lên mặt sau CCCD';
 
         if (info.businessType === 'individual') {
-            if (!info.taxId.trim())
+            if (!info.taxId.trim()) {
                 newErrors.taxId = 'Vui lòng nhập mã số thuế thu nhập cá nhân';
+            } else if (!isNumber(info.taxId)) {
+                newErrors.taxId = 'Mã số thuế phải là số';
+            }
         } else {
             if (!info.businessName.trim())
                 newErrors.businessName = 'Vui lòng nhập tên doanh nghiệp';
-            if (!info.businessRegistration.trim())
+            if (!info.businessRegistration.trim()) {
                 newErrors.businessRegistration =
                     'Vui lòng nhập mã số đăng ký kinh doanh';
-            if (!info.taxId.trim())
-                newErrors.taxId = 'Vui lòng nhập mã số đăng ký kinh doanh';
+            } else if (!isNumber(info.businessRegistration)) {
+                newErrors.businessRegistration =
+                    'Mã số đăng ký kinh doanh phải là số';
+            }
+            if (!info.taxId.trim()) {
+                newErrors.taxId =
+                    'Vui lòng nhập mã số thuế doanh nghiệp kinh doanh';
+            } else if (!isNumber(info.taxId)) {
+                newErrors.taxId = 'Mã số thuế phải là số';
+            }
             if (!info.businessLicense)
                 newErrors.businessLicense =
                     'Vui lòng tải lên giấy phép đăng ký kinh doanh';
@@ -146,6 +164,10 @@ const SellerStep3 = ({
             const payload = {
                 role: 'seller',
                 details: {
+                    firstName: verification.firstName || '',
+                    lastName: verification.lastName || '',
+                    primaryPhone: shopInfo.phone || '',
+                    storeLogo: shopInfo.storeLogo || '',
                     storeName: shopInfo.storeName || '',
                     businessType: verification.businessType || 'individual',
                     businessName:
