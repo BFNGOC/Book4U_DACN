@@ -37,11 +37,12 @@ const profileSchema = new mongoose.Schema(
             {
                 fullName: { type: String, trim: true, default: null },
                 receiverPhone: { type: String, trim: true, default: null },
-                street: { type: String, trim: true, default: null },
-                city: { type: String, trim: true, default: null },
-                state: { type: String, trim: true, default: null },
-                country: { type: String, trim: true, default: 'Vietnam' },
-                postalCode: { type: String, trim: true, default: null },
+                street: { type: String, required: true, trim: true },
+                ward: { type: String, required: true, trim: true },
+                district: { type: String, required: true, trim: true },
+                province: { type: String, required: true, trim: true },
+                country: { type: String, default: 'Vietnam' },
+                postalCode: { type: String, trim: true },
                 isDefault: { type: Boolean, default: false },
             },
         ],
@@ -131,10 +132,16 @@ const adminSchema = new mongoose.Schema({
 });
 
 const shipperSchema = new mongoose.Schema({
-    licenseNumber: { type: String, required: true, unique: true },
+    driverLicenseNumber: { type: String, required: true, trim: true },
+    driverLicenseImages: {
+        front: { type: String, required: true },
+        back: { type: String, required: true },
+    },
+    portraitImage: { type: String, required: true },
     vehicleType: {
         type: String,
         enum: ['motorcycle', 'car', 'van', 'truck'],
+        default: 'motorcycle',
         required: true,
     },
     vehicleRegistration: { type: String, required: true, trim: true },
@@ -159,6 +166,8 @@ const shipperSchema = new mongoose.Schema({
         accountName: { type: String, required: true, trim: true },
         accountNumber: { type: String, required: true, trim: true },
         bankName: { type: String, required: true, trim: true },
+        branchName: { type: String, required: true, trim: true },
+        swiftCode: { type: String, trim: true },
     },
     isVerified: { type: Boolean, default: false },
     verificationDate: { type: Date, default: null },

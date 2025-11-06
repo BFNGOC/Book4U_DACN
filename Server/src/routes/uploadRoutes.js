@@ -39,4 +39,28 @@ router.post(
     }
 );
 
+router.post(
+    '/driver-license',
+    authMiddleware,
+    createUploader('driver-license').array('images', 2),
+    (req, res) => {
+        const paths = req.files.map(
+            (f) => `/uploads/driver-license/${f.filename}`
+        );
+        res.status(200).json({ success: true, paths });
+    }
+);
+
+router.post(
+    '/portrait',
+    authMiddleware,
+    createUploader('portrait').single('image'),
+    (req, res) => {
+        res.status(200).json({
+            success: true,
+            path: `/uploads/portrait/${req.file.filename}`,
+        });
+    }
+);
+
 module.exports = router;

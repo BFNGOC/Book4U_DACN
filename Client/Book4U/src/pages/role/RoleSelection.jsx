@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/contexts/userContext';
+
 const RoleSelect = () => {
+    const { user } = useUser();
+
     const navigate = useNavigate();
     const roles = [
         {
@@ -20,7 +24,10 @@ const RoleSelect = () => {
     ];
 
     const handleSelect = (role) => {
-        localStorage.setItem('userRoleSelected', role);
+        const userId = user?._id;
+        if (!userId) return navigate('/login');
+
+        localStorage.setItem(`userRoleSelected_${userId}`, role);
         navigate(`/register/${role}`);
     };
 

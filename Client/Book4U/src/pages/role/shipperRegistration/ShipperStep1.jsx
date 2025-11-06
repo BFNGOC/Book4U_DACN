@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react';
 import Input from '@/components/ui/Input';
-import WarehouseModal from '@/components/modal/WarehouseModal';
-import { provinceApi } from '@/services/api/provinceApi';
+import ServiceAreaModal from '@/components/modal/ServiceAreaModal';
 import { bankApi } from '@/services/api/bankApi';
 import { Edit2, Trash2 } from 'lucide-react';
+import { useUser } from '@/contexts/userContext';
+import { useNavigate } from 'react-router-dom';
+import ConfirmModal from '@/components/ui/modals/ConfirmModal';
 
-const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
+const ShipperStep1 = ({ data, onNext, onBack, onUpdate }) => {
+    const { user } = useUser();
+    const STORAGE_KEY = `sellerRegister_${user?._id}`;
+    const navigate = useNavigate();
     const [showModal, setShowModal] = useState(false);
-    const [warehouses, setWarehouses] = useState(() => data?.warehouses || []);
-    const [selectedWarehouse, setSelectedWarehouse] = useState(null); // để edit
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [areas, setAreas] = useState(() => data?.areas || []);
+    const [selectedArea, setSelectedArea] = useState(null);
     const [editMode, setEditMode] = useState(false);
-    const [provinces, setProvinces] = useState([]);
-    const [address, setAddress] = useState({
-        province: '',
-        district: '',
-        ward: '',
-        detail: '',
-    });
     const [banks, setBanks] = useState([]);
     const [bank, setBank] = useState(
         () => data?.bank || { name: '', number: '', bank: '', branch: '' }
@@ -25,7 +24,7 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
 
     useEffect(() => {
         if (data) {
-            setWarehouses(data.warehouses || []);
+            setAreas(data.areas || []);
             setBank(
                 data.bank || { name: '', number: '', bank: '', branch: '' }
             );
@@ -48,9 +47,9 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
     const handleNext = () => {
         const newErrors = {};
 
-        if (warehouses.length === 0)
-            newErrors.warehouse =
-                'Vui lòng tạo ít nhất một kho hàng trước khi tiếp tục.';
+        if (areas.length === 0)
+            newErrors.areas =
+                'Vui lòng chọn ít nhất một khu vực phục vụ trước khi tiếp tục.';
         if (!bank.bank.trim()) newErrors.bank = 'Vui lòng nhập tên ngân hàng';
         if (!bank.branch.trim())
             newErrors.branch = 'Vui lòng nhập chi nhánh ngân hàng';
@@ -62,35 +61,41 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
         setErrors(newErrors);
         if (Object.keys(newErrors).length > 0) return;
 
-        onNext({ warehouses, bank });
+        onNext({ areas, bank });
+    };
+
+    const handleCancelConfirm = () => {
+        localStorage.removeItem(`userRoleSelected_${user?._id}`);
+        localStorage.removeItem(STORAGE_KEY);
+        navigate('/register/role/select');
     };
 
     return (
         <div className="max-w-5xl mx-auto p-6 bg-white">
-            {/* --- KHỐI 1: KHO HÀNG --- */}
+            {/* --- KHỐI 1: KHU VỰC PHỤC VỤ --- */}
             <div className="bg-white border border-gray-300 p-6 mb-8">
                 <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-lg font-semibold">
-                        Kho lấy và trả hàng
-                    </h2>
+                    <h2 className="text-lg font-semibold">Khu vực phục vụ</h2>
                     <button
                         onClick={() => {
                             setEditMode(false);
-                            setSelectedWarehouse(null);
+                            setSelectedArea(null);
                             setShowModal(true);
                         }}
                         className="bg-white hover:bg-blue-50 text-blue-600 px-2 py-2 rounded-md cursor-pointer transition border-2 border-blue-600">
-                        + Tạo kho hàng mới
+                        + Thêm khu vực
                     </button>
                 </div>
-                {/* Hiển thị nội dung */}
-                {warehouses.length === 0 ? (
+
+                {/* Hiển thị danh sách khu vực */}
+                {areas.length === 0 ? (
                     <p className="text-sm text-gray-500 mb-4">
-                        Vui lòng tạo ít nhất một địa chỉ kho để lấy và trả hàng.
+                        Vui lòng thêm ít nhất một khu vực phục vụ trước khi tiếp
+                        tục.
                     </p>
                 ) : (
                     <div className="space-y-4">
-                        {warehouses.map((w, index) => (
+                        {areas.map((a, index) => (
                             <div
                                 key={index}
                                 className="bg-gray-50 p-4 text-gray-700 relative">
@@ -99,87 +104,79 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                                     <Edit2
                                         size={28}
                                         onClick={() => {
-                                            setSelectedWarehouse(w);
+                                            setSelectedArea(a);
                                             setEditMode(true);
                                             setShowModal(true);
                                         }}
                                         className="bg-white rounded-full p-1.5 shadow-sm text-blue-600 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-transform transform hover:scale-105"
-                                        title="Chỉnh sửa kho"
+                                        title="Chỉnh sửa khu vực"
                                     />
 
                                     {/* 🗑️ Nút xóa */}
                                     <Trash2
                                         size={28}
                                         onClick={() => {
-                                            const updated = warehouses.filter(
-                                                (item) => item !== w
+                                            const updated = areas.filter(
+                                                (item) => item !== a
                                             );
-                                            setWarehouses(updated);
+                                            setAreas(updated);
                                             onUpdate &&
                                                 onUpdate({
-                                                    warehouses: updated,
+                                                    areas: updated,
                                                     bank,
                                                 });
                                         }}
                                         className="bg-white rounded-full p-1.5 shadow-sm text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-transform transform hover:scale-105"
-                                        title="Xóa kho"
+                                        title="Xóa khu vực"
                                     />
                                 </div>
 
                                 <h4 className="font-semibold mb-2">
-                                    Kho hàng #{index + 1}
+                                    Khu vực #{index + 1}
                                 </h4>
                                 <p>
-                                    <strong>Họ tên:</strong> {w.name}
+                                    <strong>Tỉnh/Thành phố:</strong>{' '}
+                                    {a.province}
                                 </p>
                                 <p>
-                                    <strong>Số điện thoại:</strong> {w.phone}
-                                </p>
-                                <p>
-                                    <strong>Địa chỉ:</strong> {w.detail},{' '}
-                                    {w.ward}, {w.district}, {w.province}
+                                    <strong>Quận/Huyện:</strong> {a.district}
                                 </p>
                             </div>
                         ))}
                     </div>
                 )}
 
-                {errors.warehouse && (
-                    <p className="text-red-500 text-sm mt-2">
-                        {errors.warehouse}
-                    </p>
+                {errors.areas && (
+                    <p className="text-red-500 text-sm mt-2">{errors.areas}</p>
                 )}
             </div>
 
             {/* --- MODAL --- */}
             {showModal && (
-                <WarehouseModal
+                <ServiceAreaModal
                     onClose={() => setShowModal(false)}
                     onSave={(data) => {
-                        let updatedWarehouses = [];
+                        let updatedAreas = [];
 
-                        if (editMode && selectedWarehouse) {
-                            // 🔁 Nếu đang chỉnh sửa, cập nhật kho cũ
-                            updatedWarehouses = warehouses.map((w) =>
-                                w === selectedWarehouse ? { ...w, ...data } : w
+                        if (editMode && selectedArea) {
+                            // 🔁 Nếu đang chỉnh sửa
+                            updatedAreas = areas.map((a) =>
+                                a === selectedArea ? { ...a, ...data } : a
                             );
                         } else {
-                            // ➕ Nếu tạo mới, thêm vào danh sách
-                            updatedWarehouses = [...warehouses, data];
+                            // ➕ Thêm mới
+                            updatedAreas = [...areas, data];
                         }
 
-                        setWarehouses(updatedWarehouses);
+                        setAreas(updatedAreas);
                         setShowModal(false);
 
-                        // 🔄 Gọi onUpdate với danh sách mới (không thêm trùng)
-                        onUpdate &&
-                            onUpdate({ warehouses: updatedWarehouses, bank });
+                        onUpdate && onUpdate({ areas: updatedAreas, bank });
 
-                        // reset edit mode
                         setEditMode(false);
-                        setSelectedWarehouse(null);
+                        setSelectedArea(null);
                     }}
-                    defaultData={editMode ? selectedWarehouse : null}
+                    defaultData={editMode ? selectedArea : null}
                 />
             )}
 
@@ -192,6 +189,7 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Ngân hàng */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Ngân hàng *
@@ -205,8 +203,7 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                                     bank: e.target.value,
                                 };
                                 setBank(updated);
-                                onUpdate &&
-                                    onUpdate({ warehouses, bank: updated });
+                                onUpdate && onUpdate({ areas, bank: updated });
                             }}>
                             <option value="">Chọn ngân hàng</option>
                             {banks.map((b) => (
@@ -221,6 +218,8 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                             </p>
                         )}
                     </div>
+
+                    {/* Chi nhánh */}
                     <Input
                         label="Chi nhánh *"
                         placeholder="Nhập chi nhánh ngân hàng"
@@ -229,7 +228,7 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                         onChange={(e) => {
                             const updated = { ...bank, branch: e.target.value };
                             setBank(updated);
-                            onUpdate && onUpdate({ warehouses, bank: updated });
+                            onUpdate && onUpdate({ areas, bank: updated });
                         }}
                         error={errors.branch}
                     />
@@ -241,7 +240,7 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                         onChange={(e) => {
                             const updated = { ...bank, name: e.target.value };
                             setBank(updated);
-                            onUpdate && onUpdate({ warehouses, bank: updated });
+                            onUpdate && onUpdate({ areas, bank: updated });
                         }}
                         error={errors.name}
                     />
@@ -253,28 +252,38 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                         onChange={(e) => {
                             const updated = { ...bank, number: e.target.value };
                             setBank(updated);
-                            onUpdate && onUpdate({ warehouses, bank: updated });
+                            onUpdate && onUpdate({ areas, bank: updated });
                         }}
                         error={errors.number}
                     />
                 </div>
             </div>
 
-            {/* --- NÚT --- */}
+            {/* --- NÚT ĐIỀU HƯỚNG --- */}
             <div className="flex justify-end mt-8">
                 <button
-                    onClick={onBack}
+                    onClick={() => setShowConfirm(true)}
                     className="border border-gray-400 cursor-pointer text-gray-600 px-6 py-2 mr-2 rounded hover:bg-gray-100 transition">
-                    Quay lại
+                    Hủy
                 </button>
                 <button
                     onClick={handleNext}
                     className="bg-blue-500 cursor-pointer text-white px-6 py-2 rounded hover:bg-blue-600 transition">
                     Tiếp theo
                 </button>
+
+                <ConfirmModal
+                    open={showConfirm}
+                    title="Xác nhận hủy đăng ký"
+                    message="Bạn có chắc muốn hủy đăng ký và quay lại chọn vai trò không?"
+                    confirmText="Có, hủy đăng ký"
+                    cancelText="Không"
+                    onConfirm={handleCancelConfirm}
+                    onCancel={() => setShowConfirm(false)}
+                />
             </div>
         </div>
     );
 };
 
-export default SellerStep2;
+export default ShipperStep1;

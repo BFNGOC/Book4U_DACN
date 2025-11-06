@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { provinceApi } from '@/services/api/provinceApi';
 
-const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
+const AddressSelector = ({
+    value,
+    onChange,
+    errors = {},
+    defaultData,
+    hideWard = false,
+    hideDetail = false,
+}) => {
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
@@ -182,43 +189,51 @@ const AddressSelector = ({ value, onChange, errors = {}, defaultData }) => {
             </div>
 
             {/* Ward */}
-            <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                    Phường / Xã <span className="text-red-500">*</span>
-                </label>
-                <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
-                    value={value.ward || ''}
-                    onChange={handleWardChange}
-                    disabled={!wards.length}>
-                    <option value="">-- Chọn Phường/Xã --</option>
-                    {wards.map((w) => (
-                        <option key={w.code} value={w.code}>
-                            {w.name}
-                        </option>
-                    ))}
-                </select>
-                {errors.ward && (
-                    <p className="text-red-500 text-xs mt-1">{errors.ward}</p>
-                )}
-            </div>
+            {!hideWard && (
+                <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-1">
+                        Phường / Xã <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+                        value={value.ward || ''}
+                        onChange={handleWardChange}
+                        disabled={!wards.length}>
+                        <option value="">-- Chọn Phường/Xã --</option>
+                        {wards.map((w) => (
+                            <option key={w.code} value={w.code}>
+                                {w.name}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.ward && (
+                        <p className="text-red-500 text-xs mt-1">
+                            {errors.ward}
+                        </p>
+                    )}
+                </div>
+            )}
 
             {/* Detail */}
-            <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                    Địa chỉ chi tiết <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                    placeholder="Số nhà, tên đường..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
-                    rows={2}
-                    value={value.detail || ''}
-                    onChange={handleDetailChange}
-                />
-                {errors.detail && (
-                    <p className="text-red-500 text-xs mt-1">{errors.detail}</p>
-                )}
-            </div>
+            {!hideDetail && (
+                <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-1">
+                        Địa chỉ chi tiết <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        placeholder="Số nhà, tên đường..."
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5"
+                        rows={2}
+                        value={value.detail || ''}
+                        onChange={handleDetailChange}
+                    />
+                    {errors.detail && (
+                        <p className="text-red-500 text-xs mt-1">
+                            {errors.detail}
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

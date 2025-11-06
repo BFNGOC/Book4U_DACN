@@ -158,21 +158,65 @@ async function updateProfileForRole(user, existingProfile = null) {
             break;
 
         case 'shipper':
-            if (
-                !existingProfile.licenseNumber ||
-                !existingProfile.vehicleType ||
-                !existingProfile.vehicleRegistration ||
-                !existingProfile.serviceArea ||
-                !existingProfile.bankDetails ||
-                !existingProfile.identificationNumber ||
-                !existingProfile.identificationImages
-            ) {
+            if (!existingProfile.driverLicenseNumber?.trim()) {
                 throw new Error(
-                    'Thiếu thông tin bắt buộc để trở thành shipper'
+                    'Thiếu số giấy phép lái xe (driverLicenseNumber)'
                 );
             }
+
+            if (
+                !existingProfile.driverLicenseImages ||
+                !existingProfile.driverLicenseImages.front ||
+                !existingProfile.driverLicenseImages.back
+            ) {
+                throw new Error('Thiếu hình ảnh GPLX (driverLicenseImages)');
+            }
+
+            if (!existingProfile.portraitImage) {
+                throw new Error('Thiếu ảnh chân dung (portraitImage)');
+            }
+
+            if (!existingProfile.vehicleType) {
+                throw new Error('Thiếu loại phương tiện (vehicleType)');
+            }
+
+            if (!existingProfile.vehicleRegistration?.trim()) {
+                throw new Error('Thiếu số đăng ký xe (vehicleRegistration)');
+            }
+
+            if (
+                !Array.isArray(existingProfile.serviceArea) ||
+                existingProfile.serviceArea.length === 0
+            ) {
+                throw new Error('Thiếu khu vực hoạt động (serviceArea)');
+            }
+
+            if (
+                !existingProfile.bankDetails ||
+                !existingProfile.bankDetails.accountName ||
+                !existingProfile.bankDetails.accountNumber ||
+                !existingProfile.bankDetails.bankName ||
+                !existingProfile.bankDetails.branchName
+            ) {
+                throw new Error('Thiếu thông tin ngân hàng (bankDetails)');
+            }
+
+            if (!existingProfile.identificationNumber?.trim()) {
+                throw new Error('Thiếu số định danh (identificationNumber)');
+            }
+
+            if (
+                !existingProfile.identificationImages ||
+                !existingProfile.identificationImages.front ||
+                !existingProfile.identificationImages.back
+            ) {
+                throw new Error('Thiếu ảnh CCCD (identificationImages)');
+            }
+
             extraFields = {
-                licenseNumber: existingProfile.licenseNumber,
+                driverLicenseNumber: existingProfile.driverLicenseNumber,
+                driverLicenseImages: existingProfile.driverLicenseImages,
+                portraitImage: existingProfile.portraitImage,
                 vehicleType: existingProfile.vehicleType,
                 vehicleRegistration: existingProfile.vehicleRegistration,
                 serviceArea: existingProfile.serviceArea,
@@ -188,13 +232,6 @@ async function updateProfileForRole(user, existingProfile = null) {
                 verificationDate: existingProfile.verificationDate || null,
                 identificationNumber: existingProfile.identificationNumber,
                 identificationImages: existingProfile.identificationImages,
-            };
-            break;
-        case 'admin':
-            extraFields = {
-                department: existingProfile.department || 'operations',
-                permissions: existingProfile.permissions || ['view_analytics'],
-                hireDate: existingProfile.hireDate || Date.now(),
             };
             break;
     }

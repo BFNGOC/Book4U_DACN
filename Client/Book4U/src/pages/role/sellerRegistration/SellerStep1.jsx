@@ -8,6 +8,7 @@ import { uploadStoreLogo } from '@/services/api/uploadApi';
 
 const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     const { user } = useUser();
+    const STORAGE_KEY = `sellerRegister_${user?._id}`;
     const navigate = useNavigate();
     const [form, setForm] = useState({
         storeName: data.storeName || '',
@@ -38,10 +39,10 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
                 setForm(updatedForm);
 
                 localStorage.setItem(
-                    'sellerRegister',
+                    STORAGE_KEY,
                     JSON.stringify({
                         ...JSON.parse(
-                            localStorage.getItem('sellerRegister') || '{}'
+                            localStorage.getItem(STORAGE_KEY) || '{}'
                         ),
                         formData: { ...form, storeLogo: logoPath },
                     })
@@ -68,8 +69,8 @@ const SellerStep1 = ({ data = {}, onNext, onUpdate }) => {
     };
 
     const handleCancelConfirm = () => {
-        localStorage.removeItem('userRoleSelected');
-        localStorage.removeItem('sellerRegister');
+        localStorage.removeItem(`userRoleSelected_${user?._id}`);
+        localStorage.removeItem(STORAGE_KEY);
         navigate('/register/role/select');
     };
 

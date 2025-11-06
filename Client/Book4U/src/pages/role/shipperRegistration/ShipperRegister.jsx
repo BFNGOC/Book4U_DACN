@@ -1,67 +1,55 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import SellerStep1 from './SellerStep1';
-import SellerStep2 from './SellerStep2';
-import SellerStep3 from './SellerStep3';
-import SellerStep4 from './SellerStep4';
+import ShipperStep1 from './ShipperStep1';
+import ShipperStep2 from './ShipperStep2';
+import ShipperStep3 from './ShipperStep3';
 import ProgressSteps from '@/components/ui/ProgressSteps';
 import Loading from '@/components/common/Loading';
 import { getMyRoleRequests } from '@/services/api/roleRequestApi';
 import { useUser } from '@/contexts/userContext';
 
-export default function SellerRegister() {
+export default function ShipperRegister() {
     const { user } = useUser();
     const userId = user?._id;
-    const STORAGE_KEY = `sellerRegister_${userId}`;
+    const STORAGE_KEY = `shipperRegister_${userId}`;
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState({
-        shopInfo: {},
-        shipping: {
-            warehouses: [],
+        areaAndBank: {
+            areas: [],
             bank: { name: '', number: '', bank: '', branch: '' },
         },
-        verification: { type: 'personal', info: {} },
+        identity: {},
     });
     const [loaded, setLoaded] = useState(false);
-    const hasLoadedRef = useRef(false); // ✅ flag ngăn vòng lặp
+    const hasLoadedRef = useRef(false);
 
     useEffect(() => {
         const init = async () => {
             try {
-                let parsed = null;
                 const res = await getMyRoleRequests();
+                let parsed = null;
 
                 if (res?.success && Array.isArray(res.data)) {
-                    const latestSellerRequest = res.data
-                        .filter((r) => r.role === 'seller')
+                    const latest = res.data
+                        .filter((r) => r.role === 'shipper')
                         .sort(
                             (a, b) =>
-                                new Date(b.createdAt).getTime() -
-                                new Date(a.createdAt).getTime()
+                                new Date(b.createdAt) - new Date(a.createdAt)
                         )[0];
 
-                    // kiểm tra bị reject
-                    if (latestSellerRequest?.status === 'rejected') {
+                    if (latest?.status === 'rejected') {
                         const lastRejectedId = localStorage.getItem(
                             `lastRejectedId_${userId}`
                         );
-                        if (latestSellerRequest._id !== lastRejectedId) {
+                        if (latest._id !== lastRejectedId) {
                             localStorage.setItem(
                                 `lastRejectedId_${userId}`,
-                                latestSellerRequest._id
+                                latest._id
                             );
-
-                            // Giữ form cũ nhưng quay lại bước đầu tiên
-                            const saved = localStorage.getItem(STORAGE_KEY);
-                            const parsedSaved = saved
-                                ? JSON.parse(saved)
-                                : { formData, currentStep: 0 };
-                            parsed = { ...parsedSaved, currentStep: 0 };
+                            parsed = { formData, currentStep: 0 };
                             localStorage.setItem(
                                 STORAGE_KEY,
                                 JSON.stringify(parsed)
                             );
-
-                            // ✅ cập nhật state ngay lập tức
                             setCurrentStep(0);
                         } else {
                             const saved = localStorage.getItem(STORAGE_KEY);
@@ -73,14 +61,13 @@ export default function SellerRegister() {
                     }
                 }
 
-                // ✅ chỉ load nếu chưa reset
                 if (parsed) {
                     if (parsed.formData) setFormData(parsed.formData);
                     if (typeof parsed.currentStep === 'number')
                         setCurrentStep(parsed.currentStep);
                 }
             } catch (err) {
-                console.error('Lỗi khi khởi tạo:', err);
+                console.error('Error loading form:', err);
                 localStorage.removeItem(STORAGE_KEY);
             } finally {
                 hasLoadedRef.current = true;
@@ -90,17 +77,10 @@ export default function SellerRegister() {
         init();
     }, []);
 
-    // --- Hàm lưu an toàn ---
     const saveToLocalStorage = useCallback((data, step) => {
-        if (!hasLoadedRef.current) return; // ✅ không lưu khi chưa load xong
-        const old = localStorage.getItem(STORAGE_KEY);
-        const oldParsed = old ? JSON.parse(old) : {};
+        if (!hasLoadedRef.current) return;
         const newData = { formData: data, currentStep: step };
-
-        // ✅ chỉ ghi nếu dữ liệu thay đổi thực sự
-        if (JSON.stringify(oldParsed) !== JSON.stringify(newData)) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
-        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
     }, []);
 
     const updateFormData = useCallback(
@@ -117,21 +97,15 @@ export default function SellerRegister() {
         [currentStep, saveToLocalStorage]
     );
 
-    const steps = [
-        'Thông tin Shop',
-        'Kho hàng và ngân hàng',
-        'Định danh',
-        'Hoàn tất',
-    ];
+    const steps = ['Khu vực & ngân hàng', 'Thông tin cá nhân', 'Hoàn thành'];
 
     const handleNext = useCallback(
         (data) => {
             const nextStep = Math.min(currentStep + 1, steps.length - 1);
             setFormData((prev) => {
                 const updated = { ...prev };
-                if (currentStep === 0) updated.shopInfo = data;
-                if (currentStep === 1) updated.shipping = data;
-                if (currentStep === 2) updated.verification = data;
+                if (currentStep === 0) updated.areaAndBank = data;
+                if (currentStep === 1) updated.identity = data;
                 saveToLocalStorage(updated, nextStep);
                 return updated;
             });
@@ -153,36 +127,25 @@ export default function SellerRegister() {
             <ProgressSteps steps={steps} currentStep={currentStep} />
             <div className="mt-8">
                 {currentStep === 0 && (
-                    <SellerStep1
-                        data={formData.shopInfo}
+                    <ShipperStep1
+                        data={formData.areaAndBank}
                         onNext={handleNext}
                         onUpdate={(newData) =>
-                            updateFormData('shopInfo', newData)
+                            updateFormData('areaAndBank', newData)
                         }
                     />
                 )}
                 {currentStep === 1 && (
-                    <SellerStep2
-                        data={formData.shipping}
+                    <ShipperStep2
+                        data={formData.identity}
                         onNext={handleNext}
                         onBack={handleBack}
                         onUpdate={(newData) =>
-                            updateFormData('shipping', newData)
+                            updateFormData('identity', newData)
                         }
                     />
                 )}
-                {currentStep === 2 && (
-                    <SellerStep3
-                        data={formData.verification}
-                        phone={formData.shopInfo?.phone}
-                        onNext={handleNext}
-                        onBack={handleBack}
-                        onUpdate={(newData) =>
-                            updateFormData('verification', newData)
-                        }
-                    />
-                )}
-                {currentStep === 3 && <SellerStep4 />}
+                {currentStep === 2 && <ShipperStep3 />}
             </div>
         </div>
     );

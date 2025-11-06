@@ -19,6 +19,7 @@ const SellerStep3 = ({
     finishCreatingRequest,
 }) => {
     const { user } = useUser();
+    const STORAGE_KEY = `sellerRegister_${user?._id}`;
     const [info, setInfo] = useState(() => ({
         businessType: data.info?.businessType || 'individual',
         lastName: data.info?.lastName || user?.lastName || '',
@@ -129,10 +130,10 @@ const SellerStep3 = ({
                 onUpdate && onUpdate({ info: updated });
 
                 const saved = JSON.parse(
-                    localStorage.getItem('sellerRegister') || '{}'
+                    localStorage.getItem(STORAGE_KEY) || '{}'
                 );
                 localStorage.setItem(
-                    'sellerRegister',
+                    STORAGE_KEY,
                     JSON.stringify({
                         ...saved,
                         formData: {
@@ -155,7 +156,7 @@ const SellerStep3 = ({
         try {
             startCreatingRequest?.();
             // ✅ Lấy dữ liệu từ localStorage (vì SellerRegister đã lưu toàn bộ form)
-            const saved = localStorage.getItem('sellerRegister');
+            const saved = localStorage.getItem(STORAGE_KEY);
             const fullData = saved ? JSON.parse(saved).formData : {};
             const shopInfo = fullData?.shopInfo || {};
             const shipping = fullData?.shipping || {};
@@ -453,10 +454,10 @@ const SellerStep3 = ({
                             onUpdate && onUpdate({ info: updated });
 
                             const saved = JSON.parse(
-                                localStorage.getItem('sellerRegister') || '{}'
+                                localStorage.getItem(STORAGE_KEY) || '{}'
                             );
                             localStorage.setItem(
-                                'sellerRegister',
+                                STORAGE_KEY,
                                 JSON.stringify({
                                     ...saved,
                                     formData: {

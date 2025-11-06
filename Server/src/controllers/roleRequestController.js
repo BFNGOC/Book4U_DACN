@@ -126,19 +126,85 @@ exports.createRoleRequest = async (req, res) => {
                         missingFields.push(`warehouses[${idx}]`);
                 });
             }
+        } else if (role === 'shipper') {
+            const {
+                driverLicenseNumber,
+                driverLicenseImages,
+                portraitImage,
+                vehicleType,
+                vehicleRegistration,
+                serviceArea,
+                bankDetails,
+                identificationNumber,
+                identificationImages,
+            } = details;
+
+            // GPLX
+            if (!driverLicenseNumber?.trim())
+                missingFields.push('driverLicenseNumber');
+            if (
+                !driverLicenseImages ||
+                !driverLicenseImages.front ||
+                !driverLicenseImages.back
+            ) {
+                missingFields.push('driverLicenseImages');
+            }
+
+            // Ảnh chân dung
+            if (!portraitImage?.trim()) missingFields.push('portraitImage');
+
+            // Phương tiện
+            if (!vehicleType) missingFields.push('vehicleType');
+            if (!vehicleRegistration?.trim())
+                missingFields.push('vehicleRegistration');
+
+            // Khu vực hoạt động
+            if (!Array.isArray(serviceArea) || serviceArea.length === 0) {
+                missingFields.push('serviceArea');
+            } else {
+                serviceArea.forEach((area, idx) => {
+                    if (!area.district || !area.province)
+                        missingFields.push(`serviceArea[${idx}]`);
+                });
+            }
+
+            // Ngân hàng
+            if (
+                !bankDetails ||
+                !bankDetails.accountName ||
+                !bankDetails.accountNumber ||
+                !bankDetails.bankName ||
+                !bankDetails.branchName
+            ) {
+                missingFields.push('bankDetails');
+            }
+
+            // CCCD
+            if (!identificationNumber?.trim())
+                missingFields.push('identificationNumber');
+
+            if (
+                !identificationImages ||
+                !identificationImages.front ||
+                !identificationImages.back
+            ) {
+                missingFields.push('identificationImages');
+            }
         }
 
         // --- Kiểm tra trùng request đang chờ ---
-        const existing = await RoleRequest.findOne({
+        const existingRequest = await RoleRequest.findOne({
             userId: req.user.userId,
-            role,
-            status: 'pending',
+            status: { $in: ['pending', 'approved'] },
         });
-        if (existing)
+
+        if (existingRequest) {
             return res.status(400).json({
                 success: false,
-                message: 'Đã gửi yêu cầu trước đó, vui lòng chờ xử lý',
+                message:
+                    'Bạn đã có yêu cầu đăng ký vai trò khác đang được xử lý. Vui lòng chờ duyệt hoặc chờ bị từ chối trước khi gửi yêu cầu mới.',
             });
+        }
 
         if (missingFields.length) {
             return res.status(400).json({

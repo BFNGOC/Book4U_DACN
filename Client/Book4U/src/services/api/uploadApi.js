@@ -56,3 +56,39 @@ export const uploadBusinessLicense = (images) => {
         'multipart/form-data'
     );
 };
+
+/**
+ * Upload ảnh GPLX (2 ảnh trước và sau)
+ * @param {File[]} images
+ */
+export const uploadDriverLicense = (images) => {
+    const formData = new FormData();
+    images.forEach((img) => formData.append('images', img));
+
+    return fetchHandler(
+        axiosPrivate,
+        `${UPLOAD_API_URL}/driver-license`,
+        formData,
+        'Lỗi khi tải lên giấy phép lái xe.',
+        'POST',
+        'multipart/form-data'
+    );
+};
+
+/**
+ * Upload ảnh chân dung (1 ảnh)
+ * @param {File} image
+ */
+export const uploadPortrait = (image) => {
+    const formData = new FormData();
+    formData.append('image', image);
+
+    return fetchHandler(
+        axiosPrivate,
+        `${UPLOAD_API_URL}/portrait`,
+        formData,
+        'Lỗi khi tải lên ảnh chân dung.',
+        'POST',
+        'multipart/form-data'
+    );
+};
