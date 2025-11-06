@@ -100,7 +100,7 @@ function ProductDetails() {
 
                     {/* Nút thêm giỏ hàng + mua ngay */}
                     <div className="mt-6 flex gap-3">
-                        <AddToCartButton product={book} />
+                        <AddToCartButton bookId={book._id} product={book} />
                         <BuyNowButton product={book} />
                     </div>
                 </div>

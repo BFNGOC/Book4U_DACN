@@ -1,6 +1,15 @@
-function AddToCartButton() {
+import { useContext } from 'react';
+import useRequireAuth from '../../../hooks/useRequireAuth';
+import { CartContext } from '../../../contexts/CartContext.jsx';
+
+function AddToCartButton({ bookId, quantity = 1 }) {
+    const { requireLogin } = useRequireAuth();
+    const { addToCartContext } = useContext(CartContext);
+
     const handleAddToCart = () => {
-        console.log('🛒 Đã thêm vào giỏ');
+        requireLogin(async () => {
+            await addToCartContext(bookId, quantity);
+        });
     };
     return (
         <button

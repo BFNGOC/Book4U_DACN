@@ -20,6 +20,8 @@ import RoleSelection from '../pages/role/RoleSelection';
 import SellerRegister from '../pages/role/sellerRegistration/SellerRegister';
 
 import DailyDiscover from '../pages/DailyDiscover';
+import Cart from '../pages/Cart';
+import Checkout from '../pages/Checkout';
 
 import NotFound from '../pages/NotFound';
 
@@ -35,10 +37,7 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route
-                    path="/reset-password/:token"
-                    element={<ResetPassword />}
-                />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/product/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
 
@@ -64,6 +63,22 @@ function AppRoutes() {
                     element={
                         <PrivateRoute>
                             <SellerRegister />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/cart"
+                    element={
+                        <PrivateRoute>
+                            <Cart />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/checkout"
+                    element={
+                        <PrivateRoute>
+                            <Checkout />
                         </PrivateRoute>
                     }
                 />

@@ -33,7 +33,7 @@ exports.getUserRecommendations = async (req, res) => {
             });
         }
 
-        const userId = req.user._id;
+        const userId = req.user.userId;
 
         // Tìm top thể loại / tác giả mà user tương tác nhiều nhất
         const topInteractions = await UserInteraction.find({ userId })

@@ -1,7 +1,9 @@
+import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
 import SearchBar from '../common/SearchBar';
+import { CartContext } from '../../contexts/CartContext';
 
 const roleConfigs = {
     customer: {
@@ -26,6 +28,8 @@ const roleConfigs = {
 function Navbar() {
     const { user, logoutUser } = useUser();
 
+    const { cartCount } = useContext(CartContext);
+
     const currentRole = user?.role || 'customer';
     const { label, getLink } = roleConfigs[currentRole] || {};
     const link = getLink ? getLink() : '/';
@@ -35,11 +39,7 @@ function Navbar() {
             <div className="max-w-screen-xl mx-auto px-6 h-full flex items-center justify-between gap-6">
                 {/* Logo */}
                 <Link to="/" className="flex items-center">
-                    <img
-                        src="/img/Book4U-removebg.png"
-                        alt="BookHub"
-                        className="w-24 h-auto"
-                    />
+                    <img src="/img/Book4U-removebg.png" alt="BookHub" className="w-24 h-auto" />
                 </Link>
 
                 {/* Search Bar (global) */}
@@ -48,12 +48,14 @@ function Navbar() {
                 {/* Actions */}
                 <div className="flex items-center space-x-5">
                     {/* Cart */}
-                    <div className="relative cursor-pointer">
+                    <Link to="/cart" className="relative cursor-pointer">
                         <ShoppingCart className="w-6 h-6 text-gray-700" />
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                            0
-                        </span>
-                    </div>
+                        {cartCount > 0 && (
+                            <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                                {cartCount}
+                            </span>
+                        )}
+                    </Link>
 
                     {user ? (
                         <div className="relative group">
@@ -62,26 +64,31 @@ function Navbar() {
                             </button>
                             <div
                                 className="absolute right-0 top-full w-40 bg-white shadow-lg rounded-lg border py-2 
-                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200">
+                opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200"
+                            >
                                 <Link
                                     to="/profile"
-                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                >
                                     Trang cá nhân
                                 </Link>
                                 <Link
                                     to="/orders"
-                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                >
                                     Đơn hàng
                                 </Link>
                                 {/* role-registration */}
                                 <Link
                                     to={link}
-                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                >
                                     {label}
                                 </Link>
                                 <button
                                     onClick={logoutUser}
-                                    className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100">
+                                    className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100"
+                                >
                                     Đăng xuất
                                 </button>
                             </div>
@@ -90,12 +97,14 @@ function Navbar() {
                         <div className="space-x-1">
                             <Link
                                 to="/register"
-                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
+                            >
                                 Đăng ký
                             </Link>
                             <Link
                                 to="/login"
-                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+                            >
                                 Đăng nhập
                             </Link>
                         </div>

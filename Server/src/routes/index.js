@@ -6,6 +6,7 @@ const searchRoutes = require('./searchRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const phoneVerificationRoutes = require('./phoneVerificationRoutes');
 const recommendRoutes = require('./recommendRoutes');
+const cartRoutes = require('./cartRoutes');
 
 function route(app) {
     app.get('/', (req, res) => {
@@ -20,6 +21,7 @@ function route(app) {
     app.use('/api/uploads', uploadRoutes);
     app.use('/api/phone', phoneVerificationRoutes);
     app.use('/api/recommend', recommendRoutes);
+    app.use('/api/cart', cartRoutes);
 }
 
 module.exports = route;
