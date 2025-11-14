@@ -10,6 +10,7 @@ const {
     updateProfileForRole,
 } = require('../helpers/updateProfileForRoleHelper');
 const _ = require('lodash');
+const { sendEmailHelper } = require('../helpers/sendEmailHelper');
 
 // [POST] /api/role-requests
 exports.createRoleRequest = async (req, res) => {
@@ -245,16 +246,65 @@ exports.getMyRequests = async (req, res) => {
     }
 };
 
-// [GET] /api/role-requests
-exports.getAllRequests = async (req, res) => {
+// [GET] /api/role-requests/:id
+exports.getRequestById = async (req, res) => {
     try {
-        const requests = await RoleRequest.find().populate(
+        const { id } = req.params;
+        if (!id) {
+            return res
+                .status(400)
+                .json({ success: false, message: 'Thiếu ID yêu cầu' });
+        }
+
+        const request = await RoleRequest.findById(id).populate(
             'userId',
             'email role'
         );
+        if (!request) {
+            return res
+                .status(404)
+                .json({ success: false, message: 'Không tìm thấy yêu cầu' });
+        }
+
         return res.status(200).json({
             success: true,
-            message: 'Lấy tất cả yêu cầu thành công',
+            message: 'Lấy chi tiết yêu cầu thành công',
+            data: request,
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// [GET] /api/role-requests  (admin)
+// [GET] /api/role-requests?role=seller
+// [GET] /api/role-requests?role=shipper
+exports.getAllRequests = async (req, res) => {
+    try {
+        const { role } = req.query;
+
+        const filter = {};
+
+        if (role) {
+            if (!['seller', 'shipper'].includes(role)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Role không hợp lệ',
+                });
+            }
+            filter.role = role;
+        }
+
+        const requests = await RoleRequest.find(filter)
+            .select(
+                '_id role status createdAt details.firstName details.lastName'
+            )
+            .populate('userId', 'email role')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Lấy danh sách yêu cầu thành công',
             data: requests,
         });
     } catch (err) {
@@ -262,7 +312,7 @@ exports.getAllRequests = async (req, res) => {
     }
 };
 
-// [PUT] /api/role-requests/:id/approve
+// [PATCH] /api/role-requests/:id/approve
 exports.approveRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -290,7 +340,6 @@ exports.approveRequest = async (req, res) => {
 
         request.status = 'approved';
         await request.save();
-
         // Cập nhật role user
         const user = await User.findById(request.userId);
         if (!user)
@@ -301,6 +350,11 @@ exports.approveRequest = async (req, res) => {
         user.role = request.role;
         await user.save();
 
+        await sendEmailHelper(
+            user.email,
+            `Yêu cầu đăng ký vai trò ${request.role} của bạn đã được phê duyệt`,
+            `Xin chúc mừng!\n\nYêu cầu đăng ký vai trò ${request.role} của bạn đã được phê duyệt.\nBạn có thể đăng nhập và sử dụng tính năng tương ứng.\n\nTrân trọng,\nBook4U`
+        );
         let profile;
 
         if (request.role === 'seller') {
@@ -366,7 +420,7 @@ exports.approveRequest = async (req, res) => {
     }
 };
 
-// [PUT] /api/role-requests/:id/reject
+// [PATCH] /api/role-requests/:id/reject
 exports.rejectRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -397,6 +451,14 @@ exports.rejectRequest = async (req, res) => {
         request.status = 'rejected';
         request.reason = reason || 'Không được phê duyệt';
         await request.save();
+
+        const user = await User.findById(request.userId);
+
+        await sendEmailHelper(
+            user.email,
+            `Yêu cầu đăng ký vai trò ${request.role} bị từ chối`,
+            `Xin chào ${user.email},\n\nYêu cầu đăng ký vai trò ${request.role} của bạn đã bị từ chối.\nLý do: ${request.reason}\n\nVui lòng cập nhật thông tin và thử lại.\nBook4U`
+        );
 
         return res
             .status(200)

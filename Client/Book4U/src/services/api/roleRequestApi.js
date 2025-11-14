@@ -23,6 +23,16 @@ export const getMyRoleRequests = () =>
         'Lỗi khi lấy danh sách yêu cầu của bạn.'
     );
 
+// [GET] /api/role-requests/:id — admin lấy chi tiết 1 yêu cầu
+export const getRoleRequestById = (id) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ROLE_REQUEST_API_URL}/${id}`,
+        {},
+        'Lỗi khi lấy chi tiết yêu cầu.',
+        'GET'
+    );
+
 // [GET] /api/role-requests — admin lấy tất cả yêu cầu
 export const getAllRoleRequests = (params) =>
     fetchHandler(

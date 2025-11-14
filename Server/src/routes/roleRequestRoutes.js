@@ -6,7 +6,12 @@ const roleRequestController = require('../controllers/roleRequestController');
 
 router.post('/', authMiddleware, roleRequestController.createRoleRequest);
 router.get('/me', authMiddleware, roleRequestController.getMyRequests);
-
+router.get(
+    '/:id',
+    authMiddleware,
+    roleMiddleware('admin'),
+    roleRequestController.getRequestById
+);
 router.get(
     '/',
     authMiddleware,
