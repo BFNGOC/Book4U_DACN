@@ -281,18 +281,31 @@ exports.getRequestById = async (req, res) => {
 // [GET] /api/role-requests?role=shipper
 exports.getAllRequests = async (req, res) => {
     try {
-        const { role } = req.query;
+        const { role, status } = req.query;
 
         const filter = {};
 
+        // Validate & filter role nếu có
         if (role) {
-            if (!['seller', 'shipper'].includes(role)) {
+            const validRoles = ['seller', 'shipper'];
+            if (!validRoles.includes(role)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Role không hợp lệ',
                 });
             }
             filter.role = role;
+        }
+
+        if (status) {
+            const validStatus = ['pending', 'approved', 'rejected'];
+            if (!validStatus.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Status không hợp lệ',
+                });
+            }
+            filter.status = status;
         }
 
         const requests = await RoleRequest.find(filter)

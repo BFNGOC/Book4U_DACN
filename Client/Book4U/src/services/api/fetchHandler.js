@@ -26,6 +26,9 @@ export const fetchHandler = async (
             case 'PUT':
                 res = await axiosInstance.put(endpoint, data, config);
                 break;
+            case 'PATCH':
+                res = await axiosInstance.patch(endpoint, data, config);
+                break;
             case 'DELETE':
                 res = await axiosInstance.delete(endpoint, config);
                 break;

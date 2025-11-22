@@ -67,7 +67,7 @@ function Navbar() {
                                 {user.firstName} {user.lastName}
                             </button>
                             <div
-                                className="absolute right-0 top-full w-40 bg-white shadow-lg rounded-lg border py-2 
+                                className="absolute right-0 top-full w-48 bg-white shadow-lg rounded-lg border py-2 
                 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200">
                                 <Link
                                     to="/profile"
@@ -85,6 +85,17 @@ function Navbar() {
                                     className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
                                     {label}
                                 </Link>
+                                {/* Admin menu */}
+                                {user?.role === 'admin' && (
+                                    <>
+                                        <div className="border-t border-gray-200 my-2"></div>
+                                        <Link
+                                            to="/admin/role-requests"
+                                            className="block px-4 py-2 text-gray-700 hover:bg-gray-100 font-medium text-blue-600">
+                                            Quản lý yêu cầu vai trò
+                                        </Link>
+                                    </>
+                                )}
                                 <button
                                     onClick={logoutUser}
                                     className="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100">

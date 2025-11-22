@@ -24,6 +24,8 @@ import DailyDiscover from '../pages/DailyDiscover';
 import Cart from '../pages/Cart';
 import Checkout from '../pages/Checkout';
 
+import RoleRequestsPage from '../pages/admin/RoleRequestsPage';
+
 import NotFound from '../pages/NotFound';
 
 function AppRoutes() {
@@ -91,6 +93,14 @@ function AppRoutes() {
                     element={
                         <PrivateRoute>
                             <Checkout />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/admin/role-requests"
+                    element={
+                        <PrivateRoute>
+                            <RoleRequestsPage />
                         </PrivateRoute>
                     }
                 />
