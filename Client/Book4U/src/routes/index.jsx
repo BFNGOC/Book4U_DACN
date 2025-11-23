@@ -25,6 +25,8 @@ import Cart from '../pages/Cart';
 import Checkout from '../pages/Checkout';
 
 import RoleRequestsPage from '../pages/admin/RoleRequestsPage';
+import SellerStore from '../pages/SellerStore';
+import SellerDashboard from '../pages/SellerDashboard';
 
 import NotFound from '../pages/NotFound';
 
@@ -46,6 +48,7 @@ function AppRoutes() {
                 />
                 <Route path="/product/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
+                <Route path="/seller/:sellerId" element={<SellerStore />} />
 
                 {/* Private Routes */}
                 <Route
@@ -101,6 +104,14 @@ function AppRoutes() {
                     element={
                         <PrivateRoute>
                             <RoleRequestsPage />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/seller"
+                    element={
+                        <PrivateRoute>
+                            <SellerDashboard />
                         </PrivateRoute>
                     }
                 />

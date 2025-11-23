@@ -1,9 +1,14 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
     bookId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Book',
+        required: true,
+    },
+    sellerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Profile',
         required: true,
     },
     quantity: {
@@ -47,7 +52,13 @@ const orderSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ['pending', 'processing', 'shipped', 'completed', 'cancelled'],
+            enum: [
+                'pending',
+                'processing',
+                'shipped',
+                'completed',
+                'cancelled',
+            ],
             default: 'pending',
         },
         shippingAddress: shippingSchema,
@@ -55,4 +66,4 @@ const orderSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-export default mongoose.model('Order', orderSchema);
+module.exports = mongoose.model('Order', orderSchema);

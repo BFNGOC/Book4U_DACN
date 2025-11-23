@@ -7,6 +7,8 @@ const uploadRoutes = require('./uploadRoutes');
 const phoneVerificationRoutes = require('./phoneVerificationRoutes');
 const recommendRoutes = require('./recommendRoutes');
 const cartRoutes = require('./cartRoutes');
+const sellerRoutes = require('./sellerRoutes');
+const orderSellerRoutes = require('./orderSellerRoutes');
 
 function route(app) {
     app.get('/', (req, res) => {
@@ -22,6 +24,8 @@ function route(app) {
     app.use('/api/phone', phoneVerificationRoutes);
     app.use('/api/recommend', recommendRoutes);
     app.use('/api/cart', cartRoutes);
+    app.use('/api/sellers', sellerRoutes);
+    app.use('/api/seller-orders', orderSellerRoutes);
 }
 
 module.exports = route;
