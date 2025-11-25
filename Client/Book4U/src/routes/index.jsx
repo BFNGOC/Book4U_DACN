@@ -25,8 +25,8 @@ import Cart from '../pages/Cart';
 import Checkout from '../pages/Checkout';
 
 import RoleRequestsPage from '../pages/admin/RoleRequestsPage';
-import SellerStore from '../pages/SellerStore';
-import SellerDashboard from '../pages/SellerDashboard';
+import SellerStore from '../pages/seller/SellerStore';
+import SellerDashboard from '../pages/seller/SellerDashboard';
 
 import NotFound from '../pages/NotFound';
 

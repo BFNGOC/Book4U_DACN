@@ -21,7 +21,7 @@ router.post(
     '/',
     authMiddleware,
     roleMiddleware('seller'),
-    uploadBook.array('images', 5),
+    uploadBook.array('images', 10),
     bookController.createBook
 );
 
@@ -29,10 +29,15 @@ router.put(
     '/:id',
     authMiddleware,
     roleMiddleware('seller'),
-    uploadBook.array('images', 5),
+    uploadBook.array('images', 10),
     bookController.updateBook
 );
 
-router.delete('/:id', authMiddleware, roleMiddleware('seller'), bookController.deleteBook);
+router.delete(
+    '/:id',
+    authMiddleware,
+    roleMiddleware('seller'),
+    bookController.deleteBook
+);
 
 module.exports = router;

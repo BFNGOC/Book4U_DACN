@@ -178,7 +178,16 @@ exports.getRelatedBooks = async (req, res) => {
 exports.createBook = async (req, res) => {
     try {
         const body = req.body;
-        const required = ['title', 'price', 'categoryId', 'stock', 'language'];
+        const required = [
+            'title',
+            'author',
+            'price',
+            'categoryId',
+            'stock',
+            'format',
+            'numPages',
+            'language',
+        ];
         const missing = required.filter((f) => !body[f]);
         if (missing.length) {
             return res.status(400).json({
@@ -205,11 +214,24 @@ exports.createBook = async (req, res) => {
             ? req.files.map((f) => `/uploads/books/${f.filename}`)
             : [];
 
+        // Parse tags from JSON string if provided
+        let tags = [];
+        if (body.tags) {
+            try {
+                tags =
+                    typeof body.tags === 'string'
+                        ? JSON.parse(body.tags)
+                        : body.tags;
+            } catch (e) {
+                tags = Array.isArray(body.tags) ? body.tags : [];
+            }
+        }
+
         const book = await Book.create({
             ...body,
             sellerId: profile._id,
             images: imagePaths,
-            tags: body.tags ? body.tags.map((t) => t.trim()) : [],
+            tags: tags.map((t) => (typeof t === 'string' ? t.trim() : t)),
         });
 
         return res.status(201).json({
@@ -227,6 +249,7 @@ exports.createBook = async (req, res) => {
 };
 
 // [PUT] /api/books/:id
+// [PUT] /api/books/:id
 exports.updateBook = async (req, res) => {
     try {
         const { id } = req.params;
@@ -243,6 +266,33 @@ exports.updateBook = async (req, res) => {
                 message: 'Không tìm thấy sách.',
             });
 
+        // Lấy hồ sơ của user hiện tại
+        const profile = await Profile.findOne({ userId: req.user.userId });
+        if (!profile)
+            return res.status(400).json({
+                success: false,
+                message: 'Không tìm thấy hồ sơ người dùng.',
+            });
+
+        // Chỉ seller sở hữu sách mới được sửa
+        if (book.sellerId.toString() !== profile._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền cập nhật sách này.',
+            });
+        }
+
+        // Kiểm tra category update
+        if (req.body.categoryId) {
+            const category = await Category.findById(req.body.categoryId);
+            if (!category)
+                return res.status(400).json({
+                    success: false,
+                    message: 'Danh mục không hợp lệ.',
+                });
+        }
+
+        // Xử lý ảnh
         if (req.files && req.files.length > 0) {
             for (const imgPath of book.images) {
                 const fullPath = path.join(
@@ -255,7 +305,42 @@ exports.updateBook = async (req, res) => {
             book.images = req.files.map((f) => `/uploads/books/${f.filename}`);
         }
 
-        Object.assign(book, req.body);
+        const allowedFields = [
+            'title',
+            'author',
+            'publisher',
+            'publicationYear',
+            'language',
+            'description',
+            'price',
+            'stock',
+            'discount',
+            'tags',
+            'numPages',
+            'format',
+            'categoryId',
+        ];
+
+        for (const key of allowedFields) {
+            if (req.body[key] !== undefined) {
+                book[key] = req.body[key];
+            }
+        }
+
+        // Parse tags from JSON string if provided
+        if (req.body.tags) {
+            let tags = [];
+            try {
+                tags =
+                    typeof req.body.tags === 'string'
+                        ? JSON.parse(req.body.tags)
+                        : req.body.tags;
+            } catch (e) {
+                tags = Array.isArray(req.body.tags) ? req.body.tags : [];
+            }
+            book.tags = tags.map((t) => (typeof t === 'string' ? t.trim() : t));
+        }
+
         await book.save();
 
         return res.status(200).json({
