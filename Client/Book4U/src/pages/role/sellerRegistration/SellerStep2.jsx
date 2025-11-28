@@ -126,14 +126,15 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                                     />
                                 </div>
 
-                                <h4 className="font-semibold mb-2">
-                                    Kho hàng #{index + 1}
+                                <h4 className="font-bold mb-2">
+                                    Kho hàng: {w.name}
                                 </h4>
                                 <p>
-                                    <strong>Họ tên:</strong> {w.name}
+                                    <strong>Họ tên:</strong> {w.managerName}
                                 </p>
                                 <p>
-                                    <strong>Số điện thoại:</strong> {w.phone}
+                                    <strong>Số điện thoại:</strong>{' '}
+                                    {w.managerPhone}
                                 </p>
                                 <p>
                                     <strong>Địa chỉ:</strong> {w.detail},{' '}

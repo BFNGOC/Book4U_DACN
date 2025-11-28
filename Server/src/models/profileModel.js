@@ -77,6 +77,7 @@ const sellerSchema = new mongoose.Schema({
 
     warehouses: [
         {
+            name: { type: String, required: true, trim: true }, // Tên kho
             street: { type: String, required: true, trim: true }, // Số nhà, đường
             ward: { type: String, required: true, trim: true }, // Xã / Phường
             district: { type: String, required: true, trim: true }, // Quận / Huyện

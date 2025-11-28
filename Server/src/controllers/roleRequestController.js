@@ -117,6 +117,7 @@ exports.createRoleRequest = async (req, res) => {
             } else {
                 warehouses.forEach((w, idx) => {
                     if (
+                        !w.name ||
                         !w.street ||
                         !w.ward ||
                         !w.district ||

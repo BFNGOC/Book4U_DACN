@@ -205,12 +205,13 @@ const SellerStep3 = ({
                     },
                     warehouses:
                         shipping.warehouses?.map((w) => ({
+                            name: w.name || '',
                             street: w.detail || '',
                             ward: w.ward || '',
                             district: w.district || '',
                             province: w.province || '',
-                            managerName: w.name || '',
-                            managerPhone: w.phone || '',
+                            managerName: w.managerName || '',
+                            managerPhone: w.managerPhone || '',
                         })) || [],
                     identificationNumber: verification.idNumber || '',
                     identificationImages: {

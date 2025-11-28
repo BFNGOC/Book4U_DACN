@@ -1,0 +1,362 @@
+{
+    "info": {
+        "name": "Book4U - Warehouse & Order Management",
+        "description": "Complete API collection for warehouse and order management system",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "🏭 WAREHOUSE MANAGEMENT",
+            "item": [
+                {
+                    "name": "1. Create Warehouse",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Warehouse TP.HCM\",\n  \"address\": \"123 Nguyen Hue Blvd, District 1, HCMC\",\n  \"phone\": \"0912345678\",\n  \"capacity\": 10000,\n  \"status\": \"active\",\n  \"notes\": \"Main warehouse for Ho Chi Minh City\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/warehouse/warehouses",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "warehouse", "warehouses"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Get My Warehouses",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/warehouse/warehouses",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "warehouse", "warehouses"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3. Import Stock",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"warehouseId\": \"{{warehouse_id}}\",\n  \"bookId\": \"{{book_id}}\",\n  \"quantity\": 100,\n  \"reason\": \"Import from supplier ABC\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/warehouse/import-stock",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "warehouse", "import-stock"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Export Stock",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"warehouseId\": \"{{warehouse_id}}\",\n  \"bookId\": \"{{book_id}}\",\n  \"quantity\": 5,\n  \"reason\": \"Manual export for inventory adjustment\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/warehouse/export-stock",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "warehouse", "export-stock"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "5. Get Warehouse Logs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/warehouse/logs?warehouseId={{warehouse_id}}&type=import&page=1&limit=20",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "warehouse", "logs"],
+                            "query": [
+                                {
+                                    "key": "warehouseId",
+                                    "value": "{{warehouse_id}}"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "import",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "6. Get Product Total Stock",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/warehouse/product/{{book_id}}/stock",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "api",
+                                "warehouse",
+                                "product",
+                                "{{book_id}}",
+                                "stock"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "📦 ORDER MANAGEMENT",
+            "item": [
+                {
+                    "name": "1. Validate Stock Before Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"items\": [\n    {\n      \"bookId\": \"{{book_id_1}}\",\n      \"quantity\": 2\n    },\n    {\n      \"bookId\": \"{{book_id_2}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/validate-stock",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "orders", "validate-stock"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Create Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"profileId\": \"{{customer_profile_id}}\",\n  \"items\": [\n    {\n      \"bookId\": \"{{book_id_1}}\",\n      \"sellerId\": \"{{seller_id_1}}\",\n      \"quantity\": 2,\n      \"price\": 150000\n    },\n    {\n      \"bookId\": \"{{book_id_2}}\",\n      \"sellerId\": \"{{seller_id_1}}\",\n      \"quantity\": 1,\n      \"price\": 200000\n    }\n  ],\n  \"totalAmount\": 500000,\n  \"paymentMethod\": \"COD\",\n  \"shippingAddress\": {\n    \"street\": \"123 Main Street\",\n    \"ward\": \"Ward 1\",\n    \"district\": \"District 1\",\n    \"city\": \"Ho Chi Minh City\",\n    \"postalCode\": \"70000\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/create",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "orders", "create"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3. Get Order Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "orders", "{{order_id}}"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Get My Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/user/{{customer_profile_id}}?status=pending&page=1&limit=10",
+                            "host": ["{{base_url}}"],
+                            "path": [
+                                "api",
+                                "orders",
+                                "user",
+                                "{{customer_profile_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "pending",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "5. Cancel Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customer_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"Changed my mind\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/orders/{{order_id}}/cancel",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "orders", "{{order_id}}", "cancel"]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "your_seller_token_here",
+            "type": "string"
+        },
+        {
+            "key": "customer_token",
+            "value": "your_customer_token_here",
+            "type": "string"
+        },
+        {
+            "key": "warehouse_id",
+            "value": "your_warehouse_id_here",
+            "type": "string"
+        },
+        {
+            "key": "book_id",
+            "value": "your_book_id_here",
+            "type": "string"
+        },
+        {
+            "key": "book_id_1",
+            "value": "your_book_id_1_here",
+            "type": "string"
+        },
+        {
+            "key": "book_id_2",
+            "value": "your_book_id_2_here",
+            "type": "string"
+        },
+        {
+            "key": "seller_id_1",
+            "value": "your_seller_id_1_here",
+            "type": "string"
+        },
+        {
+            "key": "customer_profile_id",
+            "value": "your_customer_profile_id_here",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
+            "value": "your_order_id_here",
+            "type": "string"
+        }
+    ]
+}

@@ -9,7 +9,8 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
     const [form, setForm] = useState(
         defaultData || {
             name: '',
-            phone: '',
+            managerName: '',
+            managerPhone: '',
             province: '',
             district: '',
             ward: '',
@@ -19,10 +20,13 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
 
     const handleSave = async () => {
         const newErrors = {};
-        if (!form.name.trim()) newErrors.name = 'Vui lòng nhập họ tên';
-        if (!form.phone.trim()) newErrors.phone = 'Vui lòng nhập số điện thoại';
-        if (!/^0\d{9}$/.test(form.phone))
-            newErrors.phone = 'Số điện thoại không hợp lệ';
+        if (!form.name.trim()) newErrors.name = 'Vui lòng nhập tên kho';
+        if (!form.managerName.trim())
+            newErrors.managerName = 'Vui lòng nhập họ tên quản lý';
+        if (!form.managerPhone.trim())
+            newErrors.managerPhone = 'Vui lòng nhập số điện thoại';
+        if (!/^0\d{9}$/.test(form.managerPhone))
+            newErrors.managerPhone = 'Số điện thoại không hợp lệ';
         if (!form.province) newErrors.province = 'Chọn Tỉnh/Thành phố';
         if (!form.district) newErrors.district = 'Chọn Quận/Huyện';
         if (!form.ward) newErrors.ward = 'Chọn Phường/Xã';
@@ -64,22 +68,42 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
 
                 <div className="grid gap-4">
                     <Input
-                        label="Họ & Tên"
+                        label="Tên kho"
                         value={form.name}
                         onChange={(e) =>
                             setForm({ ...form, name: e.target.value })
                         }
                         error={errors.name}
                     />
-                    <Input
-                        label="Số điện thoại"
-                        maxLength={10}
-                        value={form.phone}
-                        onChange={(e) =>
-                            setForm({ ...form, phone: e.target.value })
-                        }
-                        error={errors.phone}
-                    />
+                    <div className="flex gap-4 space-between">
+                        <div className="flex-2">
+                            <Input
+                                label="Họ & Tên người quản lý"
+                                value={form.managerName}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        managerName: e.target.value,
+                                    })
+                                }
+                                error={errors.managerName}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Input
+                                label="Số điện thoại"
+                                maxLength={10}
+                                value={form.managerPhone}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        managerPhone: e.target.value,
+                                    })
+                                }
+                                error={errors.managerPhone}
+                            />
+                        </div>
+                    </div>
 
                     <AddressSelector
                         value={form}

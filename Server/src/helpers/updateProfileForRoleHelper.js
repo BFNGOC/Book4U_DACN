@@ -109,6 +109,9 @@ async function updateProfileForRole(user, existingProfile = null) {
 
             // Kiểm tra chi tiết từng kho
             for (const [index, w] of existingProfile.warehouses.entries()) {
+                if (!w.name || !w.name.trim()) {
+                    throw new Error(`Kho hàng #${index + 1} thiếu tên kho`);
+                }
                 if (!w.street || !w.ward || !w.district || !w.province) {
                     throw new Error(
                         `Kho hàng #${index + 1} thiếu thông tin địa chỉ`
