@@ -4,5 +4,6 @@ const AIController = require('../controllers/aiController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 
 router.post('/chat', authMiddleware, AIController.chat);
+router.get('/history', authMiddleware, AIController.getChatHistory);
 
 module.exports = router;
