@@ -46,9 +46,11 @@ export const CartProvider = ({ children }) => {
 
     const addToCartContext = async (bookId, quantity) => {
         try {
-            await addToCart(bookId, quantity);
-            await fetchCart();
-            toast.success('🛍️ Sản phẩm đã được thêm vào giỏ');
+            const res = await addToCart(bookId, quantity);
+            if (res.success) {
+                setCart(res.data);
+                toast.success('🛒 Thêm vào giỏ hàng thành công');
+            } else toast.error(res.message || 'Thêm vào giỏ hàng thất bại');
         } catch (err) {
             console.error('Lỗi thêm giỏ hàng:', err);
         }
@@ -61,7 +63,7 @@ export const CartProvider = ({ children }) => {
             if (res.success) {
                 setCart(res.data);
                 toast.success('🔄 Cập nhật số lượng thành công');
-            } else toast.error('Cập nhật số lượng thất bại');
+            } else toast.error(res.message || 'Cập nhật số lượng thất bại');
         } catch (err) {
             console.error('Lỗi cập nhật giỏ hàng:', err);
         }
@@ -74,7 +76,7 @@ export const CartProvider = ({ children }) => {
             if (res.success) {
                 setCart(res.data);
                 toast.success('🗑️ Đã xóa sản phẩm khỏi giỏ hàng');
-            } else toast.error('Xóa sản phẩm thất bại');
+            } else toast.error(res.message || 'Xóa sản phẩm thất bại');
         } catch (err) {
             console.error('Lỗi xóa giỏ hàng:', err);
         }

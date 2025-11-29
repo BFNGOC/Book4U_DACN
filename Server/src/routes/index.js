@@ -11,6 +11,7 @@ const sellerRoutes = require('./sellerRoutes');
 const orderSellerRoutes = require('./orderSellerRoutes');
 const warehouseRoutes = require('./warehouseRoutes');
 const orderManagementRoutes = require('./orderManagementRoutes');
+const aiRoutes = require('./aiRoutes');
 
 function route(app) {
     app.get('/', (req, res) => {
@@ -30,6 +31,7 @@ function route(app) {
     app.use('/api/seller-orders', orderSellerRoutes);
     app.use('/api/warehouse', warehouseRoutes);
     app.use('/api/orders', orderManagementRoutes);
+    app.use('/api/ai', aiRoutes);
 }
 
 module.exports = route;

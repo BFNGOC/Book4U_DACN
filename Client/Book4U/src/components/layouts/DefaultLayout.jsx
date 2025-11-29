@@ -1,4 +1,5 @@
 import Navbar from './Navbar';
+import ChatWidget from '../ChatWidget';
 
 function DefaultLayout({ children }) {
     return (
@@ -10,6 +11,8 @@ function DefaultLayout({ children }) {
             <main className="flex-1 w-full h-full max-w-screen-xl mx-auto px-6 py-6 mt-16">
                 {children}
             </main>
+
+            <ChatWidget />
         </div>
     );
 }
