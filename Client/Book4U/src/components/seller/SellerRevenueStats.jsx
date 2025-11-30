@@ -35,21 +35,13 @@ function SellerRevenueStats() {
         }
     };
 
-    if (loading)
-        return <p className="text-center text-gray-500">Đang tải...</p>;
+    if (loading) return <p className="text-center text-gray-500">Đang tải...</p>;
 
     // Tạo dữ liệu biểu đồ theo thời gian
     const generateChartData = () => {
         const data = [];
         const now = new Date();
-        const days =
-            period === 'day'
-                ? 24
-                : period === 'week'
-                ? 7
-                : period === 'month'
-                ? 30
-                : 365;
+        const days = period === 'day' ? 24 : period === 'week' ? 7 : period === 'month' ? 30 : 365;
 
         for (let i = days - 1; i >= 0; i--) {
             const date = new Date(now);
@@ -89,7 +81,8 @@ function SellerRevenueStats() {
                             period === p
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}>
+                        }`}
+                    >
                         {periodLabels[p]}
                     </button>
                 ))}
@@ -100,9 +93,7 @@ function SellerRevenueStats() {
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-600 font-semibold text-sm">
-                                Doanh thu
-                            </p>
+                            <p className="text-blue-600 font-semibold text-sm">Doanh thu</p>
                             <p className="text-3xl font-bold text-blue-900 mt-2">
                                 {(stats?.revenue || 0).toLocaleString()}₫
                             </p>
@@ -114,9 +105,7 @@ function SellerRevenueStats() {
                 <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-600 font-semibold text-sm">
-                                Số đơn hàng
-                            </p>
+                            <p className="text-green-600 font-semibold text-sm">Số đơn hàng</p>
                             <p className="text-3xl font-bold text-green-900 mt-2">
                                 {stats?.ordersCount || 0}
                             </p>
@@ -128,9 +117,7 @@ function SellerRevenueStats() {
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-purple-600 font-semibold text-sm">
-                                Doanh số bán
-                            </p>
+                            <p className="text-purple-600 font-semibold text-sm">Doanh số bán</p>
                             <p className="text-3xl font-bold text-purple-900 mt-2">
                                 {Math.floor((stats?.revenue || 0) / 1000)}
                             </p>
@@ -186,9 +173,7 @@ function SellerRevenueStats() {
             {/* Status Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-lg border">
-                    <h3 className="text-lg font-bold mb-4">
-                        Top sản phẩm bán chạy
-                    </h3>
+                    <h3 className="text-lg font-bold mb-4">Top sản phẩm bán chạy</h3>
                     <div className="space-y-3">
                         <p className="text-gray-500 text-sm">
                             Tính năng này sẽ hiển thị top sản phẩm bán chạy nhất
@@ -197,9 +182,7 @@ function SellerRevenueStats() {
                 </div>
 
                 <div className="bg-white p-6 rounded-lg border">
-                    <h3 className="text-lg font-bold mb-4">
-                        Trạng thái đơn hàng
-                    </h3>
+                    <h3 className="text-lg font-bold mb-4">Trạng thái đơn hàng</h3>
                     <div className="space-y-3">
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Chờ xử lý</span>

@@ -10,6 +10,17 @@ class AIService {
 
     async sendMessage(userMessage, contextData) {
         try {
+            const { books = [], orders = [], user = {}, history = [] } = contextData;
+
+            const chatLog = history
+                .slice()
+                .reverse()
+                .map(
+                    (h) =>
+                        `User: ${h.userMessage}\nBot: ${h.aiResponse?.reply || h.aiResponse || ''}`
+                )
+                .join('\n');
+
             const context = `
 You are the assistant of Book4U bookstore.
 
@@ -37,7 +48,12 @@ If information is missing, return EXACTLY:
 }
 
 Database info:
-${JSON.stringify(contextData)}
+Books: ${JSON.stringify(books)}
+Orders: ${JSON.stringify(orders)}
+User info: ${JSON.stringify(user)}
+
+Chat history:
+${chatLog}
 `;
 
             const completion = await this.client.chat.completions.create({

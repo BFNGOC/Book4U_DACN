@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Send, MessageCircle } from 'lucide-react';
+import { chatAi, getAiChatHistory } from '../services/api/aiApi';
 
 function ChatWidget() {
     const [open, setOpen] = useState(false);
@@ -7,26 +9,77 @@ function ChatWidget() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 🧠 Hàm gửi tin nhắn
+    // 📌 Format AI JSON (text + suggestions)
+    const formatAiResponse = (res) => {
+        if (!res) return { reply: '', suggestions: [] };
+
+        // Nếu BE trả về dạng đúng
+        if (res.reply || res.suggestions) return res;
+
+        // Nếu BE trả về string
+        if (typeof res === 'string') return { reply: res, suggestions: [] };
+
+        return { reply: JSON.stringify(res), suggestions: [] };
+    };
+
+    // 📌 Load lịch sử từ DB
+    const loadHistory = async () => {
+        try {
+            const response = await getAiChatHistory();
+
+            const history = response.data;
+
+            if (!Array.isArray(history)) return;
+
+            const formatted = history
+                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                .map((item) => [
+                    { sender: 'user', text: item.userMessage },
+                    {
+                        sender: 'bot',
+                        content: formatAiResponse(item.aiResponse),
+                    },
+                ])
+                .flat();
+
+            setMessages(formatted);
+        } catch (err) {
+            console.error('Load history error:', err);
+        }
+    };
+
+    // 📌 Khi mở widget → load lịch sử
+    useEffect(() => {
+        if (open) loadHistory();
+    }, [open]);
+
+    // 📌 Gửi tin nhắn
     const sendMessage = async () => {
         if (!input.trim()) return;
 
-        const userMessage = { sender: 'user', text: input };
-        setMessages((prev) => [...prev, userMessage]);
-        setInput('');
+        const userMsg = { sender: 'user', text: input };
+        setMessages((prev) => [...prev, userMsg]);
 
+        const rawMessage = input;
+        setInput('');
         setLoading(true);
 
-        // Giả lập gọi API AI
-        setTimeout(() => {
-            const botReply = {
+        try {
+            const response = await chatAi({ message: rawMessage });
+
+            const data = response.data;
+
+            const botMsg = {
                 sender: 'bot',
-                text: 'Mình là chatbot demo. Backend AI sẽ được thêm sau nhé!',
+                content: formatAiResponse(data),
             };
 
-            setMessages((prev) => [...prev, botReply]);
-            setLoading(false);
-        }, 800);
+            setMessages((prev) => [...prev, botMsg]);
+        } catch (err) {
+            setMessages((prev) => [...prev, { sender: 'bot', text: '❌ Lỗi khi gọi AI' }]);
+        }
+
+        setLoading(false);
     };
 
     return (
@@ -50,18 +103,41 @@ function ChatWidget() {
                         </button>
                     </div>
 
-                    {/* Chat messages */}
+                    {/* Messages */}
                     <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
                         {messages.map((msg, i) => (
                             <div
                                 key={i}
-                                className={`p-2 rounded-lg max-w-[80%] ${
+                                className={`p-2 rounded-lg max-w-[80%] whitespace-pre-line ${
                                     msg.sender === 'user'
                                         ? 'ml-auto bg-blue-500 text-white'
                                         : 'mr-auto bg-gray-200'
                                 }`}
                             >
-                                {msg.text}
+                                {/* BOT MESSAGE */}
+                                {msg.sender === 'bot' ? (
+                                    <>
+                                        <div>{msg.content?.reply}</div>
+
+                                        {/* Suggestion books */}
+                                        {msg.content?.suggestions?.length > 0 && (
+                                            <ul className="mt-2 space-y-1">
+                                                {msg.content.suggestions.map((sug, idx) => (
+                                                    <li key={idx}>
+                                                        <Link
+                                                            to={`/book/${sug.slug}`}
+                                                            className="text-blue-600 underline"
+                                                        >
+                                                            • {sug.bookTitle}
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </>
+                                ) : (
+                                    msg.text
+                                )}
                             </div>
                         ))}
 

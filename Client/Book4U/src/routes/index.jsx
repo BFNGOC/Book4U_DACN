@@ -42,11 +42,8 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route
-                    path="/reset-password/:token"
-                    element={<ResetPassword />}
-                />
-                <Route path="/product/:slug" element={<ProductDetails />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/book/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/seller/:sellerId" element={<SellerStore />} />
 

@@ -13,8 +13,9 @@ exports.chat = async (req, res) => {
         const books = await Book.find({});
         const orders = await Order.find({ userId });
         const user = await Profile.findById(userId);
+        const history = await ChatHistory.find({ userId }).sort({ createdAt: -1 }).limit(10);
 
-        const contextData = { books, orders, user };
+        const contextData = { books, orders, user, history };
 
         // AI trả JSON đúng format
         const aiResponse = await AIService.sendMessage(message, contextData);

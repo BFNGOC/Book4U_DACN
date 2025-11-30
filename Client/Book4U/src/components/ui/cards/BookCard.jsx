@@ -7,7 +7,7 @@ function BookCard({ _id: bookId, images, title, author, rating, price, discount,
     const discountedPrice = price * (1 - discount / 100);
     return (
         <div className="bg-white shadow-md rounded-2xl p-4 hover:-translate-y-1 transition flex flex-col">
-            <Link to={`/product/${slug}`} className="flex-1">
+            <Link to={`/book/${slug}`} className="flex-1">
                 <img
                     src={`${API_URL}${images[0]}`}
                     alt={title}
