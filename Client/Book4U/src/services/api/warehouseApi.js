@@ -27,6 +27,19 @@ export const createWarehouse = (data) =>
     );
 
 /**
+ * Cập nhật kho
+ * PUT /api/warehouse/warehouses/:id
+ */
+export const updateWarehouse = (id, data) =>
+    fetchHandler(
+        axiosPrivate,
+        `${WAREHOUSE_API_URL}/warehouses/${id}`,
+        data,
+        'Lỗi khi cập nhật kho hàng',
+        'PUT'
+    );
+
+/**
  * Lấy danh sách kho của seller
  * GET /api/warehouse/warehouses
  */
@@ -114,6 +127,25 @@ export const getProductTotalStock = (bookId) =>
         `${WAREHOUSE_API_URL}/product/${bookId}/stock`,
         {},
         'Lỗi khi lấy tồn kho sản phẩm'
+    );
+
+/**
+ * Lấy danh sách sản phẩm trong kho (inventory)
+ * GET /api/warehouse/warehouses/:warehouseId/inventory
+ *
+ * Query params:
+ * {
+ *   page?: number,
+ *   limit?: number,
+ *   search?: string
+ * }
+ */
+export const getWarehouseInventory = (warehouseId, params = {}) =>
+    fetchHandler(
+        axiosPrivate,
+        `${WAREHOUSE_API_URL}/warehouses/${warehouseId}/inventory`,
+        params,
+        'Lỗi khi lấy danh sách sản phẩm trong kho'
     );
 
 // ============ ORDER STOCK OPERATIONS ============

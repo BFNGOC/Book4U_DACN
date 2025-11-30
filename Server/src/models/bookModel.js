@@ -79,6 +79,9 @@ const bookSchema = new mongoose.Schema(
 
         // 🔎 Trường dùng để tìm kiếm (chứa title, author, tags đã bỏ dấu)
         searchText: { type: String, index: true },
+
+        // 📢 Trạng thái publish (false = draft, true = published)
+        isPublished: { type: Boolean, default: false, index: true },
     },
     { timestamps: true } // ⏰ Tự động thêm createdAt và updatedAt
 );
@@ -93,7 +96,9 @@ bookSchema.pre('save', function (next) {
 
 // 🔎 Tạo searchText (chuỗi không dấu) khi lưu
 bookSchema.pre('save', function (next) {
-    const combined = `${this.title} ${this.author} ${(this.tags || []).join(' ')}`;
+    const combined = `${this.title} ${this.author} ${(this.tags || []).join(
+        ' '
+    )}`;
     this.searchText = removeAccents(combined.toLowerCase());
     next();
 });
@@ -101,7 +106,9 @@ bookSchema.pre('save', function (next) {
 // ⚙️ Tạo searchText cho insertMany
 bookSchema.pre('insertMany', function (next, docs) {
     for (const doc of docs) {
-        const combined = `${doc.title} ${doc.author} ${(doc.tags || []).join(' ')}`;
+        const combined = `${doc.title} ${doc.author} ${(doc.tags || []).join(
+            ' '
+        )}`;
         doc.searchText = removeAccents(combined.toLowerCase());
         // tạo luôn slug nếu chưa có
         if (!doc.slug) {

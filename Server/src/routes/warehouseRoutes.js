@@ -25,6 +25,14 @@ router.post(
     warehouseController.createWarehouse
 );
 
+// 1️⃣B Cập nhật kho
+router.put(
+    '/warehouses/:id',
+    authMiddleware,
+    roleMiddleware('seller'),
+    warehouseController.updateWarehouse
+);
+
 // 2️⃣ Lấy danh sách kho
 router.get(
     '/warehouses',
@@ -63,6 +71,14 @@ router.get(
     roleMiddleware('seller'),
     authMiddleware,
     warehouseController.getProductTotalStock
+);
+
+// 7️⃣ Lấy danh sách sản phẩm trong kho
+router.get(
+    '/warehouses/:warehouseId/inventory',
+    authMiddleware,
+    roleMiddleware('seller'),
+    warehouseController.getWarehouseInventory
 );
 
 module.exports = router;

@@ -3,19 +3,34 @@ import Input from '@/components/ui/Input';
 import AddressSelector from '@/components/common/AddressSelector.jsx';
 import { provinceApi } from '@/services/api/provinceApi.js';
 
-const WarehouseModal = ({ onClose, onSave, defaultData }) => {
+const WarehouseModal = ({
+    onClose,
+    onSave,
+    defaultData,
+    skipApiCall = false,
+}) => {
     const [errors, setErrors] = useState({});
 
     const [form, setForm] = useState(
-        defaultData || {
-            name: '',
-            managerName: '',
-            managerPhone: '',
-            province: '',
-            district: '',
-            ward: '',
-            detail: '',
-        }
+        defaultData
+            ? {
+                  name: defaultData.name || '',
+                  managerName: defaultData.managerName || '',
+                  managerPhone: defaultData.managerPhone || '',
+                  province: defaultData.province || '',
+                  district: defaultData.district || '',
+                  ward: defaultData.ward || '',
+                  detail: defaultData.detail || '',
+              }
+            : {
+                  name: '',
+                  managerName: '',
+                  managerPhone: '',
+                  province: '',
+                  district: '',
+                  ward: '',
+                  detail: '',
+              }
     );
 
     const handleSave = async () => {
@@ -48,15 +63,29 @@ const WarehouseModal = ({ onClose, onSave, defaultData }) => {
         const wardRes = await provinceApi.getWards(form.district);
         const wardObj = wardRes.data?.wards?.find((w) => w.code == form.ward);
 
-        onSave({
-            ...form,
-            province: provinceObj?.name || '',
-            district: districtObj?.name || '',
+        const warehouseData = {
+            name: form.name,
+            managerName: form.managerName,
+            managerPhone: form.managerPhone,
+            detail: form.detail,
             ward: wardObj?.name || '',
-            provinceCode: provinceObj?.code || '',
-            districtCode: districtObj?.code || '',
-            wardCode: wardObj?.code || '',
-        });
+            district: districtObj?.name || '',
+            province: provinceObj?.name || '',
+        };
+
+        // Nếu skipApiCall=true (SellerStep2), thêm thông tin code & name cho storage
+        if (skipApiCall) {
+            warehouseData.provinceCode = provinceObj?.code || '';
+            warehouseData.districtCode = districtObj?.code || '';
+            warehouseData.wardCode = wardObj?.code || '';
+            warehouseData.provinceName = provinceObj?.name || '';
+            warehouseData.districtName = districtObj?.name || '';
+            warehouseData.wardName = wardObj?.name || '';
+        }
+
+        // Nếu skipApiCall=true (SellerStep2), chỉ return data không gọi API
+        // Nếu skipApiCall=false (SellerInventoryManagement), gọi onSave với API handling
+        onSave(warehouseData, skipApiCall);
     };
 
     return (

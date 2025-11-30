@@ -1,14 +1,15 @@
 import axiosPublic from '../../utils/api/axiosPublic.js';
 import { fetchHandler } from './fetchHandler.js';
 
-const BASE_URL = import.meta.env.VITE_PROVINCES_API;
+// ✅ Use backend proxy to avoid CORS issues
+const BASE_URL = '/api/province';
 
 export const provinceApi = {
     // 🔹 Lấy toàn bộ tỉnh/thành
     getAll: (depth = 3) =>
         fetchHandler(
             axiosPublic,
-            `${BASE_URL}/`, // endpoint
+            `${BASE_URL}/all`,
             { depth },
             'Không thể tải danh sách tỉnh',
             'GET'
@@ -18,7 +19,7 @@ export const provinceApi = {
     getDistricts: (provinceCode) =>
         fetchHandler(
             axiosPublic,
-            `${BASE_URL}/p/${provinceCode}`, // không thêm query trong URL
+            `${BASE_URL}/districts/${provinceCode}`,
             { depth: 2 },
             'Không thể tải danh sách quận/huyện',
             'GET'
@@ -28,7 +29,7 @@ export const provinceApi = {
     getWards: (districtCode) =>
         fetchHandler(
             axiosPublic,
-            `${BASE_URL}/d/${districtCode}`,
+            `${BASE_URL}/wards/${districtCode}`,
             { depth: 2 },
             'Không thể tải danh sách phường/xã',
             'GET'

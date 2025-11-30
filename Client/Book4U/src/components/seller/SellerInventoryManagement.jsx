@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { useUser } from '../../contexts/userContext';
 import {
     getWarehousesBySeller,
+    createWarehouse,
+    updateWarehouse,
     importStock,
     exportStock,
     getWarehouseLogs,
+    getWarehouseInventory,
 } from '../../services/api/warehouseApi';
-import { getAllBooks } from '../../services/api/bookApi';
+import { getSellerBooks } from '../../services/api/bookApi';
+import WarehouseModal from '../modal/WarehouseModal';
 import {
     AlertCircle,
     Package,
@@ -51,6 +55,15 @@ function SellerInventoryManagement() {
         limit: 15,
     });
 
+    // Inventory (sản phẩm trong kho)
+    const [showInventory, setShowInventory] = useState(false);
+    const [inventory, setInventory] = useState([]);
+    const [inventoryLoading, setInventoryLoading] = useState(false);
+
+    // Warehouse Management Modal
+    const [showWarehouseModal, setShowWarehouseModal] = useState(false);
+    const [editingWarehouse, setEditingWarehouse] = useState(null);
+
     useEffect(() => {
         if (user?._id) {
             fetchWarehouseData();
@@ -75,7 +88,8 @@ function SellerInventoryManagement() {
 
     const fetchBooks = async () => {
         try {
-            const res = await getAllBooks({ limit: 100 });
+            // Lấy chỉ sách của seller hiện tại
+            const res = await getSellerBooks({ limit: 100 });
             if (res.success) {
                 setBooks(res.data);
             }
@@ -104,10 +118,75 @@ function SellerInventoryManagement() {
         }
     };
 
+    const fetchInventory = async () => {
+        try {
+            setInventoryLoading(true);
+            const res = await getWarehouseInventory(selectedWarehouse?._id, {
+                limit: 50,
+            });
+            if (res.success) {
+                setInventory(res.data);
+            }
+        } catch (err) {
+            console.error('Lỗi:', err);
+            toast.error('Lỗi khi tải danh sách sản phẩm');
+        } finally {
+            setInventoryLoading(false);
+        }
+    };
+
     const handleOpenModal = (type) => {
         setModalType(type);
         setFormData({ bookId: '', quantity: '', reason: '' });
         setShowModal(true);
+    };
+
+    // Warehouse CRUD handlers
+    const handleCreateWarehouse = async (warehouseData) => {
+        try {
+            const res = await createWarehouse(warehouseData);
+            if (res.success) {
+                toast.success('✅ Tạo kho thành công');
+                setShowWarehouseModal(false);
+                fetchWarehouseData();
+            }
+        } catch (err) {
+            toast.error(err.message || 'Lỗi khi tạo kho');
+        }
+    };
+
+    const handleUpdateWarehouse = async (warehouseData) => {
+        try {
+            const res = await updateWarehouse(
+                editingWarehouse._id,
+                warehouseData
+            );
+            if (res.success) {
+                toast.success('✅ Cập nhật kho thành công');
+                setShowWarehouseModal(false);
+                setEditingWarehouse(null);
+                fetchWarehouseData();
+            }
+        } catch (err) {
+            toast.error(err.message || 'Lỗi khi cập nhật kho');
+        }
+    };
+
+    const handleWarehouseModalSave = (warehouseData, skipApiCall) => {
+        // skipApiCall = false: SellerInventoryManagement - gọi API
+        // skipApiCall = true: SellerStep2 - chỉ return local data (không xảy ra trong file này)
+        if (!skipApiCall) {
+            if (editingWarehouse) {
+                handleUpdateWarehouse(warehouseData);
+            } else {
+                handleCreateWarehouse(warehouseData);
+            }
+        }
+    };
+
+    const handleEditWarehouse = (warehouse) => {
+        setEditingWarehouse(warehouse);
+        setShowWarehouseModal(true);
     };
 
     const handleSubmitForm = async () => {
@@ -192,9 +271,20 @@ function SellerInventoryManagement() {
 
             {/* Warehouse Grid */}
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    Danh Sách Kho Hàng
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">
+                        Danh Sách Kho Hàng
+                    </h2>
+                    <button
+                        onClick={() => {
+                            setEditingWarehouse(null);
+                            setShowWarehouseModal(true);
+                        }}
+                        className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-semibold">
+                        <Plus className="w-5 h-5" />
+                        Thêm Kho
+                    </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {warehouses.map((warehouse, idx) => (
                         <button
@@ -204,7 +294,7 @@ function SellerInventoryManagement() {
                                 setShowLogs(false);
                                 setLogFilters({ ...logFilters, page: 1 });
                             }}
-                            className={`relative overflow-hidden rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                            className={`relative overflow-hidden rounded-xl transition-all duration-300 transform hover:scale-105 group ${
                                 selectedWarehouse?._id === warehouse._id
                                     ? 'ring-2 ring-blue-600 shadow-xl'
                                     : 'shadow-md hover:shadow-lg'
@@ -259,6 +349,16 @@ function SellerInventoryManagement() {
                                         </span>
                                     </div>
                                 </div>
+
+                                {/* Edit Button */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditWarehouse(warehouse);
+                                    }}
+                                    className="mt-4 w-full px-3 py-2 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
+                                    ✏️ Sửa Kho
+                                </button>
                             </div>
                         </button>
                     ))}
@@ -366,6 +466,17 @@ function SellerInventoryManagement() {
                                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold shadow-md hover:shadow-lg">
                                         <History className="w-5 h-5" />
                                         Lịch Sử
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowInventory(!showInventory);
+                                            if (!showInventory)
+                                                fetchInventory();
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 font-semibold shadow-md hover:shadow-lg">
+                                        <Package className="w-5 h-5" />
+                                        Danh Sách Hàng
                                     </button>
                                 </div>
                             </div>
@@ -516,6 +627,113 @@ function SellerInventoryManagement() {
                 </div>
             )}
 
+            {showInventory && selectedWarehouse && (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <Package className="w-5 h-5 text-purple-600" />
+                            Danh Sách Sản Phẩm - {selectedWarehouse.name}
+                        </h3>
+                    </div>
+
+                    {inventoryLoading ? (
+                        <div className="text-center py-8">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-3"></div>
+                            <p className="text-gray-600 font-medium">
+                                Đang tải danh sách...
+                            </p>
+                        </div>
+                    ) : inventory?.items && inventory.items.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                                            Tên Sách
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                                            Tác Giả
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-900">
+                                            Danh Mục
+                                        </th>
+                                        <th className="px-4 py-3 text-center font-semibold text-gray-900">
+                                            Giá
+                                        </th>
+                                        <th className="px-4 py-3 text-center font-semibold text-gray-900">
+                                            Tồn Kho
+                                        </th>
+                                        <th className="px-4 py-3 text-center font-semibold text-gray-900">
+                                            Trạng Thái
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {inventory.items.map(
+                                        (item, idx) => (
+                                            console.log(item),
+                                            (
+                                                <tr
+                                                    key={idx}
+                                                    className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <p className="text-gray-900 font-medium">
+                                                            {item.bookTitle}
+                                                        </p>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <p className="text-gray-600">
+                                                            {item.bookAuthor}
+                                                        </p>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <p className="text-gray-600">
+                                                            {item.bookCategory}
+                                                        </p>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className="font-bold text-gray-900">
+                                                            {item.bookPrice.toLocaleString(
+                                                                'vi-VN'
+                                                            )}{' '}
+                                                            đ
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold">
+                                                            {item.quantity}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span
+                                                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                                                item.isPublished
+                                                                    ? 'bg-green-100 text-green-800'
+                                                                    : 'bg-yellow-100 text-yellow-800'
+                                                            }`}>
+                                                            {item.isPublished
+                                                                ? 'Đang bán'
+                                                                : 'Nháp'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-600 font-medium">
+                                Kho này chưa có sản phẩm
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Info Alert */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -649,6 +867,18 @@ function SellerInventoryManagement() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Warehouse Modal - Tạo/Sửa Kho */}
+            {showWarehouseModal && (
+                <WarehouseModal
+                    onClose={() => {
+                        setShowWarehouseModal(false);
+                        setEditingWarehouse(null);
+                    }}
+                    onSave={handleWarehouseModalSave}
+                    skipApiCall={false}
+                />
             )}
         </div>
     );

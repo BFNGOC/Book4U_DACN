@@ -26,7 +26,7 @@ exports.createWarehouse = async (req, res) => {
     try {
         const {
             name,
-            street,
+            detail,
             ward,
             district,
             province,
@@ -34,9 +34,10 @@ exports.createWarehouse = async (req, res) => {
             managerName,
             managerPhone,
         } = req.body;
-        const sellerId = req.user?.userId;
+        const street = detail;
+        const userId = req.user?.userId;
 
-        if (!sellerId) {
+        if (!userId) {
             return res.status(401).json({
                 success: false,
                 message: 'Bạn phải đăng nhập để tạo kho',
@@ -65,8 +66,9 @@ exports.createWarehouse = async (req, res) => {
             isDefault: false,
         };
 
-        const profile = await SellerProfile.findByIdAndUpdate(
-            sellerId,
+        // Find by userId, not by profile _id
+        const profile = await SellerProfile.findOneAndUpdate(
+            { userId },
             { $push: { warehouses: newWarehouse } },
             { new: true }
         );
@@ -122,6 +124,80 @@ exports.getWarehousesBySellergetWarehousesBySeller = async (req, res) => {
     }
 };
 
+// 2️⃣B CẬP NHẬT KHO HÀNG
+exports.updateWarehouse = async (req, res) => {
+    try {
+        const { id: warehouseId } = req.params;
+        const sellerId = req.user?.userId;
+        const {
+            name,
+            street,
+            detail,
+            ward,
+            district,
+            province,
+            managerName,
+            managerPhone,
+        } = req.body;
+
+        if (!sellerId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Bạn phải đăng nhập để cập nhật kho',
+            });
+        }
+
+        // Validate input
+        if (!name || !ward || !district || !province) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vui lòng cung cấp đầy đủ thông tin kho',
+            });
+        }
+
+        // Tìm profile và cập nhật kho trong array warehouses
+        const profile = await SellerProfile.findOne({ userId: sellerId });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller profile không tồn tại',
+            });
+        }
+
+        // Tìm warehouse trong array
+        const warehouse = profile.warehouses.id(warehouseId);
+        if (!warehouse) {
+            return res.status(404).json({
+                success: false,
+                message: 'Kho không tồn tại',
+            });
+        }
+
+        // Cập nhật warehouse
+        warehouse.name = name;
+        warehouse.street = street || warehouse.street;
+        warehouse.detail = detail || warehouse.detail;
+        warehouse.ward = ward;
+        warehouse.district = district;
+        warehouse.province = province;
+        warehouse.managerName = managerName || warehouse.managerName;
+        warehouse.managerPhone = managerPhone || warehouse.managerPhone;
+
+        // Lưu profile với warehouse đã cập nhật
+        await profile.save();
+
+        res.json({
+            success: true,
+            message: 'Cập nhật kho thành công',
+            data: warehouse,
+        });
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 // 3️⃣ NHẬP KHO
 /**
  * FLOW NHẬP KHO:
@@ -164,7 +240,7 @@ exports.importStock = async (req, res) => {
         // Kiểm tra sách tồn tại & thuộc seller
         const book = await Book.findOne({
             _id: bookId,
-            sellerId,
+            sellerId: profile._id, // ← Use profile._id, not userId
         }).session(session);
 
         if (!book) {
@@ -173,7 +249,7 @@ exports.importStock = async (req, res) => {
 
         // Tìm hoặc tạo WarehouseStock
         let warehouseStock = await WarehouseStock.findOne({
-            sellerId,
+            sellerId: profile._id, // ← Use profile._id
             bookId,
             warehouseId,
         }).session(session);
@@ -184,7 +260,7 @@ exports.importStock = async (req, res) => {
         if (!warehouseStock) {
             // Tạo mới
             warehouseStock = new WarehouseStock({
-                sellerId,
+                sellerId: profile._id, // ← Use profile._id
                 bookId,
                 warehouseId,
                 warehouseName: warehouse.name,
@@ -208,7 +284,7 @@ exports.importStock = async (req, res) => {
 
         // Tạo WarehouseLog
         const log = new WarehouseLog({
-            sellerId,
+            sellerId: profile._id, // ← Use profile._id
             bookId,
             warehouseId,
             warehouseName: warehouse.name,
@@ -286,7 +362,7 @@ exports.exportStock = async (req, res) => {
         // Kiểm tra sách
         const book = await Book.findOne({
             _id: bookId,
-            sellerId,
+            sellerId: profile._id,
         }).session(session);
 
         if (!book) {
@@ -295,7 +371,7 @@ exports.exportStock = async (req, res) => {
 
         // ⚠️ KIỂM TRA TỒN KHO CÓ ĐỦ KHÔNG
         const warehouseStock = await WarehouseStock.findOne({
-            sellerId,
+            sellerId: profile._id,
             bookId,
             warehouseId,
         }).session(session);
@@ -325,7 +401,7 @@ exports.exportStock = async (req, res) => {
 
         // Tạo log
         const log = new WarehouseLog({
-            sellerId,
+            sellerId: profile._id,
             bookId,
             warehouseId,
             warehouseName: warehouse.name,
@@ -364,7 +440,15 @@ exports.exportStock = async (req, res) => {
 exports.getWarehouseLogs = async (req, res) => {
     try {
         const userId = req.user?.userId;
-        const sellerId = userId;
+        const profile = await SellerProfile.findOne({ userId });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller profile không tìm thấy',
+            });
+        }
+
         const {
             warehouseId = null,
             type = null,
@@ -372,7 +456,7 @@ exports.getWarehouseLogs = async (req, res) => {
             limit = 20,
         } = req.query;
 
-        const query = { sellerId };
+        const query = { sellerId: profile._id };
         if (warehouseId) query.warehouseId = warehouseId;
         if (type) query.type = type;
 
@@ -409,12 +493,19 @@ exports.getProductTotalStock = async (req, res) => {
     try {
         const { bookId } = req.params;
         const userId = req.user?.userId;
-        const sellerId = userId;
+        const profile = await SellerProfile.findOne({ userId });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller profile không tìm thấy',
+            });
+        }
 
         // Kiểm tra sách thuộc seller
         const book = await Book.findOne({
             _id: bookId,
-            sellerId,
+            sellerId: profile._id,
         });
 
         if (!book) {
@@ -426,7 +517,7 @@ exports.getProductTotalStock = async (req, res) => {
 
         // Lấy tồn từ tất cả kho
         const stocks = await WarehouseStock.find({
-            sellerId,
+            sellerId: profile._id,
             bookId,
         });
 
@@ -442,6 +533,104 @@ exports.getProductTotalStock = async (req, res) => {
                 },
                 stocks, // Chi tiết từng kho
                 totalStock, // Tổng tính từ warehouse stocks
+            },
+        });
+    } catch (err) {
+        console.error('Error:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// 7️⃣ LẤY DANH SÁCH SẢN PHẨM CÓ TRONG KHO
+/**
+ * Xem tất cả sản phẩm + tồn kho trong 1 kho cụ thể
+ * GET /api/warehouses/:warehouseId/inventory
+ */
+exports.getWarehouseInventory = async (req, res) => {
+    try {
+        const { warehouseId } = req.params;
+        const userId = req.user?.userId;
+        const { page = 1, limit = 20, search = '' } = req.query;
+
+        // Get seller profile
+        const profile = await SellerProfile.findOne({ userId });
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller profile không tìm thấy',
+            });
+        }
+
+        // Verify warehouse exists and belongs to seller
+        const warehouse = profile.warehouses.id(warehouseId);
+        if (!warehouse) {
+            return res.status(404).json({
+                success: false,
+                message: 'Kho không tồn tại hoặc không thuộc về bạn',
+            });
+        }
+
+        // Build query for WarehouseStock
+        const query = {
+            sellerId: profile._id,
+            warehouseId,
+            quantity: { $gt: 0 }, // Chỉ lấy sản phẩm có tồn
+        };
+
+        // Get total count
+        const total = await WarehouseStock.countDocuments(query);
+
+        // Get inventory items with book details
+        const items = await WarehouseStock.find(query)
+            .populate({
+                path: 'bookId',
+                select: 'title author price cover categoryId isPublished',
+                populate: {
+                    path: 'categoryId',
+                    select: 'name',
+                },
+            })
+            .sort({ lastUpdatedStock: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        // Apply search filter on populated data
+        const filteredItems = search
+            ? items.filter((item) =>
+                  item.bookId?.title
+                      .toLowerCase()
+                      .includes(search.toLowerCase())
+              )
+            : items;
+
+        res.json({
+            success: true,
+            data: {
+                warehouse: {
+                    _id: warehouse._id,
+                    name: warehouse.name,
+                    address: `${warehouse.street}, ${warehouse.ward}, ${warehouse.district}, ${warehouse.province}`,
+                    manager: warehouse.managerName,
+                    phone: warehouse.managerPhone,
+                },
+                items: filteredItems.map((item) => ({
+                    _id: item._id,
+                    bookId: item.bookId?._id,
+                    bookTitle: item.bookId?.title || 'N/A',
+                    bookAuthor: item.bookId?.author || 'N/A',
+                    bookPrice: item.bookId?.price || 0,
+                    bookCategory: item.bookId?.categoryId?.name || 'N/A',
+                    quantity: item.quantity,
+                    lastUpdated: item.lastUpdatedStock,
+                    isPublished: item.bookId?.isPublished || false,
+                })),
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit),
+                    filtered: filteredItems.length,
+                },
             },
         });
     } catch (err) {

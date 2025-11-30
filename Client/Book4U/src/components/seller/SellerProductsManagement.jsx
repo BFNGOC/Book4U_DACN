@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../../contexts/userContext';
 import { getSellerProducts } from '../../services/api/sellerApi';
-import { createBook, updateBook, deleteBook } from '../../services/api/bookApi';
+import {
+    createBook,
+    updateBook,
+    deleteBook,
+    publishBook,
+} from '../../services/api/bookApi';
 import {
     Plus,
     Edit2,
@@ -13,6 +18,7 @@ import {
 } from 'lucide-react';
 import API_URL from '../../configs/api';
 import ProductModal from './ProductModal';
+import toast from 'react-hot-toast';
 
 function SellerProductsManagement() {
     const { user } = useUser();
@@ -24,6 +30,7 @@ function SellerProductsManagement() {
     const [editingProduct, setEditingProduct] = useState(null);
     const [sortBy, setSortBy] = useState('latest');
     const [sortOrder, setSortOrder] = useState('desc');
+    const [publishingId, setPublishingId] = useState(null);
 
     useEffect(() => {
         if (user?._id) {
@@ -127,6 +134,41 @@ function SellerProductsManagement() {
         setIsModalOpen(true);
     };
 
+    const handleTogglePublish = async (productId, currentStatus, stock) => {
+        // Nếu muốn mở bán (currentStatus = false) nhưng stock = 0 => block
+        if (!currentStatus && stock === 0) {
+            toast.error('❌ Không thể mở bán! Vui lòng nhập kho trước.');
+            return;
+        }
+
+        try {
+            setPublishingId(productId);
+            const res = await publishBook(productId);
+            if (res.success) {
+                // Update local state
+                setProducts(
+                    products.map((p) =>
+                        p._id === productId
+                            ? { ...p, isPublished: !currentStatus }
+                            : p
+                    )
+                );
+                toast.success(
+                    currentStatus
+                        ? '✅ Đã dỡ bán sản phẩm'
+                        : '✅ Sản phẩm đã mở bán'
+                );
+            }
+        } catch (err) {
+            console.error('Lỗi:', err);
+            toast.error(
+                err.response?.data?.message || 'Lỗi khi thay đổi trạng thái bán'
+            );
+        } finally {
+            setPublishingId(null);
+        }
+    };
+
     if (loading)
         return (
             <div className="flex justify-center items-center py-12">
@@ -224,7 +266,7 @@ function SellerProductsManagement() {
 
                                 {/* Product Info */}
                                 <div className="flex-grow">
-                                    <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-start justify-between mb-3">
                                         <div>
                                             <h3 className="font-bold text-gray-900 text-lg line-clamp-1">
                                                 {product.title}
@@ -233,13 +275,53 @@ function SellerProductsManagement() {
                                                 {product.author}
                                             </p>
                                         </div>
-                                        {product.discount > 0 && (
-                                            <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold">
-                                                -{product.discount}%
+                                        <div className="flex flex-col items-end gap-2">
+                                            {/* Toggle Switch */}
+                                            <div
+                                                className="relative inline-flex items-center h-7 bg-gray-200 rounded-full w-12 cursor-pointer transition-colors"
+                                                onClick={() =>
+                                                    handleTogglePublish(
+                                                        product._id,
+                                                        product.isPublished,
+                                                        product.stock
+                                                    )
+                                                }
+                                                style={{
+                                                    backgroundColor:
+                                                        product.isPublished
+                                                            ? '#10b981'
+                                                            : '#d1d5db',
+                                                }}
+                                                title={
+                                                    product.isPublished
+                                                        ? 'Click để dỡ bán'
+                                                        : 'Click để mở bán'
+                                                }>
+                                                <span
+                                                    className={`inline-block w-5 h-5 transform rounded-full bg-white transition-transform shadow-md ${
+                                                        product.isPublished
+                                                            ? 'translate-x-6'
+                                                            : 'translate-x-1'
+                                                    } ${
+                                                        publishingId ===
+                                                        product._id
+                                                            ? 'opacity-50'
+                                                            : ''
+                                                    }`}
+                                                />
                                             </div>
-                                        )}
+                                            <span className="text-xs font-semibold text-gray-600">
+                                                {product.isPublished
+                                                    ? 'Đang bán'
+                                                    : 'Nháp'}
+                                            </span>
+                                            {product.discount > 0 && (
+                                                <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold">
+                                                    -{product.discount}%
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-
                                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-3">
                                         <div>
                                             <p className="text-xs text-gray-500 mb-1">

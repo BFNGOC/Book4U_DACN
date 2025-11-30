@@ -9,6 +9,14 @@ const uploadBook = createUploader('books');
 
 router.get('/', bookController.getAllBooks);
 
+// Route này phải trước :id routes để tránh conflict
+router.get(
+    '/seller/my-books',
+    authMiddleware,
+    roleMiddleware('seller'),
+    bookController.getSellerBooks
+);
+
 router.get('/category/:slug', bookController.getBooksByCategorySlug);
 
 router.get('/slug/:slug', bookController.getBookBySlug);
@@ -38,6 +46,14 @@ router.delete(
     authMiddleware,
     roleMiddleware('seller'),
     bookController.deleteBook
+);
+
+// [PATCH] /api/books/:id/publish - Đăng bán sách (BƯỚC 3)
+router.patch(
+    '/:id/publish',
+    authMiddleware,
+    roleMiddleware('seller'),
+    bookController.publishBook
 );
 
 module.exports = router;

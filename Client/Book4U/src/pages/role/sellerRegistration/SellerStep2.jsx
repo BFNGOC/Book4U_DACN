@@ -181,6 +181,7 @@ const SellerStep2 = ({ data, onNext, onBack, onUpdate }) => {
                         setSelectedWarehouse(null);
                     }}
                     defaultData={editMode ? selectedWarehouse : null}
+                    skipApiCall={true}
                 />
             )}
 

@@ -195,8 +195,6 @@ function ProductModal({ isOpen, onClose, product = null, onSubmit }) {
             newErrors.categoryId = 'Vui lòng chọn danh mục';
         if (!formData.price || formData.price <= 0)
             newErrors.price = 'Giá phải lớn hơn 0';
-        if (!formData.stock || formData.stock < 0)
-            newErrors.stock = 'Tồn kho không hợp lệ';
         // Check if there are new images or existing images (when editing)
         if (imageFiles.length === 0 && imagePreview.length === 0)
             newErrors.images = 'Vui lòng chọn ít nhất 1 hình ảnh';
@@ -385,28 +383,6 @@ function ProductModal({ isOpen, onClose, product = null, onSubmit }) {
                                     <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
                                         <span className="w-1 h-1 bg-red-500 rounded-full"></span>
                                         {errors.price}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-gray-800 mb-2.5">
-                                    Tồn kho{' '}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    name="stock"
-                                    value={formData.stock}
-                                    onChange={handleInputChange}
-                                    placeholder="0"
-                                    min="0"
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition placeholder-gray-400"
-                                />
-                                {errors.stock && (
-                                    <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                                        <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                                        {errors.stock}
                                     </p>
                                 )}
                             </div>
