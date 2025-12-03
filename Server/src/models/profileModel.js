@@ -87,6 +87,18 @@ const sellerSchema = new mongoose.Schema({
             isDefault: { type: Boolean, default: false },
             managerName: { type: String, required: true, trim: true },
             managerPhone: { type: String, required: true, trim: true },
+            // 📍 Location coordinates for distance calculation
+            location: {
+                latitude: { type: Number, default: null },
+                longitude: { type: Number, default: null },
+                address: { type: String, default: null },
+                accuracy: {
+                    type: String,
+                    enum: ['gps', 'city', 'city_default'],
+                    default: 'city_default',
+                }, // 'gps' = precise, 'city' = from geocoding, 'city_default' = fallback
+                geocodedAt: { type: Date, default: null },
+            },
         },
     ],
     bankDetails: {

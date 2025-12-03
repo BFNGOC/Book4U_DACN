@@ -175,7 +175,7 @@ function SellerOrdersManagement() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-bold">
-                                                Đơn hàng #{order._id.slice(-8)}
+                                                Đơn hàng #{order._id}
                                             </p>
                                             <span
                                                 className={`text-xs px-2 py-1 rounded ${

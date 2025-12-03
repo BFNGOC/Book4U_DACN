@@ -39,12 +39,19 @@ function SellerConfirmation() {
         }
     };
 
-    const handleConfirmOrder = async (orderId) => {
+    const handleConfirmOrder = async (orderId, order) => {
         try {
             setConfirmingOrderId(orderId);
 
-            // Gọi API confirm order
-            const response = await confirmOrder(orderId);
+            // 📍 Tạo customerLocation từ shipping address để geocoding
+            const customerLocation = {
+                address:
+                    order.shippingAddress?.address ||
+                    order.shippingAddress?.fullName,
+            };
+
+            // Gọi API confirm order với customerLocation để auto-select warehouse gần nhất
+            const response = await confirmOrder(orderId, customerLocation);
             if (!response.success) {
                 toast.error(response.message || 'Lỗi xác nhận đơn hàng');
                 return;
@@ -272,7 +279,7 @@ function SellerConfirmation() {
                                     {/* Confirm button */}
                                     <button
                                         onClick={() =>
-                                            handleConfirmOrder(order._id)
+                                            handleConfirmOrder(order._id, order)
                                         }
                                         disabled={
                                             confirmingOrderId === order._id ||

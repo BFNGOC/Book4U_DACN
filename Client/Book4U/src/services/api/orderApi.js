@@ -52,11 +52,12 @@ export const cancelOrder = (orderId, reason) =>
     );
 
 // Xác nhận đơn hàng từ seller (chuyển từ pending → confirmed, khấu trừ stock)
-export const confirmOrder = (orderId) =>
+// Mục tiêu: Auto-select nearest warehouse dựa trên customerLocation (geocoding)
+export const confirmOrder = (orderId, customerLocation = null) =>
     fetchHandler(
         axiosPrivate,
         `${ORDER_API_URL}/${orderId}/confirm`,
-        {},
+        customerLocation ? { customerLocation } : {},
         'Lỗi khi xác nhận đơn hàng.',
         'POST'
     );

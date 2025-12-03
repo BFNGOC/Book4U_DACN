@@ -3,6 +3,7 @@ const WarehouseStock = require('../models/warehouseStockModel');
 const WarehouseLog = require('../models/warehouseLogModel');
 const Book = require('../models/bookModel');
 const mongoose = require('mongoose');
+const { geocodeAddress } = require('../services/geocodingService');
 
 /**
  * ================================
@@ -53,6 +54,37 @@ exports.createWarehouse = async (req, res) => {
             });
         }
 
+        // 🔍 AUTO-GEOCODING: Convert warehouse address to coordinates
+        const fullAddress = `${street}, ${ward}, ${district}, ${province}, Vietnam`;
+        let location = {
+            latitude: null,
+            longitude: null,
+            address: null,
+            accuracy: 'city_default',
+            geocodedAt: null,
+        };
+
+        try {
+            console.log(`📍 Geocoding warehouse address: "${fullAddress}"`);
+            const geocoded = await geocodeAddress(fullAddress);
+            location = {
+                latitude: geocoded.latitude,
+                longitude: geocoded.longitude,
+                address: geocoded.address,
+                accuracy: geocoded.accuracy || 'city',
+                geocodedAt: new Date(),
+            };
+            console.log(
+                `✅ Warehouse geocoded: ${geocoded.address} (${geocoded.latitude}, ${geocoded.longitude})`
+            );
+        } catch (geocodeError) {
+            console.warn(
+                '⚠️ Geocoding warehouse address failed:',
+                geocodeError.message
+            );
+            // Continue anyway, location will be filled later by system
+        }
+
         const newWarehouse = {
             name,
             street,
@@ -64,6 +96,7 @@ exports.createWarehouse = async (req, res) => {
             managerName,
             managerPhone,
             isDefault: false,
+            location, // Add geocoded location
         };
 
         // Find by userId, not by profile _id
@@ -183,6 +216,31 @@ exports.updateWarehouse = async (req, res) => {
         warehouse.province = province;
         warehouse.managerName = managerName || warehouse.managerName;
         warehouse.managerPhone = managerPhone || warehouse.managerPhone;
+
+        // 🔍 AUTO-GEOCODING: Convert warehouse address to coordinates if address changed
+        const fullAddress = `${warehouse.street}, ${warehouse.ward}, ${warehouse.district}, ${warehouse.province}, Vietnam`;
+        try {
+            console.log(
+                `📍 Re-geocoding updated warehouse address: "${fullAddress}"`
+            );
+            const geocoded = await geocodeAddress(fullAddress);
+            warehouse.location = {
+                latitude: geocoded.latitude,
+                longitude: geocoded.longitude,
+                address: geocoded.address,
+                accuracy: geocoded.accuracy || 'city',
+                geocodedAt: new Date(),
+            };
+            console.log(
+                `✅ Warehouse re-geocoded: ${geocoded.address} (${geocoded.latitude}, ${geocoded.longitude})`
+            );
+        } catch (geocodeError) {
+            console.warn(
+                '⚠️ Re-geocoding warehouse address failed:',
+                geocodeError.message
+            );
+            // Keep existing location if geocoding fails
+        }
 
         // Lưu profile với warehouse đã cập nhật
         await profile.save();
