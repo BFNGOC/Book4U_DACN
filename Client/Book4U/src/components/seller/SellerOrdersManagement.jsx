@@ -1,74 +1,120 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
     getSellerOrders,
-    updateOrderStatus,
-} from '../../services/api/sellerOrderApi';
-import { ChevronDown, Search, Filter } from 'lucide-react';
-import API_URL from '../../configs/api';
+    startPicking,
+    markAsPacked,
+    handoffToCarrier,
+} from '../../services/api/sellerOrderApi.js';
+import { confirmOrder } from '../../services/api/orderApi.js';
+import {
+    formatOrderItem,
+    getStatusDisplay,
+    formatPrice,
+    getNextAction,
+} from '../../utils/orderFormatting.js';
 
 function SellerOrdersManagement() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [pagination, setPagination] = useState(null);
-    const [statusFilter, setStatusFilter] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [expandedOrder, setExpandedOrder] = useState(null);
-
-    const statusColors = {
-        pending: 'bg-yellow-100 text-yellow-800',
-        processing: 'bg-blue-100 text-blue-800',
-        shipped: 'bg-purple-100 text-purple-800',
-        completed: 'bg-green-100 text-green-800',
-        cancelled: 'bg-red-100 text-red-800',
-    };
+    const [filter, setFilter] = useState('pending');
+    const [expandedOrderId, setExpandedOrderId] = useState(null);
+    const [showHandoffModal, setShowHandoffModal] = useState(null);
+    const [handoffData, setHandoffData] = useState({
+        carrierName: '',
+        trackingNumber: '',
+        shipperId: '',
+        shipperName: '',
+    });
 
     const statusLabels = {
-        pending: 'Chờ xử lý',
-        processing: 'Đang xử lý',
-        shipped: 'Đã gửi',
-        completed: 'Hoàn thành',
-        cancelled: 'Đã hủy',
+        pending: '⏳ Chờ xác nhận',
+        confirmed: '✅ Chờ lấy hàng',
+        picking: '📦 Đang lấy hàng',
+        packed: '📮 Đã đóng gói',
+        in_transit: '🚚 Đang vận chuyển',
+        out_for_delivery: '🚴 Đang giao',
+        completed: '🎉 Đã giao',
     };
 
     useEffect(() => {
         fetchOrders();
-    }, [page, statusFilter]);
+    }, [filter]);
 
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const res = await getSellerOrders({
-                page,
-                limit: 10,
-                status: statusFilter || undefined,
-            });
-
-            if (res.success) {
-                setOrders(res.data);
-                setPagination(res.pagination);
+            const response = await getSellerOrders({ status: filter });
+            if (response.success) {
+                setOrders(response.data || []);
+            } else {
+                toast.error(response.message || 'Lỗi tải danh sách đơn hàng');
             }
-        } catch (err) {
-            console.error('Lỗi:', err);
+        } catch (error) {
+            toast.error('Lỗi tải danh sách đơn hàng');
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleStatusChange = async (orderId, newStatus) => {
+    const updateOrderStatus = async (orderId, newStatus) => {
         try {
-            const res = await updateOrderStatus(orderId, newStatus);
-            if (res.success) {
-                setOrders(
-                    orders.map((order) =>
-                        order._id === orderId
-                            ? { ...order, status: newStatus }
-                            : order
-                    )
-                );
+            let response;
+            if (newStatus === 'confirmed') {
+                response = await confirmOrder(orderId);
+            } else if (newStatus === 'picking') {
+                response = await startPicking(orderId);
+            } else if (newStatus === 'packed') {
+                response = await markAsPacked(orderId);
             }
-        } catch (err) {
-            console.error('Lỗi:', err);
+
+            if (response.success) {
+                toast.success('Cập nhật trạng thái thành công');
+                fetchOrders();
+            } else {
+                toast.error(response.message || 'Lỗi cập nhật trạng thái');
+            }
+        } catch (error) {
+            toast.error('Lỗi cập nhật trạng thái');
+            console.error(error);
+        }
+    };
+
+    const handleStartHandoff = (orderId) => {
+        setShowHandoffModal(orderId);
+        setHandoffData({
+            carrierName: '',
+            trackingNumber: '',
+            shipperId: '',
+            shipperName: '',
+        });
+    };
+
+    const handleConfirmHandoff = async () => {
+        if (
+            !handoffData.carrierName.trim() ||
+            !handoffData.trackingNumber.trim()
+        ) {
+            toast.error('Vui lòng nhập tên vận chuyển và mã theo dõi');
+            return;
+        }
+
+        try {
+            const response = await handoffToCarrier(
+                showHandoffModal,
+                handoffData
+            );
+            if (response.success) {
+                toast.success('Giao hàng cho vận chuyển thành công');
+                setShowHandoffModal(null);
+                fetchOrders();
+            } else {
+                toast.error(response.message || 'Lỗi giao hàng');
+            }
+        } catch (error) {
+            toast.error('Lỗi giao hàng');
+            console.error(error);
         }
     };
 
@@ -76,209 +122,311 @@ function SellerOrdersManagement() {
         return <p className="text-center text-gray-500">Đang tải...</p>;
 
     return (
-        <div className="space-y-4">
-            {/* Filters */}
-            <div className="flex gap-4 mb-6">
-                <div className="flex-1">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm đơn hàng..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => {
-                            setStatusFilter(e.target.value);
-                            setPage(1);
-                        }}
-                        className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="pending">Chờ xử lý</option>
-                        <option value="processing">Đang xử lý</option>
-                        <option value="shipped">Đã gửi</option>
-                        <option value="completed">Hoàn thành</option>
-                        <option value="cancelled">Đã hủy</option>
-                    </select>
-                </div>
+        <div className="p-6 bg-gray-50">
+            <h1 className="text-3xl font-bold mb-6">Quản lý đơn hàng</h1>
+
+            {/* Filter tabs */}
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 bg-white p-4 rounded-lg">
+                {[
+                    'pending',
+                    'confirmed',
+                    'picking',
+                    'packed',
+                    'in_transit',
+                    'completed',
+                ].map((status) => (
+                    <button
+                        key={status}
+                        onClick={() => setFilter(status)}
+                        className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
+                            filter === status
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                        }`}>
+                        {statusLabels[status]}
+                    </button>
+                ))}
             </div>
 
-            {/* Orders List */}
+            {/* Orders list */}
             {orders.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">
-                    Không có đơn hàng nào.
-                </p>
+                <div className="bg-white p-8 rounded-lg text-center">
+                    <p className="text-gray-500 text-lg">
+                        Không có đơn hàng nào
+                    </p>
+                </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {orders.map((order) => (
                         <div
                             key={order._id}
-                            className="bg-white border rounded-lg overflow-hidden">
-                            <button
+                            className="bg-white rounded-lg shadow-md overflow-hidden">
+                            {/* Order header */}
+                            <div
+                                className="p-4 border-b cursor-pointer hover:bg-gray-50 transition"
                                 onClick={() =>
-                                    setExpandedOrder(
-                                        expandedOrder === order._id
+                                    setExpandedOrderId(
+                                        expandedOrderId === order._id
                                             ? null
                                             : order._id
                                     )
-                                }
-                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50">
-                                <div className="flex-1 text-left">
-                                    <div className="flex items-center gap-4">
-                                        <div>
-                                            <p className="font-semibold text-gray-900">
-                                                #
-                                                {order._id
-                                                    .slice(-6)
-                                                    .toUpperCase()}
+                                }>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="font-bold">
+                                                Đơn hàng #{order._id.slice(-8)}
                                             </p>
-                                            <p className="text-sm text-gray-500">
-                                                Từ: {order.profileId?.firstName}{' '}
-                                                {order.profileId?.lastName}
-                                            </p>
-                                        </div>
-                                        <div>
                                             <span
-                                                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                                    statusColors[order.status]
+                                                className={`text-xs px-2 py-1 rounded ${
+                                                    getStatusDisplay(
+                                                        order.status
+                                                    ).color
                                                 }`}>
-                                                {statusLabels[order.status]}
+                                                {
+                                                    getStatusDisplay(
+                                                        order.status
+                                                    ).label
+                                                }
                                             </span>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-blue-600">
-                                                {order.totalAmount.toLocaleString()}
-                                                ₫
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {new Date(
-                                                    order.createdAt
-                                                ).toLocaleDateString('vi-VN')}
-                                            </p>
-                                        </div>
+                                        <p className="text-sm text-gray-500">
+                                            Khách:{' '}
+                                            {order.shippingAddress?.fullName}
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            {new Date(
+                                                order.createdAt
+                                            ).toLocaleString('vi-VN')}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-lg font-bold text-red-500">
+                                            {formatPrice(order.totalAmount)}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            {order.items?.length} sản phẩm
+                                        </p>
                                     </div>
                                 </div>
-                                <ChevronDown
-                                    className={`w-5 h-5 text-gray-400 transition-transform ${
-                                        expandedOrder === order._id
-                                            ? 'rotate-180'
-                                            : ''
-                                    }`}
-                                />
-                            </button>
+                            </div>
 
-                            {expandedOrder === order._id && (
-                                <div className="border-t p-4 bg-gray-50">
-                                    <div className="space-y-4">
-                                        {/* Items */}
-                                        <div>
-                                            <h4 className="font-semibold mb-3">
-                                                Sản phẩm:
-                                            </h4>
-                                            <div className="space-y-2">
-                                                {order.items.map(
-                                                    (item, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="flex items-start gap-3 p-3 bg-white rounded border">
-                                                            <img
-                                                                src={`${API_URL}${item.bookId?.images?.[0]}`}
-                                                                alt={
-                                                                    item.bookId
-                                                                        ?.title
-                                                                }
-                                                                className="w-16 h-20 object-cover rounded"
-                                                            />
-                                                            <div className="flex-1">
-                                                                <p className="font-semibold">
-                                                                    {
-                                                                        item
-                                                                            .bookId
-                                                                            ?.title
-                                                                    }
-                                                                </p>
-                                                                <p className="text-sm text-gray-600">
-                                                                    x
-                                                                    {
-                                                                        item.quantity
-                                                                    }{' '}
-                                                                    ×{' '}
-                                                                    {item.price.toLocaleString()}
-                                                                    ₫
-                                                                </p>
-                                                            </div>
+                            {/* Expanded details */}
+                            {expandedOrderId === order._id && (
+                                <div className="p-4 bg-gray-50 space-y-4">
+                                    {/* Items */}
+                                    <div>
+                                        <h4 className="font-bold mb-2">
+                                            📦 Sản phẩm:
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {order.items?.map((item, idx) => {
+                                                const formatted =
+                                                    formatOrderItem(item);
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="flex justify-between items-start text-sm p-2 bg-white rounded border border-gray-200">
+                                                        <div className="flex-1">
                                                             <p className="font-semibold">
-                                                                {(
-                                                                    item.quantity *
-                                                                    item.price
-                                                                ).toLocaleString()}
-                                                                ₫
+                                                                {
+                                                                    formatted.bookTitle
+                                                                }
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                Shop:{' '}
+                                                                {
+                                                                    formatted.sellerName
+                                                                }
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                SL:{' '}
+                                                                {
+                                                                    formatted.quantity
+                                                                }{' '}
+                                                                x{' '}
+                                                                {formatPrice(
+                                                                    formatted.price
+                                                                )}
                                                             </p>
                                                         </div>
-                                                    )
-                                                )}
-                                            </div>
+                                                        <div className="text-right">
+                                                            <p className="font-bold text-red-500">
+                                                                {formatPrice(
+                                                                    formatted.subtotal
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
+                                    </div>
 
-                                        {/* Shipping Address */}
-                                        <div>
-                                            <h4 className="font-semibold mb-2">
-                                                Địa chỉ giao hàng:
-                                            </h4>
-                                            <p className="text-sm text-gray-600">
+                                    {/* Shipping address */}
+                                    <div>
+                                        <h4 className="font-bold mb-2">
+                                            📍 Địa chỉ giao:
+                                        </h4>
+                                        <div className="bg-white p-3 rounded text-sm border border-gray-200">
+                                            <p className="font-semibold">
                                                 {
                                                     order.shippingAddress
                                                         ?.fullName
                                                 }
-                                                <br />
+                                            </p>
+                                            <p>
+                                                📞{' '}
                                                 {order.shippingAddress?.phone}
-                                                <br />
+                                            </p>
+                                            <p className="text-gray-600">
                                                 {order.shippingAddress?.address}
                                             </p>
                                         </div>
+                                    </div>
 
-                                        {/* Status Update */}
-                                        <div>
-                                            <h4 className="font-semibold mb-2">
-                                                Cập nhật trạng thái:
-                                            </h4>
-                                            <div className="flex gap-2 flex-wrap">
-                                                {[
-                                                    'pending',
-                                                    'processing',
-                                                    'shipped',
-                                                    'completed',
-                                                ].map((status) => (
-                                                    <button
-                                                        key={status}
-                                                        onClick={() =>
-                                                            handleStatusChange(
-                                                                order._id,
-                                                                status
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            order.status ===
-                                                            status
-                                                        }
-                                                        className={`px-4 py-2 rounded font-semibold text-sm transition-colors ${
-                                                            order.status ===
-                                                            status
-                                                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                                                                : 'bg-blue-500 text-white hover:bg-blue-600'
-                                                        }`}>
-                                                        {statusLabels[status]}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                    {/* Order info: Payment, Warehouse, Tracking */}
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="bg-white p-3 rounded text-sm border border-gray-200">
+                                            <p className="text-xs text-gray-500 font-semibold">
+                                                Thanh toán
+                                            </p>
+                                            <p className="font-semibold">
+                                                {order.paymentMethod}
+                                            </p>
+                                            <p className="text-xs text-gray-600">
+                                                {order.paymentStatus}
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-white p-3 rounded text-sm border border-gray-200">
+                                            <p className="text-xs text-gray-500 font-semibold">
+                                                Kho
+                                            </p>
+                                            <p className="font-semibold">
+                                                {order.warehouseName || '—'}
+                                            </p>
+                                            <p className="text-xs text-gray-600">
+                                                {order.warehouseId
+                                                    ? '✓ Đã chọn'
+                                                    : '—'}
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-white p-3 rounded text-sm border border-gray-200">
+                                            <p className="text-xs text-gray-500 font-semibold">
+                                                Mã vận đơn
+                                            </p>
+                                            <p className="font-semibold text-xs break-all">
+                                                {order.trackingNumber || '—'}
+                                            </p>
+                                            <p className="text-xs text-gray-600">
+                                                {order.carrier?.name || '—'}
+                                            </p>
                                         </div>
                                     </div>
+
+                                    {/* Current status and actions */}
+                                    <div>
+                                        <h4 className="font-bold mb-2">
+                                            📊 Trạng thái & Hành động:
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            <div
+                                                className={`px-3 py-2 rounded text-sm font-semibold ${
+                                                    getStatusDisplay(
+                                                        order.status
+                                                    ).color
+                                                }`}>
+                                                {
+                                                    getStatusDisplay(
+                                                        order.status
+                                                    ).label
+                                                }
+                                            </div>
+
+                                            <div className="flex-1"></div>
+
+                                            {/* Action buttons */}
+                                            {order.status === 'pending' && (
+                                                <button
+                                                    onClick={() =>
+                                                        updateOrderStatus(
+                                                            order._id,
+                                                            'confirmed'
+                                                        )
+                                                    }
+                                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold">
+                                                    ✓ Xác nhận đơn
+                                                </button>
+                                            )}
+                                            {order.status === 'confirmed' && (
+                                                <button
+                                                    onClick={() =>
+                                                        updateOrderStatus(
+                                                            order._id,
+                                                            'picking'
+                                                        )
+                                                    }
+                                                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-sm font-semibold">
+                                                    ▶ Bắt đầu lấy hàng
+                                                </button>
+                                            )}
+                                            {order.status === 'picking' && (
+                                                <button
+                                                    onClick={() =>
+                                                        updateOrderStatus(
+                                                            order._id,
+                                                            'packed'
+                                                        )
+                                                    }
+                                                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
+                                                    ✓ Đã đóng gói
+                                                </button>
+                                            )}
+                                            {order.status === 'packed' && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleStartHandoff(
+                                                            order._id
+                                                        )
+                                                    }
+                                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm font-semibold">
+                                                    🚚 Giao cho vận chuyển
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Delivery notes */}
+                                    {order.notes && order.notes.length > 0 && (
+                                        <div>
+                                            <h4 className="font-bold mb-2">
+                                                📋 Ghi chú:
+                                            </h4>
+                                            <div className="space-y-1 text-xs">
+                                                {order.notes
+                                                    .slice(-3)
+                                                    .map((note, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            className="bg-white p-2 rounded border-l-2 border-blue-500">
+                                                            <p className="font-semibold">
+                                                                {note.message}
+                                                            </p>
+                                                            <p className="text-gray-500">
+                                                                {new Date(
+                                                                    note.timestamp
+                                                                ).toLocaleString(
+                                                                    'vi-VN'
+                                                                )}{' '}
+                                                                - {note.addedBy}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -286,36 +434,101 @@ function SellerOrdersManagement() {
                 </div>
             )}
 
-            {/* Pagination */}
-            {pagination && pagination.pages > 1 && (
-                <div className="flex justify-center gap-2 mt-6">
-                    <button
-                        onClick={() => setPage(page - 1)}
-                        disabled={page === 1}
-                        className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
-                        Trước
-                    </button>
-                    {Array.from(
-                        { length: pagination.pages },
-                        (_, i) => i + 1
-                    ).map((p) => (
-                        <button
-                            key={p}
-                            onClick={() => setPage(p)}
-                            className={`px-4 py-2 rounded-lg ${
-                                page === p
-                                    ? 'bg-blue-600 text-white'
-                                    : 'border hover:bg-gray-50'
-                            }`}>
-                            {p}
-                        </button>
-                    ))}
-                    <button
-                        onClick={() => setPage(page + 1)}
-                        disabled={page === pagination.pages}
-                        className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50">
-                        Sau
-                    </button>
+            {/* Handoff modal */}
+            {showHandoffModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+                        <h3 className="text-lg font-bold mb-4">
+                            🚚 Giao hàng cho vận chuyển
+                        </h3>
+
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">
+                                    Tên vận chuyển
+                                </label>
+                                <input
+                                    type="text"
+                                    value={handoffData.carrierName}
+                                    onChange={(e) =>
+                                        setHandoffData({
+                                            ...handoffData,
+                                            carrierName: e.target.value,
+                                        })
+                                    }
+                                    placeholder="VNPost, GHN, GHTK..."
+                                    className="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">
+                                    Mã theo dõi
+                                </label>
+                                <input
+                                    type="text"
+                                    value={handoffData.trackingNumber}
+                                    onChange={(e) =>
+                                        setHandoffData({
+                                            ...handoffData,
+                                            trackingNumber: e.target.value,
+                                        })
+                                    }
+                                    placeholder="VN123456789..."
+                                    className="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">
+                                    ID người giao hàng (tuỳ chọn)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={handoffData.shipperId}
+                                    onChange={(e) =>
+                                        setHandoffData({
+                                            ...handoffData,
+                                            shipperId: e.target.value,
+                                        })
+                                    }
+                                    placeholder="ID shipper"
+                                    className="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">
+                                    Tên người giao hàng (tuỳ chọn)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={handoffData.shipperName}
+                                    onChange={(e) =>
+                                        setHandoffData({
+                                            ...handoffData,
+                                            shipperName: e.target.value,
+                                        })
+                                    }
+                                    placeholder="Tên shipper"
+                                    className="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowHandoffModal(null)}
+                                className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleConfirmHandoff}
+                                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                                Xác nhận
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

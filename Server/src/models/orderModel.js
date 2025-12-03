@@ -28,6 +28,48 @@ const shippingSchema = new mongoose.Schema({
     address: { type: String, required: true },
 });
 
+// 📍 Delivery attempt tracking subdocument
+const deliveryAttemptSchema = new mongoose.Schema(
+    {
+        attemptNumber: { type: Number, required: true },
+        status: {
+            type: String,
+            enum: ['success', 'failed', 'retry'],
+            required: true,
+        },
+        timestamp: { type: Date, default: Date.now },
+        reason: String, // "Customer not available", "Wrong address", etc
+        driverName: String,
+        driverId: mongoose.Schema.Types.ObjectId,
+        location: {
+            latitude: Number,
+            longitude: Number,
+            address: String,
+        },
+    },
+    { _id: true }
+);
+
+// 🔙 Return information subdocument
+const returnSchema = new mongoose.Schema({
+    reason: String, // "Customer refused", "Damaged", "Wrong item"
+    initiatedAt: Date,
+    approvedAt: Date,
+    returnedAt: Date,
+    refundAmount: Number,
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'returned', 'refunded'],
+    },
+});
+
+// 📋 Order note subdocument
+const noteSchema = new mongoose.Schema({
+    timestamp: { type: Date, default: Date.now },
+    message: String,
+    addedBy: String, // 'seller', 'carrier', 'customer', 'system'
+});
+
 const orderSchema = new mongoose.Schema(
     {
         profileId: {
@@ -50,18 +92,70 @@ const orderSchema = new mongoose.Schema(
             enum: ['unpaid', 'paid', 'refunded'],
             default: 'unpaid',
         },
+        // 🔄 Enhanced status workflow:
+        // pending → confirmed → picking → packed → in_transit → out_for_delivery → completed
+        //                                                      → return_initiated → returned
         status: {
             type: String,
             enum: [
                 'pending',
-                'processing',
-                'shipped',
+                'confirmed',
+                'picking',
+                'packed',
+                'in_transit',
+                'out_for_delivery',
                 'completed',
+                'return_initiated',
+                'returned',
                 'cancelled',
             ],
             default: 'pending',
         },
         shippingAddress: shippingSchema,
+
+        // 🏭 Warehouse từ đó đơn được lấy hàng
+        warehouseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            default: null, // Null cho đến khi seller confirm
+        },
+        warehouseName: String,
+
+        // 🚚 Shipping/Carrier thông tin
+        carrier: {
+            name: String, // "Giao Hàng Nhanh", "Viettel Post", etc
+            id: mongoose.Schema.Types.ObjectId,
+        },
+        trackingNumber: {
+            type: String,
+            default: null, // Được gán khi carrier nhận hàng
+        },
+
+        // 📍 Delivery attempt tracking
+        deliveryAttempts: [deliveryAttemptSchema],
+        maxDeliveryAttempts: {
+            type: Number,
+            default: 3,
+        },
+
+        // 📍 Real-time location (từ carrier)
+        currentLocation: {
+            latitude: Number,
+            longitude: Number,
+            address: String,
+            lastUpdated: Date,
+        },
+
+        // 🔙 Return thông tin
+        return: returnSchema,
+
+        // 🧑‍💼 Seller info
+        handledBy: {
+            sellerId: mongoose.Schema.Types.ObjectId,
+            storeName: String,
+        },
+
+        // 📋 Notes từ seller/carrier/system
+        notes: [noteSchema],
     },
     { timestamps: true }
 );

@@ -1,0 +1,550 @@
+{
+    "info": {
+        "name": "Book4U Order-to-Delivery Workflow",
+        "description": "Complete API testing for order creation, confirmation, delivery, and returns",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Order Creation Flow",
+            "item": [
+                {
+                    "name": "1a. Validate Stock Before Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"items\": [\n    {\n      \"bookId\": \"{{bookId}}\",\n      \"sellerId\": \"{{sellerId}}\",\n      \"quantity\": 2\n    }\n  ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/validate-stock",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "orders", "validate-stock"]
+                        }
+                    }
+                },
+                {
+                    "name": "1b. Create Order (pending)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"profileId\": \"{{customerId}}\",\n  \"items\": [\n    {\n      \"bookId\": \"{{bookId}}\",\n      \"sellerId\": \"{{sellerId}}\",\n      \"quantity\": 2,\n      \"price\": 100000\n    }\n  ],\n  \"totalAmount\": 200000,\n  \"paymentMethod\": \"COD\",\n  \"shippingAddress\": {\n    \"fullName\": \"Nguyễn Văn A\",\n    \"phone\": \"0123456789\",\n    \"address\": \"123 Đường ABC, TP.HCM\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/create",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "orders", "create"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Seller Confirmation (ATOMIC)",
+            "item": [
+                {
+                    "name": "2a. Confirm Order & Deduct Stock",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerLocation\": {\n    \"latitude\": 10.7769,\n    \"longitude\": 106.6963,\n    \"address\": \"123 Đường ABC, TP.HCM\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/{{orderId}}/confirm",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "orders", "{{orderId}}", "confirm"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Seller Workflow",
+            "item": [
+                {
+                    "name": "3a. Get Seller Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/seller-orders?page=1&limit=10&status=confirmed",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "seller-orders"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "confirmed"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3b. Start Picking",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/seller-orders/{{orderId}}/status/picking",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "seller-orders",
+                                "{{orderId}}",
+                                "status",
+                                "picking"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3c. Mark as Packed",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"trackingNumber\": \"GHN123456789\",\n  \"carrierName\": \"Giao Hàng Nhanh\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/seller-orders/{{orderId}}/status/packed",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "seller-orders",
+                                "{{orderId}}",
+                                "status",
+                                "packed"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3d. Handoff to Carrier",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"carrierName\": \"Giao Hàng Nhanh\",\n  \"trackingNumber\": \"GHN123456789\",\n  \"shipperId\": \"shipper123\",\n  \"shipperName\": \"Nguyễn Văn Shipper\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/seller-orders/{{orderId}}/handoff-carrier",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "seller-orders",
+                                "{{orderId}}",
+                                "handoff-carrier"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Delivery Tracking",
+            "item": [
+                {
+                    "name": "4a. Get Tracking Info",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/delivery/{{orderId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "delivery", "{{orderId}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "4b. Update Delivery Location (Shipper)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{shipperToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"latitude\": 10.7750,\n  \"longitude\": 106.6980,\n  \"address\": \"Gần địa điểm giao hàng\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/delivery/{{orderId}}/location",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "delivery",
+                                "{{orderId}}",
+                                "location"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "4c. Update Delivery Status (out_for_delivery)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{shipperToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"out_for_delivery\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/delivery/{{orderId}}/status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "delivery", "{{orderId}}", "status"]
+                        }
+                    }
+                },
+                {
+                    "name": "4d. Record Delivery Attempt - Success",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{shipperToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"success\",\n  \"driverName\": \"Nguyễn Văn Shipper\",\n  \"driverId\": \"shipper123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/delivery/{{orderId}}/attempt",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "delivery",
+                                "{{orderId}}",
+                                "attempt"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "4e. Record Delivery Attempt - Failed",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{shipperToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"failed\",\n  \"reason\": \"Khách hàng không có nhà\",\n  \"driverName\": \"Nguyễn Văn Shipper\",\n  \"driverId\": \"shipper123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/delivery/{{orderId}}/attempt",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "delivery",
+                                "{{orderId}}",
+                                "attempt"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5. Return & Refund",
+            "item": [
+                {
+                    "name": "5a. Initiate Return (Customer)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"return_initiated\",\n  \"returnReason\": \"Sách bị hư hỏng\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/delivery/{{orderId}}/status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "delivery", "{{orderId}}", "status"]
+                        }
+                    }
+                },
+                {
+                    "name": "5b. Approve Return (Seller)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"approved\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/{{orderId}}/return/approve",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{orderId}}",
+                                "return",
+                                "approve"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5c. Reject Return (Seller)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"approved\": false,\n  \"reason\": \"Sách không hư\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/{{orderId}}/return/approve",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "orders",
+                                "{{orderId}}",
+                                "return",
+                                "approve"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6. Order Cancellation",
+            "item": [
+                {
+                    "name": "6a. Cancel Order (Before Shipping)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{customerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"Thay đổi ý định\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/{{orderId}}/cancel",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "orders", "{{orderId}}", "cancel"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "7. Race Condition Testing",
+            "item": [
+                {
+                    "name": "7a. Test Concurrent Orders (5 simultaneous)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{sellerToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerLocation\": {\n    \"latitude\": 10.7769,\n    \"longitude\": 106.6963,\n    \"address\": \"Test Location\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/orders/{{orderId}}/confirm",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "orders", "{{orderId}}", "confirm"]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5000",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "sellerToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "shipperToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "customerToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "customerId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "sellerId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "bookId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "orderId",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

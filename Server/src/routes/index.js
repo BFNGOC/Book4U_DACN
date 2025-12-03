@@ -11,6 +11,7 @@ const sellerRoutes = require('./sellerRoutes');
 const orderSellerRoutes = require('./orderSellerRoutes');
 const warehouseRoutes = require('./warehouseRoutes');
 const orderManagementRoutes = require('./orderManagementRoutes');
+const deliveryRoutes = require('./deliveryRoutes');
 const aiRoutes = require('./aiRoutes');
 const provinceRoutes = require('./provinceRoutes');
 
@@ -32,6 +33,7 @@ function route(app) {
     app.use('/api/seller-orders', orderSellerRoutes);
     app.use('/api/warehouse', warehouseRoutes);
     app.use('/api/orders', orderManagementRoutes);
+    app.use('/api/delivery', deliveryRoutes);
     app.use('/api/ai', aiRoutes);
     app.use('/api/province', provinceRoutes);
 }

@@ -23,10 +23,14 @@ import ShipperRegister from '../pages/role/shipperRegistration/ShipperRegister';
 import DailyDiscover from '../pages/DailyDiscover';
 import Cart from '../pages/Cart';
 import Checkout from '../pages/Checkout';
+import Orders from '../pages/Orders';
+import OrderDetail from '../pages/OrderDetail';
+import SellerConfirmation from '../pages/SellerConfirmation';
 
 import RoleRequestsPage from '../pages/admin/RoleRequestsPage';
 import SellerStore from '../pages/seller/SellerStore';
 import SellerDashboard from '../pages/seller/SellerDashboard';
+import SellerOrdersManagement from '../components/seller/SellerOrdersManagement';
 
 import NotFound from '../pages/NotFound';
 
@@ -42,7 +46,10 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route
+                    path="/reset-password/:token"
+                    element={<ResetPassword />}
+                />
                 <Route path="/book/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/seller/:sellerId" element={<SellerStore />} />
@@ -97,6 +104,22 @@ function AppRoutes() {
                     }
                 />
                 <Route
+                    path="/orders"
+                    element={
+                        <PrivateRoute>
+                            <Orders />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/orders/:orderId"
+                    element={
+                        <PrivateRoute>
+                            <OrderDetail />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
                     path="/admin/role-requests"
                     element={
                         <PrivateRoute>
@@ -109,6 +132,22 @@ function AppRoutes() {
                     element={
                         <PrivateRoute>
                             <SellerDashboard />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/seller/confirmation"
+                    element={
+                        <PrivateRoute>
+                            <SellerConfirmation />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/seller/orders"
+                    element={
+                        <PrivateRoute>
+                            <SellerOrdersManagement />
                         </PrivateRoute>
                     }
                 />

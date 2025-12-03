@@ -35,11 +35,14 @@ exports.getSellerOrders = async (req, res) => {
             Order.find(query)
                 .populate('profileId', 'firstName lastName primaryPhone')
                 .populate('items.bookId', 'title slug images')
+                .populate('items.sellerId', 'storeName')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),
             Order.countDocuments(query),
         ]);
+
+        console.log('  Orders found:', orders.length, 'Total:', total);
 
         return res.status(200).json({
             success: true,
@@ -253,6 +256,193 @@ exports.getRevenueStats = async (req, res) => {
         });
     } catch (err) {
         console.error('❌ Lỗi khi lấy thống kê doanh thu:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// [PUT] /api/seller-orders/:orderId/status/picking - Bắt đầu picking
+exports.startPicking = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { orderId } = req.params;
+
+        const seller = await SellerProfile.findOne({ userId });
+
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Bạn không phải là seller.',
+            });
+        }
+
+        const Order = require('../models/orderModel');
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Đơn hàng không tồn tại.',
+            });
+        }
+
+        if (order.status !== 'confirmed') {
+            return res.status(400).json({
+                success: false,
+                message: `Không thể bắt đầu picking từ status=${order.status}. Phải là confirmed.`,
+            });
+        }
+
+        order.status = 'picking';
+        order.notes = order.notes || [];
+        order.notes.push({
+            timestamp: new Date(),
+            message: `Seller ${seller.storeName} bắt đầu lấy hàng`,
+            addedBy: 'seller',
+        });
+
+        await order.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Bắt đầu lấy hàng thành công.',
+            data: order,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi bắt đầu picking:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// [PUT] /api/seller-orders/:orderId/status/packed - Đã đóng gói
+exports.markAsPacked = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { orderId } = req.params;
+        const { trackingNumber, carrierName } = req.body;
+
+        const seller = await SellerProfile.findOne({ userId });
+
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Bạn không phải là seller.',
+            });
+        }
+
+        const Order = require('../models/orderModel');
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Đơn hàng không tồn tại.',
+            });
+        }
+
+        if (!['picking', 'confirmed'].includes(order.status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Không thể đóng gói từ status=${order.status}. Phải là confirmed hoặc picking.`,
+            });
+        }
+
+        order.status = 'packed';
+
+        // Optional: lưu tracking number nếu có
+        if (trackingNumber) {
+            order.trackingNumber = trackingNumber;
+        }
+        if (carrierName) {
+            order.carrier = { name: carrierName };
+        }
+
+        order.notes = order.notes || [];
+        order.notes.push({
+            timestamp: new Date(),
+            message: `Seller ${seller.storeName} đã hoàn thành đóng gói`,
+            addedBy: 'seller',
+        });
+
+        await order.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Đơn hàng đã được đóng gói. Sẵn sàng cho shipper lấy.',
+            data: order,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi đóng gói:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// [PUT] /api/seller-orders/:orderId/handoff-carrier - Bàn giao cho shipper (status = in_transit)
+exports.handoffToCarrier = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { orderId } = req.params;
+        const { carrierName, trackingNumber, shipperId, shipperName } =
+            req.body;
+
+        const seller = await SellerProfile.findOne({ userId });
+
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Bạn không phải là seller.',
+            });
+        }
+
+        const Order = require('../models/orderModel');
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Đơn hàng không tồn tại.',
+            });
+        }
+
+        if (order.status !== 'packed') {
+            return res.status(400).json({
+                success: false,
+                message: `Không thể bàn giao từ status=${order.status}. Phải là packed.`,
+            });
+        }
+
+        order.status = 'in_transit';
+        order.carrier = {
+            name: carrierName,
+            id: shipperId,
+        };
+        order.trackingNumber = trackingNumber;
+
+        order.notes = order.notes || [];
+        order.notes.push({
+            timestamp: new Date(),
+            message: `Seller ${seller.storeName} bàn giao cho shipper ${shipperName} (Tracking: ${trackingNumber})`,
+            addedBy: 'seller',
+        });
+
+        await order.save();
+
+        return res.status(200).json({
+            success: true,
+            message:
+                'Đơn hàng bàn giao cho shipper thành công. Đang vận chuyển.',
+            data: order,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi bàn giao:', err);
         return res.status(500).json({
             success: false,
             message: 'Đã xảy ra lỗi máy chủ.',

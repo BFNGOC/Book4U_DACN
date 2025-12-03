@@ -1,0 +1,512 @@
+/* OrderTracking.css */
+
+.order-tracking {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.tracking-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 15px;
+}
+
+.tracking-header h2 {
+    color: #333;
+    margin: 0 0 10px 0;
+}
+
+.tracking-number {
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0;
+}
+
+.carrier-info {
+    font-size: 14px;
+    color: #007bff;
+    margin: 5px 0;
+}
+
+/* Status Timeline */
+.status-timeline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+.timeline-step.completed {
+    opacity: 1;
+}
+
+.timeline-step.active {
+    opacity: 1;
+    color: #007bff;
+}
+
+.step-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    animation: bounce 1s infinite;
+}
+
+.timeline-step.active .step-icon {
+    animation: pulse 1s infinite;
+}
+
+.step-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+}
+
+.timeline-step.completed .step-label {
+    color: #28a745;
+}
+
+.timeline-step.active .step-label {
+    color: #007bff;
+    font-weight: bold;
+}
+
+.step-connector {
+    position: absolute;
+    top: 16px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: #ddd;
+    z-index: -1;
+}
+
+.timeline-step.completed .step-connector {
+    background: #28a745;
+}
+
+/* Current Location */
+.current-location {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #007bff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.current-location h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.location-address {
+    font-size: 16px;
+    color: #333;
+    margin: 5px 0;
+}
+
+.location-coords {
+    font-size: 12px;
+    color: #666;
+    font-family: monospace;
+}
+
+.last-updated {
+    font-size: 12px;
+    color: #999;
+    margin: 10px 0 0 0;
+}
+
+/* Delivery Attempts */
+.delivery-attempts {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.delivery-attempts h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.attempt-card {
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #ffc107;
+}
+
+.attempt-card.attempt-success {
+    border-left-color: #28a745;
+    background: #f0f8f4;
+}
+
+.attempt-card.attempt-failed {
+    border-left-color: #dc3545;
+    background: #fdf5f5;
+}
+
+.attempt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.attempt-number {
+    font-weight: bold;
+    color: #333;
+}
+
+.attempt-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.attempt-status.success {
+    background: #28a745;
+    color: white;
+}
+
+.attempt-status.failed {
+    background: #dc3545;
+    color: white;
+}
+
+.attempt-time {
+    font-size: 12px;
+    color: #666;
+    margin: 5px 0;
+}
+
+.driver-info {
+    font-size: 13px;
+    color: #333;
+    margin: 5px 0;
+}
+
+.attempt-reason {
+    font-size: 13px;
+    color: #dc3545;
+    margin: 5px 0;
+    font-style: italic;
+}
+
+/* Order Details */
+.order-details {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-details h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.order-details h4 {
+    margin: 15px 0 10px 0;
+    color: #555;
+}
+
+.customer-info {
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.customer-info p {
+    margin: 5px 0;
+    color: #333;
+}
+
+.items-list {
+    border-top: 1px solid #ddd;
+    padding-top: 15px;
+}
+
+.item-card {
+    display: flex;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.item-image {
+    width: 60px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 15px;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-title {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-weight: 500;
+}
+
+.item-quantity {
+    margin: 3px 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.item-price {
+    margin: 3px 0 0 0;
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* Notes Section */
+.notes-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notes-section h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.note-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+}
+
+.note-item:last-child {
+    border-bottom: none;
+}
+
+.note-time {
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+    min-width: 120px;
+}
+
+.note-from {
+    flex: 1;
+    color: #666;
+    font-size: 13px;
+}
+
+.note-from-carrier {
+    color: #dc3545;
+}
+
+.note-from-seller {
+    color: #007bff;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 20px 0;
+    border-top: 1px solid #ddd;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.btn-return {
+    background: #ffc107;
+    color: white;
+}
+
+.btn-return:hover {
+    background: #e0a800;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    flex: 1;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* Loading & Error States */
+.tracking-loading,
+.tracking-error,
+.tracking-empty {
+    padding: 40px;
+    text-align: center;
+    background: white;
+    border-radius: 8px;
+    color: #666;
+    font-size: 16px;
+}
+
+.tracking-error {
+    color: #dc3545;
+    border: 2px solid #dc3545;
+}
+
+/* Animations */
+@keyframes bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .status-timeline {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .timeline-step {
+        width: 100%;
+    }
+
+    .step-connector {
+        display: none;
+    }
+
+    .item-card {
+        flex-direction: column;
+    }
+
+    .item-image {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%;
+        height: auto;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .modal-content {
+        width: 95%;
+    }
+
+    .note-item {
+        flex-direction: column;
+    }
+
+    .note-time {
+        min-width: auto;
+    }
+}
