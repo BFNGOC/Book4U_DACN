@@ -9,6 +9,32 @@ const { authMiddleware } = require('../middlewares/authMiddleware');
  * Quản lý vận chuyển và giao hàng
  */
 
+// Shipper endpoints (MUST come first - specificity rule)
+router.get(
+    '/shipper/orders',
+    authMiddleware,
+    deliveryController.getShipperOrders
+);
+
+router.post(
+    '/shipper/location',
+    authMiddleware,
+    deliveryController.updateShipperLocation
+);
+
+router.get(
+    '/shipper/stats',
+    authMiddleware,
+    deliveryController.getShipperStats
+);
+
+// Get tracking info (MUST come before /:orderId routes)
+router.get(
+    '/:orderId/tracking',
+    authMiddleware,
+    deliveryController.getTrackingInfo
+);
+
 // Update shipper location (real-time)
 router.put(
     '/:orderId/location',
@@ -17,7 +43,7 @@ router.put(
 );
 
 // Record delivery attempt (success/failed)
-router.put(
+router.post(
     '/:orderId/attempt',
     authMiddleware,
     deliveryController.recordDeliveryAttempt
@@ -29,8 +55,5 @@ router.put(
     authMiddleware,
     deliveryController.updateDeliveryStatus
 );
-
-// Get tracking info
-router.get('/:orderId', authMiddleware, deliveryController.getTrackingInfo);
 
 module.exports = router;

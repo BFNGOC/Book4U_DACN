@@ -34,6 +34,12 @@ import SellerStore from '../pages/seller/SellerStore';
 import SellerDashboard from '../pages/seller/SellerDashboard';
 import SellerOrdersManagement from '../components/seller/SellerOrdersManagement';
 
+import ShipperDashboard from '../pages/shipper/ShipperDashboard';
+import OrderTracking from '../components/tracking/OrderTracking';
+import ReturnStatusPage from '../pages/returns/ReturnStatusPage';
+import PaymentCallback from '../pages/payment/PaymentCallback';
+import MomoTestPayment from '../pages/payment/MomoTestPayment';
+
 import NotFound from '../pages/NotFound';
 
 function AppRoutes() {
@@ -48,7 +54,10 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route
+                    path="/reset-password/:token"
+                    element={<ResetPassword />}
+                />
                 <Route path="/book/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/seller/:sellerId" element={<SellerStore />} />
@@ -149,6 +158,43 @@ function AppRoutes() {
                             <SellerOrdersManagement />
                         </PrivateRoute>
                     }
+                />
+                <Route
+                    path="/dashboard/shipper"
+                    element={
+                        <PrivateRoute>
+                            <ShipperDashboard />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/tracking/:orderId"
+                    element={
+                        <PrivateRoute>
+                            <OrderTracking />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/returns/:orderId"
+                    element={
+                        <PrivateRoute>
+                            <ReturnStatusPage />
+                        </PrivateRoute>
+                    }
+                />
+                {/* Payment Callback Routes */}
+                <Route
+                    path="/payment/vnpay/callback"
+                    element={<PaymentCallback />}
+                />
+                <Route
+                    path="/payment/momo/callback"
+                    element={<PaymentCallback />}
+                />
+                <Route
+                    path="/payment/momo/test"
+                    element={<MomoTestPayment />}
                 />
                 <Route
                     path="/live/:streamId"

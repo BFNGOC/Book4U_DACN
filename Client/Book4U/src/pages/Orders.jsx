@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getUserOrders, cancelOrder } from '../services/api/orderApi.js';
+import { useUser } from '../contexts/userContext.jsx';
 
 function Orders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const navigate = useNavigate();
+    const { user } = useUser();
 
     const statusLabels = {
         pending: {
@@ -53,19 +55,17 @@ function Orders() {
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const userId = localStorage.getItem('userId');
 
-            // Lấy profileId
-            const profileRes = await getUserProfile(userId);
-            if (!profileRes.success) {
-                toast.error('Lỗi lấy thông tin hồ sơ');
+            // Kiểm tra user từ context
+            if (!user || !user._id) {
+                toast.error('Vui lòng đăng nhập');
+                navigate('/login');
                 return;
             }
-            const profileId = profileRes.data._id;
 
-            // Lấy danh sách đơn
+            // Lấy danh sách đơn với profileId từ user context
             const params = filter !== 'all' ? { status: filter } : {};
-            const response = await getUserOrders(profileId, params);
+            const response = await getUserOrders(user._id, params);
 
             if (response.success) {
                 setOrders(response.data || []);
@@ -153,7 +153,7 @@ function Orders() {
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <p className="font-bold text-lg">
-                                        Đơn hàng #{order._id.slice(-8)}
+                                        Đơn hàng #{order._id}
                                     </p>
                                     <p className="text-sm text-gray-500">
                                         {new Date(

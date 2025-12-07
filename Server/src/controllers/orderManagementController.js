@@ -292,6 +292,16 @@ exports.confirmOrder = async (req, res) => {
                 session,
             });
 
+            console.log(
+                `📦 Found ${warehouseStocks.length} warehouse stocks for seller ${sellerId}, book ${bookId}:`,
+                warehouseStocks.map((w) => ({
+                    warehouseId: w.warehouseId,
+                    warehouseName: w.warehouseName,
+                    quantity: w.quantity,
+                    distance: w.distance,
+                }))
+            );
+
             // Chọn warehouse gần nhất có đủ stock
             const warehouseSelection = selectNearestWarehouse({
                 warehouseStocks,
@@ -304,10 +314,16 @@ exports.confirmOrder = async (req, res) => {
 
             const selectedWarehouse = warehouseSelection.selected;
             console.log(warehouseSelection.message);
+            console.log(
+                `✅ Selected warehouse: ${selectedWarehouse.warehouseId} (${selectedWarehouse.warehouseName})`
+            );
 
             // ⚠️ ATOMIC operation: Kiểm tra + Trừ stock cùng lúc
             // Nếu concurrent request nào khác trừ hết stock trước,
             // query này sẽ return null và ta throw error
+            console.log(
+                `🔒 Attempting to lock stock: warehouseId=${selectedWarehouse.warehouseId}, sellerId=${sellerId}, bookId=${bookId}, qty=${quantity}`
+            );
             const updatedWarehouseStock = await validateAndLockWarehouseStock(
                 WarehouseStock,
                 selectedWarehouse.warehouseId,
@@ -316,6 +332,16 @@ exports.confirmOrder = async (req, res) => {
                 quantity,
                 session
             );
+
+            if (!updatedWarehouseStock) {
+                console.log(
+                    `❌ Failed to deduct stock - insufficient or warehouse mismatch`
+                );
+            } else {
+                console.log(
+                    `✅ Stock deducted successfully. Remaining: ${updatedWarehouseStock.quantity}`
+                );
+            }
 
             // If first warehouse fails, try fallback warehouses
             if (
@@ -393,14 +419,19 @@ exports.confirmOrder = async (req, res) => {
 
         // Bước 2: Update Order status to confirmed
         order.status = 'confirmed';
-        order.warehouseId =
-            warehouseSelections[order.items[0].sellerId][
-                order.items[0].bookId
-            ]?.warehouseId;
-        order.warehouseName =
-            warehouseSelections[order.items[0].sellerId][
-                order.items[0].bookId
-            ]?.warehouseName;
+
+        // ✅ FIX: Get warehouse from FIRST ITEM (not just first seller)
+        // If multiple items, use first item's warehouse
+        const firstItem = order.items[0];
+        const firstItemSellerId = firstItem.sellerId;
+        const firstItemBookId = firstItem.bookId;
+        const selectedWarehouseForOrder =
+            warehouseSelections[firstItemSellerId]?.[firstItemBookId];
+
+        if (selectedWarehouseForOrder) {
+            order.warehouseId = selectedWarehouseForOrder.warehouseId;
+            order.warehouseName = selectedWarehouseForOrder.warehouseName;
+        }
         order.handledBy = {
             sellerId: seller._id,
             storeName: seller.storeName,

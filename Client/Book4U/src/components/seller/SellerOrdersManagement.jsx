@@ -58,11 +58,17 @@ function SellerOrdersManagement() {
         }
     };
 
-    const updateOrderStatus = async (orderId, newStatus) => {
+    const updateOrderStatus = async (orderId, newStatus, order) => {
         try {
             let response;
             if (newStatus === 'confirmed') {
-                response = await confirmOrder(orderId);
+                // ✅ FIX: Pass customerLocation from order.shippingAddress
+                const customerLocation = {
+                    address:
+                        order?.shippingAddress?.address ||
+                        order?.shippingAddress?.fullName,
+                };
+                response = await confirmOrder(orderId, customerLocation);
             } else if (newStatus === 'picking') {
                 response = await startPicking(orderId);
             } else if (newStatus === 'packed') {
@@ -353,7 +359,8 @@ function SellerOrdersManagement() {
                                                     onClick={() =>
                                                         updateOrderStatus(
                                                             order._id,
-                                                            'confirmed'
+                                                            'confirmed',
+                                                            order
                                                         )
                                                     }
                                                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold">

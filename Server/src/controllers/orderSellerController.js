@@ -393,6 +393,35 @@ exports.handoffToCarrier = async (req, res) => {
         const { carrierName, trackingNumber, shipperId, shipperName } =
             req.body;
 
+        // Validate inputs
+        if (!carrierName || !carrierName.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Tên vận chuyển không được để trống',
+            });
+        }
+
+        if (!trackingNumber || !trackingNumber.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Mã vận đơn không được để trống',
+            });
+        }
+
+        if (!shipperId || !shipperId.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID shipper không được để trống',
+            });
+        }
+
+        if (!shipperName || !shipperName.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Tên shipper không được để trống',
+            });
+        }
+
         const seller = await SellerProfile.findOne({ userId });
 
         if (!seller) {
@@ -421,15 +450,17 @@ exports.handoffToCarrier = async (req, res) => {
 
         order.status = 'in_transit';
         order.carrier = {
-            name: carrierName,
-            id: shipperId,
+            name: carrierName.trim(),
+            id: shipperId.trim(),
         };
-        order.trackingNumber = trackingNumber;
+        order.trackingNumber = trackingNumber.trim();
 
         order.notes = order.notes || [];
         order.notes.push({
             timestamp: new Date(),
-            message: `Seller ${seller.storeName} bàn giao cho shipper ${shipperName} (Tracking: ${trackingNumber})`,
+            message: `Seller ${
+                seller.storeName
+            } bàn giao cho shipper ${shipperName.trim()} (Tracking: ${trackingNumber})`,
             addedBy: 'seller',
         });
 

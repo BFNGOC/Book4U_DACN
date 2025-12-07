@@ -189,11 +189,15 @@ exports.getWarehouseStocksWithLocation = async ({
         );
 
         return {
-            warehouseId: stock._id,
+            warehouseId: stock.warehouseId, // ✅ FIX: Use stock.warehouseId (not stock._id)
+            warehouseStockId: stock._id, // Keep reference to WarehouseStock record
             sellerId: stock.sellerId,
             bookId: stock.bookId,
             quantity: stock.quantity,
-            warehouseName: stock.warehouseName,
+            warehouseName:
+                warehouseInfo?.name ||
+                stock.warehouseName ||
+                'Unknown Warehouse',
             location: {
                 latitude: warehouseInfo?.location?.latitude,
                 longitude: warehouseInfo?.location?.longitude,
@@ -248,4 +252,4 @@ exports.validateAndLockWarehouseStock = async (
     return updated; // Returns null if condition not met (stock insufficient)
 };
 
-module.exports.calculateDistance = calculateDistance;
+exports.calculateDistance = calculateDistance;

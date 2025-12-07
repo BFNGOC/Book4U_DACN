@@ -9,7 +9,134 @@
  */
 
 const Order = require('../models/orderModel');
+const { ShipperProfile } = require('../models/profileModel');
 const mongoose = require('mongoose');
+
+// [GET] /api/delivery/shipper/orders - Lấy danh sách đơn giao cho shipper
+exports.getShipperOrders = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+
+        // Tìm shipper profile
+        const shipper = await ShipperProfile.findOne({ userId });
+        if (!shipper) {
+            return res.status(404).json({
+                success: false,
+                message: 'Shipper profile không tồn tại',
+            });
+        }
+
+        // Lấy orders cho shipper này
+        const orders = await Order.find({
+            'carrier.shipperId': shipper._id,
+            status: { $in: ['in_transit', 'out_for_delivery', 'completed'] },
+        })
+            .sort({ createdAt: -1 })
+            .populate('items.bookId', 'title images')
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            data: orders,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi lấy danh sách đơn shipper:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ',
+        });
+    }
+};
+
+// [POST] /api/delivery/shipper/location - Cập nhật vị trí shipper
+exports.updateShipperLocation = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        const { latitude, longitude, address } = req.body;
+
+        if (!latitude || !longitude) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cần latitude và longitude',
+            });
+        }
+
+        // Update shipper profile location
+        const shipper = await ShipperProfile.findOneAndUpdate(
+            { userId },
+            {
+                currentLocation: {
+                    latitude,
+                    longitude,
+                    address,
+                    lastUpdated: new Date(),
+                },
+            },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Vị trí được cập nhật',
+            data: { currentLocation: shipper?.currentLocation },
+        });
+    } catch (err) {
+        console.error('❌ Lỗi cập nhật vị trí shipper:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ',
+        });
+    }
+};
+
+// [GET] /api/delivery/shipper/stats - Lấy thống kê shipper
+exports.getShipperStats = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+
+        const shipper = await ShipperProfile.findOne({ userId });
+        if (!shipper) {
+            return res.status(404).json({
+                success: false,
+                message: 'Shipper profile không tồn tại',
+            });
+        }
+
+        // Lấy thống kê
+        const totalOrders = await Order.countDocuments({
+            'carrier.shipperId': shipper._id,
+        });
+
+        const completedOrders = await Order.countDocuments({
+            'carrier.shipperId': shipper._id,
+            status: 'completed',
+        });
+
+        const inTransitOrders = await Order.countDocuments({
+            'carrier.shipperId': shipper._id,
+            status: { $in: ['in_transit', 'out_for_delivery'] },
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                totalOrders,
+                completedOrders,
+                inTransitOrders,
+                successRate:
+                    totalOrders > 0
+                        ? ((completedOrders / totalOrders) * 100).toFixed(1)
+                        : 0,
+            },
+        });
+    } catch (err) {
+        console.error('❌ Lỗi lấy thống kê shipper:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ',
+        });
+    }
+};
 
 // [PUT] /api/delivery/:orderId/location - Update vị trí shipper (real-time)
 exports.updateDeliveryLocation = async (req, res) => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getOrderDetail, requestReturn } from '../services/api/orderApi.js';
-import OrderTracking from '../components/common/OrderTracking.jsx';
+import OrderTracking from '../components/tracking/OrderTracking.jsx';
 import {
     formatOrderItem,
     getStatusDisplay,
@@ -115,9 +115,7 @@ function OrderDetail() {
     return (
         <div className="max-w-4xl mx-auto p-6">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-2">
-                    Đơn hàng #{orderId.slice(-8)}
-                </h1>
+                <h1 className="text-3xl font-bold mb-2">Đơn hàng #{orderId}</h1>
                 <div className="flex justify-between items-center">
                     <p className="text-gray-500">
                         {new Date(order.createdAt).toLocaleString('vi-VN')}

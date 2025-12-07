@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { createOrder } from '../services/api/orderApi.js';
-import { useUser } from '@/contexts/userContext';
+import { useUser } from '../contexts/userContext';
 import ProgressSteps from '../components/ui/ProgressSteps.jsx';
+import {
+    createVNPayPayment,
+    createMomoPayment,
+} from '../services/api/paymentApi.js';
 function Checkout() {
     const { user } = useUser();
     const [checkoutItems, setCheckoutItems] = useState([]);
@@ -87,9 +91,35 @@ function Checkout() {
                 return;
             }
 
+            const orderId = response.data._id;
             toast.success('Đặt hàng thành công!');
             localStorage.removeItem('checkoutItems');
-            navigate(`/orders/${response.data._id}`);
+
+            // Xử lý thanh toán dựa vào phương thức
+            if (paymentMethod === 'COD') {
+                // COD: Redirect trực tiếp tới order detail
+                navigate(`/orders/${orderId}`);
+            } else if (paymentMethod === 'VNPAY') {
+                // VNPAY: Tạo link thanh toán và redirect
+                toast.loading('Đang chuyển hướng tới VNPAY...');
+                const paymentRes = await createVNPayPayment(orderId, total);
+                if (paymentRes.success && paymentRes.data?.paymentUrl) {
+                    window.location.href = paymentRes.data.paymentUrl;
+                } else {
+                    toast.error('Lỗi tạo link VNPAY');
+                    navigate(`/orders/${orderId}`);
+                }
+            } else if (paymentMethod === 'MOMO') {
+                // MOMO: Tạo link thanh toán và redirect
+                toast.loading('Đang chuyển hướng tới MoMo...');
+                const paymentRes = await createMomoPayment(orderId, total);
+                if (paymentRes.success && paymentRes.data?.paymentUrl) {
+                    window.location.href = paymentRes.data.paymentUrl;
+                } else {
+                    toast.error('Lỗi tạo link MoMo');
+                    navigate(`/orders/${orderId}`);
+                }
+            }
         } catch (error) {
             toast.error('Lỗi đặt hàng');
             console.error(error);
