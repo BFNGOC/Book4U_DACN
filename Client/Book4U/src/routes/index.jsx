@@ -15,6 +15,8 @@ import ResetPassword from '../pages/auth/ResetPassword';
 import Home from '../pages/Home';
 import ProductDetails from '../pages/ProductDetails';
 import Search from '../pages/Search';
+import LivePage from '../pages/LivePage';
+import LiveListPage from '../pages/LiveListPage';
 
 import RoleSelection from '../pages/role/RoleSelection';
 import SellerRegister from '../pages/role/sellerRegistration/SellerRegister';
@@ -46,10 +48,7 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route
-                    path="/reset-password/:token"
-                    element={<ResetPassword />}
-                />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/book/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/seller/:sellerId" element={<SellerStore />} />
@@ -148,6 +147,22 @@ function AppRoutes() {
                     element={
                         <PrivateRoute>
                             <SellerOrdersManagement />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/live/:streamId"
+                    element={
+                        <PrivateRoute>
+                            <LivePage />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/lives"
+                    element={
+                        <PrivateRoute>
+                            <LiveListPage />
                         </PrivateRoute>
                     }
                 />
