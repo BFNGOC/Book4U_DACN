@@ -120,7 +120,10 @@ exports.getBookBySlug = async (req, res) => {
 
         const book = await Book.findOne({ slug })
             .populate('categoryId', 'name slug')
-            .populate('sellerId', 'firstName lastName');
+            .populate({
+                path: 'sellerId',
+                select: 'firstName lastName avatar storeName storeLogo storeDescription rating totalSales _id',
+            });
 
         if (!book) {
             return res.status(404).json({ message: 'Không tìm thấy sách.' });

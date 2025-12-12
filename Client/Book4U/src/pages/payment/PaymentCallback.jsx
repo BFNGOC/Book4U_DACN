@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { checkPaymentStatus } from '../../services/api/paymentApi.js';
+import {
+    checkPaymentStatus,
+    handleMomoCallback,
+} from '../../services/api/paymentApi.js';
 
 function PaymentCallback() {
     const [searchParams] = useSearchParams();
@@ -19,12 +22,14 @@ function PaymentCallback() {
                 );
                 const momoOrderId = searchParams.get('orderId');
                 const momoResultCode = searchParams.get('resultCode');
+                const momoRequestId = searchParams.get('requestId');
 
                 console.log('Callback params:', {
                     vnpTxnRef,
                     vnpTransactionStatus,
                     momoOrderId,
                     momoResultCode,
+                    momoRequestId,
                 });
 
                 let extractedOrderId = null;
@@ -48,6 +53,27 @@ function PaymentCallback() {
                 // Xử lý MOMO callback
                 if (momoOrderId) {
                     extractedOrderId = momoOrderId;
+
+                    // 📤 Gọi API để backend xử lý callback từ MoMo
+                    try {
+                        const callbackResponse = await handleMomoCallback({
+                            orderId: momoOrderId,
+                            requestId: momoRequestId,
+                            resultCode: parseInt(momoResultCode),
+                        });
+
+                        console.log(
+                            '🔄 MoMo callback response:',
+                            callbackResponse
+                        );
+                    } catch (callbackError) {
+                        console.warn(
+                            '⚠️ MoMo callback handling error:',
+                            callbackError
+                        );
+                        // Tiếp tục xử lý ngay cả nếu callback call thất bại
+                    }
+
                     if (momoResultCode === '0') {
                         // Thanh toán thành công
                         setStatus('success');

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { getBookBySlug } from '../services/api/bookApi';
 import Loading from '../components/common/Loading.jsx';
@@ -10,6 +10,7 @@ import BuyNowButton from '../components/ui/buttons/BuyNowButton.jsx';
 
 function ProductDetails() {
     const { slug } = useParams();
+    const navigate = useNavigate();
     const [book, setBook] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -36,11 +37,24 @@ function ProductDetails() {
         fetchBookDetails();
     }, [slug]);
 
+    const handleSellerClick = () => {
+        if (book?.sellerId?._id) {
+            navigate(`/seller/${book.sellerId._id}`);
+        }
+    };
+
     if (loading) return <Loading context="Đang tải chi tiết sách..." />;
-    if (error) return <p className="text-center text-red-500 mt-10 font-medium">{error}</p>;
+    if (error)
+        return (
+            <p className="text-center text-red-500 mt-10 font-medium">
+                {error}
+            </p>
+        );
     if (!book) return null;
 
-    const discountedPrice = book.discount ? book.price * (1 - book.discount / 100) : book.price;
+    const discountedPrice = book.discount
+        ? book.price * (1 - book.discount / 100)
+        : book.price;
 
     return (
         <div className="bg-white shadow-md rounded-2xl p-6 max-w-full">
@@ -57,13 +71,20 @@ function ProductDetails() {
                 {/* Thông tin sách */}
                 <div className="flex flex-col justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold mb-2">{book.title}</h1>
+                        <h1 className="text-2xl font-semibold mb-2">
+                            {book.title}
+                        </h1>
                         <p className="text-gray-600 text-sm mb-4">
-                            Tác giả: <span className="font-medium">{book.author}</span>
+                            Tác giả:{' '}
+                            <span className="font-medium">{book.author}</span>
                         </p>
                         <div className="flex items-center mb-3">
-                            <span className="text-yellow-500 text-lg mr-2">⭐</span>
-                            <span className="font-medium">{book.rating?.toFixed(1)}</span>
+                            <span className="text-yellow-500 text-lg mr-2">
+                                ⭐
+                            </span>
+                            <span className="font-medium">
+                                {book.rating?.toFixed(1)}
+                            </span>
                         </div>
 
                         {/* Giá */}
@@ -94,7 +115,8 @@ function ProductDetails() {
 
                         {/* Mô tả */}
                         <p className="mt-4 text-gray-600 leading-relaxed">
-                            {book.description || 'Không có mô tả cho cuốn sách này.'}
+                            {book.description ||
+                                'Không có mô tả cho cuốn sách này.'}
                         </p>
                     </div>
 
@@ -105,6 +127,79 @@ function ProductDetails() {
                     </div>
                 </div>
             </div>
+
+            {/* 🏪 Thông tin Cửa hàng */}
+            {book.sellerId && (
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+                        Người bán
+                    </h3>
+
+                    <div
+                        onClick={handleSellerClick}
+                        className="group flex items-center justify-between gap-4 p-4 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 hover:shadow-lg transition-all duration-300">
+                        {/* Left: Avatar + Quick Info */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Avatar */}
+                            <div className="relative flex-shrink-0">
+                                <img
+                                    src={`${API_URL}${
+                                        book.sellerId.storeLogo ||
+                                        book.sellerId.avatar
+                                    }`}
+                                    alt={book.sellerId.storeName}
+                                    className="w-14 h-14 rounded-full object-cover border border-gray-200 group-hover:border-indigo-400 transition-colors"
+                                />
+                            </div>
+
+                            {/* Store Info */}
+                            <div className="flex-grow min-w-0">
+                                <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                    {book.sellerId.storeName}
+                                </h4>
+
+                                {/* Rating & Sales */}
+                                <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex items-center gap-0.5 text-xs">
+                                        <span className="text-yellow-400">
+                                            ★
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                            {book.sellerId.rating?.toFixed(1) ||
+                                                '0'}
+                                        </span>
+                                        <span className="text-gray-500 ml-1">
+                                            |
+                                        </span>
+                                        <span className="text-gray-600 ml-1">
+                                            {(
+                                                book.sellerId.totalSales || 0
+                                            ).toLocaleString()}{' '}
+                                            đơn
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right: Arrow Icon */}
+                        <div className="flex-shrink-0 text-indigo-600 group-hover:translate-x-1 transition-transform">
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M9 5l7 7-7 7"
+                                />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

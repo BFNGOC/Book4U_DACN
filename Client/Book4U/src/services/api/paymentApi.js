@@ -33,6 +33,16 @@ export const createMomoPayment = (orderId, amount) =>
         'POST'
     );
 
+// Handle MOMO callback - Gọi backend để xử lý callback từ MoMo
+export const handleMomoCallback = (callbackData) =>
+    fetchHandler(
+        axiosPrivate,
+        `${PAYMENT_API_URL}/momo/callback`,
+        callbackData,
+        'Lỗi xử lý callback MOMO',
+        'POST'
+    );
+
 // Check payment status
 export const checkPaymentStatus = (orderId) =>
     fetchHandler(

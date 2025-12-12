@@ -40,6 +40,8 @@ import ReturnStatusPage from '../pages/returns/ReturnStatusPage';
 import PaymentCallback from '../pages/payment/PaymentCallback';
 import MomoTestPayment from '../pages/payment/MomoTestPayment';
 
+import Profile from '../pages/Profile';
+
 import NotFound from '../pages/NotFound';
 
 function AppRoutes() {
@@ -212,6 +214,7 @@ function AppRoutes() {
                         </PrivateRoute>
                     }
                 />
+                <Route path="/profile/:profileId" element={<Profile />} />
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />
             </Routes>

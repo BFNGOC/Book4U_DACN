@@ -92,6 +92,23 @@ const orderSchema = new mongoose.Schema(
             enum: ['unpaid', 'paid', 'refunded'],
             default: 'unpaid',
         },
+        // 💳 Payment Info - Thông tin chi tiết thanh toán
+        paymentInfo: {
+            method: String, // 'VNPAY', 'MOMO', 'COD'
+            status: {
+                type: String,
+                enum: ['pending', 'success', 'failed'],
+            },
+            transactionRef: String, // VNPAY transaction reference
+            requestId: String, // MoMo request ID
+            transactionId: String, // MoMo transaction ID
+            errorCode: String,
+            errorMessage: String,
+            createdAt: Date,
+            completedAt: Date,
+            pendingAt: Date,
+            failedAt: Date,
+        },
         // 🔄 Enhanced status workflow:
         // pending → confirmed → picking → packed → in_transit → out_for_delivery → completed
         //                                                      → return_initiated → returned
