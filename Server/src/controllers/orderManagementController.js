@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel');
+const OrderDetail = require('../models/orderDetailModel');
 const WarehouseStock = require('../models/warehouseStockModel');
 const WarehouseLog = require('../models/warehouseLogModel');
 const Book = require('../models/bookModel');
@@ -10,6 +11,7 @@ const {
     validateAndLockWarehouseStock,
 } = require('../utils/warehouseSelection');
 const { geocodeAddress } = require('../services/geocodingService');
+const { sendNewOrderNotification } = require('../utils/notificationService');
 
 /**
  * ==========================================
@@ -97,6 +99,73 @@ exports.validateStockBeforeOrder = async (req, res) => {
     }
 };
 
+/**
+ * ✅ HELPER FUNCTION: TẠO ORDERDETAIL CHO MỖI SELLER
+ *
+ * Được gọi từ createOrder() để tạo sub-orders
+ */
+exports.createOrderDetailsForMultiSeller = async (
+    mainOrderId,
+    items,
+    shippingAddress,
+    session
+) => {
+    /**
+     * Tạo OrderDetail cho mỗi seller
+     *
+     * Input:
+     *   - mainOrderId: ID của MainOrder
+     *   - items: tất cả items của order
+     *   - shippingAddress: địa chỉ giao hàng
+     *   - session: mongoose session (để transaction)
+     *
+     * Output:
+     *   - Array của OrderDetail._id
+     */
+
+    // Nhóm items theo sellerId
+    const sellerGroups = {};
+    for (const item of items) {
+        const sellerId = item.sellerId.toString();
+        if (!sellerGroups[sellerId]) {
+            sellerGroups[sellerId] = [];
+        }
+        sellerGroups[sellerId].push(item);
+    }
+
+    const orderDetailIds = [];
+
+    // Tạo OrderDetail cho mỗi seller
+    for (const [sellerId, sellerItems] of Object.entries(sellerGroups)) {
+        // Tính subtotal chỉ cho items của seller này
+        const subtotal = sellerItems.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0
+        );
+
+        // Tạo OrderDetail
+        const orderDetail = new OrderDetail({
+            mainOrderId,
+            sellerId,
+            items: sellerItems,
+            subtotal,
+            totalAmount: subtotal, // Chỉ hàng, chưa tính vận chuyển
+            shippingAddress,
+            status: 'pending', // Chờ seller xác nhận
+            paymentStatus: 'unpaid', // Sẽ update khi thanh toán
+        });
+
+        const savedDetail = await orderDetail.save({ session });
+        orderDetailIds.push(savedDetail._id);
+
+        console.log(
+            `✅ Created OrderDetail for seller ${sellerId}: ${savedDetail._id}`
+        );
+    }
+
+    return orderDetailIds;
+};
+
 // 2️⃣ TẠO ĐƠN HÀNG (TRỪ STOCK)
 /**
  * FLOW TẠO ĐƠN:
@@ -134,6 +203,7 @@ exports.validateStockBeforeOrder = async (req, res) => {
 exports.createOrder = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
+    let transactionCommitted = false;
 
     try {
         const {
@@ -173,7 +243,61 @@ exports.createOrder = async (req, res) => {
 
         const createdOrder = await order.save({ session });
 
+        // ✅ MỚI: Tạo OrderDetail cho mỗi seller
+        const orderDetailIds = await exports.createOrderDetailsForMultiSeller(
+            createdOrder._id,
+            items,
+            shippingAddress,
+            session
+        );
+
+        // ✅ MỚI: Update MainOrder với references
+        createdOrder.orderDetails = orderDetailIds;
+        createdOrder.detailsCreated = true;
+        await createdOrder.save({ session });
+
         await session.commitTransaction();
+        transactionCommitted = true;
+
+        // 🔔 SEND NOTIFICATIONS TO SELLERS (AFTER transaction committed)
+        // Nhóm items theo sellerId
+        const sellerItems = {};
+        for (const item of items) {
+            const sellerId = item.sellerId?.toString() || item.sellerId;
+            if (!sellerItems[sellerId]) {
+                sellerItems[sellerId] = [];
+            }
+            sellerItems[sellerId].push(item);
+        }
+
+        // Lấy customer info
+        const profile =
+            await require('../models/profileModel').Profile.findById(profileId);
+
+        // Gửi notification cho từng seller
+        const io = req.app.locals.io;
+        if (io) {
+            for (const [sellerId, itemsOfSeller] of Object.entries(
+                sellerItems
+            )) {
+                // Tính subtotal chỉ cho items của seller này
+                const sellerSubtotal = itemsOfSeller.reduce((sum, item) => {
+                    return sum + item.price * item.quantity;
+                }, 0);
+
+                await sendNewOrderNotification(io, sellerId, {
+                    _id: createdOrder._id,
+                    customerName: profile
+                        ? `${profile.firstName} ${profile.lastName}`
+                        : 'Khách hàng',
+                    customerPhone: profile?.primaryPhone || 'N/A',
+                    subtotal: sellerSubtotal, // ✅ Chỉ subtotal của seller này
+                    totalOrderAmount: totalAmount, // Tổng toàn order (info only)
+                    items: itemsOfSeller, // ✅ Chỉ items của seller này
+                    shippingAddress: shippingAddress,
+                });
+            }
+        }
 
         res.status(201).json({
             success: true,
@@ -182,7 +306,10 @@ exports.createOrder = async (req, res) => {
             data: createdOrder,
         });
     } catch (err) {
-        await session.abortTransaction();
+        // Chỉ abort nếu transaction chưa được commit
+        if (!transactionCommitted) {
+            await session.abortTransaction();
+        }
         console.error('Error:', err);
         res.status(400).json({ success: false, message: err.message });
     } finally {

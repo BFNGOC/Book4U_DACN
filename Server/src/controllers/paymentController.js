@@ -5,6 +5,7 @@
  */
 
 const Order = require('../models/orderModel');
+const OrderDetail = require('../models/orderDetailModel');
 const crypto = require('crypto');
 const axios = require('axios');
 const MomoPayment = require('../utils/momoPayment');
@@ -118,6 +119,15 @@ exports.handleVNPayCallback = async (req, res) => {
             );
 
             if (order) {
+                // ✅ MỚI: Cập nhật tất cả OrderDetails của order này
+                await OrderDetail.updateMany(
+                    { mainOrderId: order._id },
+                    { paymentStatus: 'paid' }
+                );
+                console.log(
+                    `✅ Updated payment status for all OrderDetails of order ${order._id}`
+                );
+
                 return res.status(200).json({
                     success: true,
                     message: 'Thanh toán thành công',
@@ -302,6 +312,12 @@ exports.handleMomoCallback = async (req, res) => {
                         // ⚠️ status remains unchanged - Seller must confirm manually
                     },
                     { new: true }
+                );
+
+                // ✅ MỚI: Cập nhật tất cả OrderDetails
+                await OrderDetail.updateMany(
+                    { mainOrderId: order._id },
+                    { paymentStatus: 'paid' }
                 );
 
                 console.log('✅ MoMo payment successful:', {

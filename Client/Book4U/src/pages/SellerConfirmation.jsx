@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { confirmOrder } from '../services/api/orderApi.js';
-import { getSellerOrders } from '../services/api/sellerOrderApi.js';
+import {
+    getSellerOrderDetails,
+    confirmOrderDetail,
+} from '../services/api/sellerOrderApi.js';
 import {
     formatOrderItem,
     getStatusDisplay,
@@ -9,20 +11,21 @@ import {
 } from '../utils/orderFormatting.js';
 
 function SellerConfirmation() {
-    const [orders, setOrders] = useState([]);
+    const [orderDetails, setOrderDetails] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expandedOrderId, setExpandedOrderId] = useState(null);
-    const [confirmingOrderId, setConfirmingOrderId] = useState(null);
+    const [expandedOrderDetailId, setExpandedOrderDetailId] = useState(null);
+    const [confirmingOrderDetailId, setConfirmingOrderDetailId] =
+        useState(null);
     const [selectedWarehouse, setSelectedWarehouse] = useState({});
 
     useEffect(() => {
-        fetchPendingOrders();
+        fetchPendingOrderDetails();
     }, []);
 
-    const fetchPendingOrders = async () => {
+    const fetchPendingOrderDetails = async () => {
         try {
             setLoading(true);
-            const response = await getSellerOrders({ status: 'pending' });
+            const response = await getSellerOrderDetails({ status: 'pending' });
             if (response.success) {
                 setOrders(response.data || []);
             } else {
@@ -39,19 +42,22 @@ function SellerConfirmation() {
         }
     };
 
-    const handleConfirmOrder = async (orderId, order) => {
+    const handleConfirmOrderDetail = async (orderDetailId, orderDetail) => {
         try {
-            setConfirmingOrderId(orderId);
+            setConfirmingOrderDetailId(orderDetailId);
 
             // 📍 Tạo customerLocation từ shipping address để geocoding
             const customerLocation = {
                 address:
-                    order.shippingAddress?.address ||
-                    order.shippingAddress?.fullName,
+                    orderDetail.shippingAddress?.address ||
+                    orderDetail.shippingAddress?.fullName,
             };
 
-            // Gọi API confirm order với customerLocation để auto-select warehouse gần nhất
-            const response = await confirmOrder(orderId, customerLocation);
+            // Gọi API confirm OrderDetail với customerLocation để auto-select warehouse gần nhất
+            const response = await confirmOrderDetail(
+                orderDetailId,
+                customerLocation
+            );
             if (!response.success) {
                 toast.error(response.message || 'Lỗi xác nhận đơn hàng');
                 return;
@@ -60,18 +66,18 @@ function SellerConfirmation() {
             const data = response.data;
             setSelectedWarehouse((prev) => ({
                 ...prev,
-                [orderId]: data.warehouseId?.name || 'Không rõ',
+                [orderDetailId]: data.warehouseId?.name || 'Không rõ',
             }));
 
             toast.success(
                 `Xác nhận thành công. Kho: ${data.warehouseId?.name || 'N/A'}`
             );
-            fetchPendingOrders();
+            fetchPendingOrderDetails();
         } catch (error) {
             toast.error('Lỗi xác nhận đơn hàng');
             console.error(error);
         } finally {
-            setConfirmingOrderId(null);
+            setConfirmingOrderDetailId(null);
         }
     };
 
@@ -87,10 +93,10 @@ function SellerConfirmation() {
         <div className="max-w-6xl mx-auto p-6">
             <h1 className="text-3xl font-bold mb-2">Xác nhận đơn hàng</h1>
             <p className="text-gray-600 mb-6">
-                {orders.length} đơn hàng chờ xác nhận
+                {orderDetails.length} đơn hàng chờ xác nhận
             </p>
 
-            {orders.length === 0 ? (
+            {orderDetails.length === 0 ? (
                 <div className="bg-white p-8 rounded-lg text-center">
                     <p className="text-gray-500 text-lg">
                         ✅ Không có đơn hàng chờ xác nhận
@@ -98,41 +104,52 @@ function SellerConfirmation() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {orders.map((order) => (
+                    {orderDetails.map((orderDetail) => (
                         <div
-                            key={order._id}
+                            key={orderDetail._id}
                             className="bg-white rounded-lg shadow-md overflow-hidden">
-                            {/* Order header */}
+                            {/* OrderDetail header */}
                             <div
                                 className="p-4 border-b cursor-pointer hover:bg-gray-50 transition"
                                 onClick={() =>
-                                    setExpandedOrderId(
-                                        expandedOrderId === order._id
+                                    setExpandedOrderDetailId(
+                                        expandedOrderDetailId ===
+                                            orderDetail._id
                                             ? null
-                                            : order._id
+                                            : orderDetail._id
                                     )
                                 }>
                                 <div className="flex justify-between items-center">
                                     <div className="flex-1">
                                         <p className="font-bold text-lg">
-                                            Đơn hàng #{order._id.slice(-8)}
+                                            Đơn hàng #
+                                            {orderDetail._id.slice(-8)}
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            📍 {order.shippingAddress?.address}
+                                            📍{' '}
+                                            {
+                                                orderDetail.shippingAddress
+                                                    ?.address
+                                            }
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            👤 {order.shippingAddress?.fullName}{' '}
-                                            - 📞 {order.shippingAddress?.phone}
+                                            👤{' '}
+                                            {
+                                                orderDetail.shippingAddress
+                                                    ?.fullName
+                                            }{' '}
+                                            - 📞{' '}
+                                            {orderDetail.shippingAddress?.phone}
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xl font-bold text-red-500">
-                                            {order.totalAmount?.toLocaleString()}
+                                            {orderDetail.totalAmount?.toLocaleString()}
                                             ₫
                                         </p>
                                         <p className="text-sm text-gray-600 mt-1">
                                             {new Date(
-                                                order.createdAt
+                                                orderDetail.createdAt
                                             ).toLocaleDateString('vi-VN')}
                                         </p>
                                     </div>
@@ -140,7 +157,7 @@ function SellerConfirmation() {
                             </div>
 
                             {/* Expanded details */}
-                            {expandedOrderId === order._id && (
+                            {expandedOrderDetailId === orderDetail._id && (
                                 <div className="p-6 bg-gray-50 space-y-6">
                                     {/* Order items */}
                                     <div>
@@ -148,46 +165,48 @@ function SellerConfirmation() {
                                             📦 Chi tiết sản phẩm
                                         </h3>
                                         <div className="space-y-3">
-                                            {order.items?.map((item, idx) => {
-                                                const formatted =
-                                                    formatOrderItem(item);
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className="bg-white p-4 rounded-lg border flex gap-4">
-                                                        <div className="flex-1">
-                                                            <p className="font-bold">
-                                                                {
-                                                                    formatted.bookTitle
-                                                                }
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                                Số lượng:{' '}
-                                                                <strong>
+                                            {orderDetail.items?.map(
+                                                (item, idx) => {
+                                                    const formatted =
+                                                        formatOrderItem(item);
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className="bg-white p-4 rounded-lg border flex gap-4">
+                                                            <div className="flex-1">
+                                                                <p className="font-bold">
                                                                     {
-                                                                        formatted.quantity
+                                                                        formatted.bookTitle
                                                                     }
-                                                                </strong>
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                                Đơn giá:{' '}
-                                                                <strong>
+                                                                </p>
+                                                                <p className="text-sm text-gray-600">
+                                                                    Số lượng:{' '}
+                                                                    <strong>
+                                                                        {
+                                                                            formatted.quantity
+                                                                        }
+                                                                    </strong>
+                                                                </p>
+                                                                <p className="text-sm text-gray-600">
+                                                                    Đơn giá:{' '}
+                                                                    <strong>
+                                                                        {formatPrice(
+                                                                            formatted.price
+                                                                        )}
+                                                                    </strong>
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-bold text-red-500">
                                                                     {formatPrice(
-                                                                        formatted.price
+                                                                        formatted.subtotal
                                                                     )}
-                                                                </strong>
-                                                            </p>
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="font-bold text-red-500">
-                                                                {formatPrice(
-                                                                    formatted.subtotal
-                                                                )}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                }
+                                            )}
                                         </div>
                                     </div>
 
@@ -199,16 +218,22 @@ function SellerConfirmation() {
                                             </h4>
                                             <p className="text-sm">
                                                 {
-                                                    order.shippingAddress
+                                                    orderDetail.shippingAddress
                                                         ?.fullName
                                                 }
                                             </p>
                                             <p className="text-sm">
                                                 📞{' '}
-                                                {order.shippingAddress?.phone}
+                                                {
+                                                    orderDetail.shippingAddress
+                                                        ?.phone
+                                                }
                                             </p>
                                             <p className="text-sm">
-                                                {order.shippingAddress?.address}
+                                                {
+                                                    orderDetail.shippingAddress
+                                                        ?.address
+                                                }
                                             </p>
                                         </div>
                                         <div className="bg-white p-4 rounded-lg border">
@@ -216,15 +241,19 @@ function SellerConfirmation() {
                                                 💳 Phương thức thanh toán
                                             </h4>
                                             <p className="text-sm">
-                                                {order.paymentMethod === 'COD'
+                                                {orderDetail.mainOrderId
+                                                    ?.paymentMethod === 'COD'
                                                     ? 'Thanh toán khi nhận hàng'
-                                                    : order.paymentMethod ===
+                                                    : orderDetail.mainOrderId
+                                                          ?.paymentMethod ===
                                                       'VNPAY'
                                                     ? 'Ví VNPAY'
-                                                    : order.paymentMethod ===
+                                                    : orderDetail.mainOrderId
+                                                          ?.paymentMethod ===
                                                       'MOMO'
                                                     ? 'Ví MoMo'
-                                                    : order.paymentMethod}
+                                                    : orderDetail.mainOrderId
+                                                          ?.paymentMethod}
                                             </p>
                                         </div>
                                     </div>
@@ -237,27 +266,17 @@ function SellerConfirmation() {
                                                     Tạm tính:
                                                 </span>
                                                 <span className="font-semibold">
-                                                    {order.subtotal?.toLocaleString() ||
+                                                    {orderDetail.subtotal?.toLocaleString() ||
                                                         0}
                                                     ₫
                                                 </span>
                                             </div>
-                                            {order.discountAmount > 0 && (
-                                                <div className="flex justify-between text-green-600">
-                                                    <span>Giảm giá:</span>
-                                                    <span>
-                                                        -
-                                                        {order.discountAmount?.toLocaleString()}
-                                                        ₫
-                                                    </span>
-                                                </div>
-                                            )}
                                             <div className="flex justify-between border-t pt-2">
                                                 <span className="font-bold">
                                                     Tổng cộng:
                                                 </span>
                                                 <span className="text-lg font-bold text-red-500">
-                                                    {order.totalAmount?.toLocaleString()}
+                                                    {orderDetail.totalAmount?.toLocaleString()}
                                                     ₫
                                                 </span>
                                             </div>
@@ -265,13 +284,17 @@ function SellerConfirmation() {
                                     </div>
 
                                     {/* Warehouse selection info */}
-                                    {selectedWarehouse[order._id] && (
+                                    {selectedWarehouse[orderDetail._id] && (
                                         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                             <p className="text-sm">
                                                 <strong>
                                                     ✅ Kho được chọn:
                                                 </strong>{' '}
-                                                {selectedWarehouse[order._id]}
+                                                {
+                                                    selectedWarehouse[
+                                                        orderDetail._id
+                                                    ]
+                                                }
                                             </p>
                                         </div>
                                     )}
@@ -279,20 +302,25 @@ function SellerConfirmation() {
                                     {/* Confirm button */}
                                     <button
                                         onClick={() =>
-                                            handleConfirmOrder(order._id, order)
+                                            handleConfirmOrderDetail(
+                                                orderDetail._id,
+                                                orderDetail
+                                            )
                                         }
                                         disabled={
-                                            confirmingOrderId === order._id ||
-                                            selectedWarehouse[order._id]
+                                            confirmingOrderDetailId ===
+                                                orderDetail._id ||
+                                            selectedWarehouse[orderDetail._id]
                                         }
                                         className={`w-full py-3 rounded-lg font-bold transition ${
-                                            selectedWarehouse[order._id]
+                                            selectedWarehouse[orderDetail._id]
                                                 ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                                                 : 'bg-green-500 text-white hover:bg-green-600'
                                         }`}>
-                                        {confirmingOrderId === order._id
+                                        {confirmingOrderDetailId ===
+                                        orderDetail._id
                                             ? '⏳ Đang xác nhận...'
-                                            : selectedWarehouse[order._id]
+                                            : selectedWarehouse[orderDetail._id]
                                             ? '✅ Đã xác nhận'
                                             : '✓ Xác nhận đơn hàng'}
                                     </button>

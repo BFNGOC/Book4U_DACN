@@ -173,8 +173,25 @@ const orderSchema = new mongoose.Schema(
 
         // 📋 Notes từ seller/carrier/system
         notes: [noteSchema],
+
+        // ✅ MỚI: References tới các OrderDetail (sub-orders)
+        orderDetails: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'OrderDetail',
+            },
+        ],
+
+        // Flag để biết OrderDetails đã được tạo chưa
+        detailsCreated: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );
+
+// Index cho orderDetails
+orderSchema.index({ orderDetails: 1 });
 
 module.exports = mongoose.model('Order', orderSchema);

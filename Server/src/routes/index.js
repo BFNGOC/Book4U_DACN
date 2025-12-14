@@ -8,6 +8,7 @@ const phoneVerificationRoutes = require('./phoneVerificationRoutes');
 const recommendRoutes = require('./recommendRoutes');
 const cartRoutes = require('./cartRoutes');
 const sellerRoutes = require('./sellerRoutes');
+const notificationRoutes = require('./notificationRoutes');
 const orderSellerRoutes = require('./orderSellerRoutes');
 const warehouseRoutes = require('./warehouseRoutes');
 const orderManagementRoutes = require('./orderManagementRoutes');
@@ -31,6 +32,7 @@ function route(app) {
     app.use('/api/recommend', recommendRoutes);
     app.use('/api/cart', cartRoutes);
     app.use('/api/sellers', sellerRoutes);
+    app.use('/api/notifications', notificationRoutes);
     app.use('/api/seller-orders', orderSellerRoutes);
     app.use('/api/warehouse', warehouseRoutes);
     app.use('/api/orders', orderManagementRoutes);

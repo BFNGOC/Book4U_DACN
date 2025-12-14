@@ -4,6 +4,7 @@ import { ShoppingCart } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
 import SearchBar from '../common/SearchBar';
 import { CartContext } from '../../contexts/CartContext';
+import NotificationBell from '../notifications/NotificationBell';
 import LiveAdmin from '../../pages/LiveAdmin';
 
 const roleConfigs = {
@@ -58,6 +59,9 @@ function Navbar() {
                     <button title="Danh sách livestream">
                         <Link to="/lives">🔴</Link>
                     </button>
+
+                    {/* Notifications */}
+                    {user && <NotificationBell />}
 
                     {/* Cart */}
                     <Link

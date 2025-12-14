@@ -274,3 +274,198 @@ exports.getSellerStats = async (req, res) => {
         });
     }
 };
+
+// [GET] /api/sellers/notifications - Lấy danh sách notifications của seller
+exports.getNotifications = async (req, res) => {
+    try {
+        const { userId } = req.user;
+        const { page = 1, limit = 20, unreadOnly = false } = req.query;
+
+        const skip = (page - 1) * limit;
+
+        // Tìm seller profile từ userId
+        const seller = await SellerProfile.findOne({ userId });
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller profile không tìm thấy.',
+            });
+        }
+
+        const sellerId = seller._id;
+
+        // Build filter
+        const filter = { sellerId };
+        if (unreadOnly === 'true') {
+            filter.isRead = false;
+        }
+
+        // Lấy notifications
+        const [notifications, total] = await Promise.all([
+            require('../models/notificationModel')
+                .Notification.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            require('../models/notificationModel').Notification.countDocuments(
+                filter
+            ),
+        ]);
+
+        // Đếm unread
+        const unreadCount =
+            await require('../models/notificationModel').Notification.countDocuments(
+                {
+                    sellerId,
+                    isRead: false,
+                }
+            );
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                notifications,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit),
+                },
+                unreadCount,
+            },
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi lấy notifications:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// [PUT] /api/sellers/notifications/:notificationId/read - Mark notification as read
+exports.markNotificationAsRead = async (req, res) => {
+    try {
+        const { userId } = req.user;
+        const { notificationId } = req.params;
+
+        // Verify ownership
+        const notification =
+            await require('../models/notificationModel').Notification.findById(
+                notificationId
+            );
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification không tìm thấy.',
+            });
+        }
+
+        // Check if seller owns this notification
+        const seller = await SellerProfile.findOne({ userId });
+        if (
+            !seller ||
+            notification.sellerId.toString() !== seller._id.toString()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền cập nhật notification này.',
+            });
+        }
+
+        // Mark as read
+        notification.isRead = true;
+        notification.readAt = new Date();
+        await notification.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Đã đánh dấu notification là đã đọc.',
+            data: notification,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi cập nhật notification:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// [DELETE] /api/sellers/notifications/:notificationId - Xóa notification
+exports.deleteNotification = async (req, res) => {
+    try {
+        const { userId } = req.user;
+        const { notificationId } = req.params;
+
+        // Verify ownership
+        const notification =
+            await require('../models/notificationModel').Notification.findById(
+                notificationId
+            );
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification không tìm thấy.',
+            });
+        }
+
+        // Check if seller owns this notification
+        const seller = await SellerProfile.findOne({ userId });
+        if (
+            !seller ||
+            notification.sellerId.toString() !== seller._id.toString()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: 'Bạn không có quyền xóa notification này.',
+            });
+        }
+
+        await require('../models/notificationModel').Notification.findByIdAndDelete(
+            notificationId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Đã xóa notification.',
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi xóa notification:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// [PUT] /api/sellers/notifications/read-all - Mark tất cả unread notifications as read
+exports.markAllNotificationsAsRead = async (req, res) => {
+    try {
+        const { userId } = req.user;
+
+        const seller = await SellerProfile.findOne({ userId });
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller profile không tìm thấy.',
+            });
+        }
+
+        await require('../models/notificationModel').Notification.updateMany(
+            { sellerId: seller._id, isRead: false },
+            { $set: { isRead: true, readAt: new Date() } }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Đã đánh dấu tất cả notifications là đã đọc.',
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi mark all notifications as read:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};

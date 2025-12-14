@@ -42,11 +42,28 @@ exports.getSellerOrders = async (req, res) => {
             Order.countDocuments(query),
         ]);
 
-        console.log('  Orders found:', orders.length, 'Total:', total);
+        // 🔥 FILTER: Chỉ lấy items của seller này
+        const filteredOrders = orders.map((order) => {
+            const sellerOnly = order.toObject();
+
+            // Filter items: chỉ lấy items của seller này
+            sellerOnly.items = order.items.filter(
+                (item) => item.sellerId._id.toString() === seller._id.toString()
+            );
+
+            // Tính subtotal chỉ cho items của seller này
+            sellerOnly.sellerSubtotal = sellerOnly.items.reduce((sum, item) => {
+                return sum + item.price * item.quantity;
+            }, 0);
+
+            return sellerOnly;
+        });
+
+        console.log('  Orders found:', filteredOrders.length, 'Total:', total);
 
         return res.status(200).json({
             success: true,
-            data: orders,
+            data: filteredOrders,
             pagination: {
                 current: parseInt(page),
                 pages: Math.ceil(total / limit),
@@ -106,9 +123,20 @@ exports.getSellerOrderDetail = async (req, res) => {
             });
         }
 
+        // 🔥 FILTER: Chỉ lấy items của seller này
+        const sellerOrder = order.toObject();
+        sellerOrder.items = order.items.filter(
+            (item) => item.sellerId._id.toString() === seller._id.toString()
+        );
+
+        // Tính subtotal chỉ cho items của seller này
+        sellerOrder.sellerSubtotal = sellerOrder.items.reduce((sum, item) => {
+            return sum + item.price * item.quantity;
+        }, 0);
+
         return res.status(200).json({
             success: true,
-            data: order,
+            data: sellerOrder,
         });
     } catch (err) {
         console.error('❌ Lỗi khi lấy chi tiết đơn hàng:', err);

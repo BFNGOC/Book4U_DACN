@@ -68,3 +68,57 @@ export const getRevenueStats = (period = 'month') =>
         { period },
         'Lỗi khi lấy thống kê doanh thu.'
     );
+
+/**
+ * ORDER DETAIL API (Multi-seller order management)
+ * ================================================
+ */
+const ORDER_DETAIL_API_URL = 'api/seller-orders/details';
+
+// Lấy danh sách OrderDetail của seller
+export const getSellerOrderDetails = (params = {}) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_DETAIL_API_URL}/list`,
+        params,
+        'Lỗi khi lấy danh sách chi tiết đơn hàng.'
+    );
+
+// Lấy chi tiết một OrderDetail
+export const getSellerOrderDetailInfo = (orderDetailId) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_DETAIL_API_URL}/${orderDetailId}`,
+        {},
+        'Lỗi khi lấy chi tiết đơn hàng.'
+    );
+
+// Confirm OrderDetail (pending → confirmed) + trừ stock tại warehouse
+export const confirmOrderDetail = (orderDetailId, confirmData = {}) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_DETAIL_API_URL}/${orderDetailId}/confirm`,
+        confirmData,
+        'Lỗi khi xác nhận đơn hàng.',
+        'POST'
+    );
+
+// Ship OrderDetail (confirmed → shipping) + lấy tracking number
+export const shipOrderDetail = (orderDetailId, shipData) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_DETAIL_API_URL}/${orderDetailId}/ship`,
+        shipData,
+        'Lỗi khi giao hàng.',
+        'POST'
+    );
+
+// Cancel OrderDetail (pending/confirmed → cancelled) + restore stock
+export const cancelOrderDetail = (orderDetailId, cancelData = {}) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_DETAIL_API_URL}/${orderDetailId}/cancel`,
+        cancelData,
+        'Lỗi khi hủy đơn hàng.',
+        'POST'
+    );

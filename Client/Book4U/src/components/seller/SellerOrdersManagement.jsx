@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-    getSellerOrders,
-    startPicking,
-    markAsPacked,
-    handoffToCarrier,
+    getSellerOrderDetails,
+    shipOrderDetail,
+    cancelOrderDetail,
+    confirmOrderDetail,
 } from '../../services/api/sellerOrderApi.js';
-import { confirmOrder } from '../../services/api/orderApi.js';
 import {
     formatOrderItem,
     getStatusDisplay,
@@ -15,38 +14,35 @@ import {
 } from '../../utils/orderFormatting.js';
 
 function SellerOrdersManagement() {
-    const [orders, setOrders] = useState([]);
+    const [orderDetails, setOrderDetails] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('pending');
-    const [expandedOrderId, setExpandedOrderId] = useState(null);
-    const [showHandoffModal, setShowHandoffModal] = useState(null);
-    const [handoffData, setHandoffData] = useState({
-        carrierName: '',
+    const [expandedOrderDetailId, setExpandedOrderDetailId] = useState(null);
+    const [showShippingModal, setShowShippingModal] = useState(null);
+    const [shippingData, setShippingData] = useState({
         trackingNumber: '',
-        shipperId: '',
-        shipperName: '',
+        carrierName: '',
+        estimatedDeliveryDate: '',
     });
 
     const statusLabels = {
         pending: '⏳ Chờ xác nhận',
-        confirmed: '✅ Chờ lấy hàng',
-        picking: '📦 Đang lấy hàng',
-        packed: '📮 Đã đóng gói',
-        in_transit: '🚚 Đang vận chuyển',
-        out_for_delivery: '🚴 Đang giao',
-        completed: '🎉 Đã giao',
+        confirmed: '✅ Chờ giao hàng',
+        shipping: '🚚 Đang vận chuyển',
+        delivered: '🎉 Đã giao',
+        cancelled: '❌ Đã hủy',
     };
 
     useEffect(() => {
-        fetchOrders();
+        fetchOrderDetails();
     }, [filter]);
 
-    const fetchOrders = async () => {
+    const fetchOrderDetails = async () => {
         try {
             setLoading(true);
-            const response = await getSellerOrders({ status: filter });
+            const response = await getSellerOrderDetails({ status: filter });
             if (response.success) {
-                setOrders(response.data || []);
+                setOrderDetails(response.data || []);
             } else {
                 toast.error(response.message || 'Lỗi tải danh sách đơn hàng');
             }
@@ -58,70 +54,72 @@ function SellerOrdersManagement() {
         }
     };
 
-    const updateOrderStatus = async (orderId, newStatus, order) => {
+    const handleShipOrderDetail = async (orderDetailId, shippingInfo) => {
         try {
-            let response;
-            if (newStatus === 'confirmed') {
-                // ✅ FIX: Pass customerLocation from order.shippingAddress
-                const customerLocation = {
-                    address:
-                        order?.shippingAddress?.address ||
-                        order?.shippingAddress?.fullName,
-                };
-                response = await confirmOrder(orderId, customerLocation);
-            } else if (newStatus === 'picking') {
-                response = await startPicking(orderId);
-            } else if (newStatus === 'packed') {
-                response = await markAsPacked(orderId);
-            }
-
+            const response = await shipOrderDetail(orderDetailId, shippingInfo);
             if (response.success) {
-                toast.success('Cập nhật trạng thái thành công');
-                fetchOrders();
+                toast.success('Cập nhật shipping thành công');
+                setShowShippingModal(null);
+                fetchOrderDetails();
             } else {
-                toast.error(response.message || 'Lỗi cập nhật trạng thái');
+                toast.error(response.message || 'Lỗi cập nhật shipping');
             }
         } catch (error) {
-            toast.error('Lỗi cập nhật trạng thái');
+            toast.error('Lỗi cập nhật shipping');
             console.error(error);
         }
     };
 
-    const handleStartHandoff = (orderId) => {
-        setShowHandoffModal(orderId);
-        setHandoffData({
-            carrierName: '',
-            trackingNumber: '',
-            shipperId: '',
-            shipperName: '',
-        });
+    const handleConfirmOrderDetail = async (orderDetailId) => {
+        try {
+            const response = await confirmOrderDetail(orderDetailId);
+            if (response.success) {
+                toast.success('Xác nhận đơn hàng thành công');
+                fetchOrderDetails();
+            } else {
+                toast.error(response.message || 'Lỗi xác nhận đơn hàng');
+            }
+        } catch (error) {
+            toast.error('Lỗi xác nhận đơn hàng');
+            console.error(error);
+        }
     };
 
-    const handleConfirmHandoff = async () => {
-        if (
-            !handoffData.carrierName.trim() ||
-            !handoffData.trackingNumber.trim()
-        ) {
-            toast.error('Vui lòng nhập tên vận chuyển và mã theo dõi');
+    const handleCancelOrderDetail = async (orderDetailId) => {
+        if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
             return;
         }
 
         try {
-            const response = await handoffToCarrier(
-                showHandoffModal,
-                handoffData
-            );
+            const response = await cancelOrderDetail(orderDetailId);
             if (response.success) {
-                toast.success('Giao hàng cho vận chuyển thành công');
-                setShowHandoffModal(null);
-                fetchOrders();
+                toast.success('Hủy đơn hàng thành công');
+                fetchOrderDetails();
             } else {
-                toast.error(response.message || 'Lỗi giao hàng');
+                toast.error(response.message || 'Lỗi hủy đơn hàng');
             }
         } catch (error) {
-            toast.error('Lỗi giao hàng');
+            toast.error('Lỗi hủy đơn hàng');
             console.error(error);
         }
+    };
+
+    const handleStartShipping = (orderDetailId) => {
+        setShowShippingModal(orderDetailId);
+        setShippingData({
+            trackingNumber: '',
+            carrierName: '',
+            estimatedDeliveryDate: '',
+        });
+    };
+
+    const handleConfirmShipping = () => {
+        if (!shippingData.trackingNumber || !shippingData.carrierName) {
+            toast.error('Vui lòng nhập tracking number và hãng vận chuyển');
+            return;
+        }
+
+        handleShipOrderDetail(showShippingModal, shippingData);
     };
 
     if (loading)
@@ -136,10 +134,9 @@ function SellerOrdersManagement() {
                 {[
                     'pending',
                     'confirmed',
-                    'picking',
-                    'packed',
-                    'in_transit',
-                    'completed',
+                    'shipping',
+                    'delivered',
+                    'cancelled',
                 ].map((status) => (
                     <button
                         key={status}
@@ -155,7 +152,7 @@ function SellerOrdersManagement() {
             </div>
 
             {/* Orders list */}
-            {orders.length === 0 ? (
+            {orderDetails.length === 0 ? (
                 <div className="bg-white p-8 rounded-lg text-center">
                     <p className="text-gray-500 text-lg">
                         Không có đơn hàng nào
@@ -163,62 +160,79 @@ function SellerOrdersManagement() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {orders.map((order) => (
+                    {orderDetails.map((orderDetail) => (
                         <div
-                            key={order._id}
+                            key={orderDetail._id}
                             className="bg-white rounded-lg shadow-md overflow-hidden">
-                            {/* Order header */}
+                            {/* OrderDetail header */}
                             <div
                                 className="p-4 border-b cursor-pointer hover:bg-gray-50 transition"
                                 onClick={() =>
-                                    setExpandedOrderId(
-                                        expandedOrderId === order._id
+                                    setExpandedOrderDetailId(
+                                        expandedOrderDetailId ===
+                                            orderDetail._id
                                             ? null
-                                            : order._id
+                                            : orderDetail._id
                                     )
                                 }>
                                 <div className="flex justify-between items-center">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-bold">
-                                                Đơn hàng #{order._id}
+                                                Đơn hàng #
+                                                {orderDetail._id.slice(-8)}
                                             </p>
                                             <span
                                                 className={`text-xs px-2 py-1 rounded ${
-                                                    getStatusDisplay(
-                                                        order.status
-                                                    ).color
+                                                    orderDetail.status ===
+                                                    'pending'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : orderDetail.status ===
+                                                          'confirmed'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : orderDetail.status ===
+                                                          'shipping'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : orderDetail.status ===
+                                                          'delivered'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
                                                 }`}>
                                                 {
-                                                    getStatusDisplay(
-                                                        order.status
-                                                    ).label
+                                                    statusLabels[
+                                                        orderDetail.status
+                                                    ]
                                                 }
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-500">
                                             Khách:{' '}
-                                            {order.shippingAddress?.fullName}
+                                            {
+                                                orderDetail.shippingAddress
+                                                    ?.fullName
+                                            }
                                         </p>
                                         <p className="text-xs text-gray-400">
                                             {new Date(
-                                                order.createdAt
+                                                orderDetail.createdAt
                                             ).toLocaleString('vi-VN')}
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-lg font-bold text-red-500">
-                                            {formatPrice(order.totalAmount)}
+                                            {formatPrice(
+                                                orderDetail.totalAmount
+                                            )}
                                         </p>
                                         <p className="text-xs text-gray-500">
-                                            {order.items?.length} sản phẩm
+                                            {orderDetail.items?.length} sản phẩm
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Expanded details */}
-                            {expandedOrderId === order._id && (
+                            {expandedOrderDetailId === orderDetail._id && (
                                 <div className="p-4 bg-gray-50 space-y-4">
                                     {/* Items */}
                                     <div>
@@ -226,46 +240,42 @@ function SellerOrdersManagement() {
                                             📦 Sản phẩm:
                                         </h4>
                                         <div className="space-y-2">
-                                            {order.items?.map((item, idx) => {
-                                                const formatted =
-                                                    formatOrderItem(item);
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className="flex justify-between items-start text-sm p-2 bg-white rounded border border-gray-200">
-                                                        <div className="flex-1">
-                                                            <p className="font-semibold">
-                                                                {
-                                                                    formatted.bookTitle
-                                                                }
-                                                            </p>
-                                                            <p className="text-xs text-gray-500">
-                                                                Shop:{' '}
-                                                                {
-                                                                    formatted.sellerName
-                                                                }
-                                                            </p>
-                                                            <p className="text-xs text-gray-500">
-                                                                SL:{' '}
-                                                                {
-                                                                    formatted.quantity
-                                                                }{' '}
-                                                                x{' '}
-                                                                {formatPrice(
-                                                                    formatted.price
-                                                                )}
-                                                            </p>
+                                            {orderDetail.items?.map(
+                                                (item, idx) => {
+                                                    const formatted =
+                                                        formatOrderItem(item);
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            className="flex justify-between items-start text-sm p-2 bg-white rounded border border-gray-200">
+                                                            <div className="flex-1">
+                                                                <p className="font-semibold">
+                                                                    {
+                                                                        formatted.bookTitle
+                                                                    }
+                                                                </p>
+                                                                <p className="text-xs text-gray-500">
+                                                                    SL:{' '}
+                                                                    {
+                                                                        formatted.quantity
+                                                                    }{' '}
+                                                                    x{' '}
+                                                                    {formatPrice(
+                                                                        formatted.price
+                                                                    )}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-bold text-red-500">
+                                                                    {formatPrice(
+                                                                        formatted.subtotal
+                                                                    )}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="font-bold text-red-500">
-                                                                {formatPrice(
-                                                                    formatted.subtotal
-                                                                )}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                }
+                                            )}
                                         </div>
                                     </div>
 
@@ -277,31 +287,40 @@ function SellerOrdersManagement() {
                                         <div className="bg-white p-3 rounded text-sm border border-gray-200">
                                             <p className="font-semibold">
                                                 {
-                                                    order.shippingAddress
+                                                    orderDetail.shippingAddress
                                                         ?.fullName
                                                 }
                                             </p>
                                             <p>
                                                 📞{' '}
-                                                {order.shippingAddress?.phone}
+                                                {
+                                                    orderDetail.shippingAddress
+                                                        ?.phone
+                                                }
                                             </p>
                                             <p className="text-gray-600">
-                                                {order.shippingAddress?.address}
+                                                {
+                                                    orderDetail.shippingAddress
+                                                        ?.address
+                                                }
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Order info: Payment, Warehouse, Tracking */}
+                                    {/* OrderDetail info: Payment, Warehouse, Tracking */}
                                     <div className="grid grid-cols-3 gap-3">
                                         <div className="bg-white p-3 rounded text-sm border border-gray-200">
                                             <p className="text-xs text-gray-500 font-semibold">
                                                 Thanh toán
                                             </p>
                                             <p className="font-semibold">
-                                                {order.paymentMethod}
+                                                {
+                                                    orderDetail.mainOrderId
+                                                        ?.paymentMethod
+                                                }
                                             </p>
                                             <p className="text-xs text-gray-600">
-                                                {order.paymentStatus}
+                                                {orderDetail.paymentStatus}
                                             </p>
                                         </div>
 
@@ -310,10 +329,11 @@ function SellerOrdersManagement() {
                                                 Kho
                                             </p>
                                             <p className="font-semibold">
-                                                {order.warehouseName || '—'}
+                                                {orderDetail.warehouseId
+                                                    ?.name || '—'}
                                             </p>
                                             <p className="text-xs text-gray-600">
-                                                {order.warehouseId
+                                                {orderDetail.warehouseId
                                                     ? '✓ Đã chọn'
                                                     : '—'}
                                             </p>
@@ -324,10 +344,11 @@ function SellerOrdersManagement() {
                                                 Mã vận đơn
                                             </p>
                                             <p className="font-semibold text-xs break-all">
-                                                {order.trackingNumber || '—'}
+                                                {orderDetail.trackingNumber ||
+                                                    '—'}
                                             </p>
                                             <p className="text-xs text-gray-600">
-                                                {order.carrier?.name || '—'}
+                                                {orderDetail.carrierName || '—'}
                                             </p>
                                         </div>
                                     </div>
@@ -340,100 +361,103 @@ function SellerOrdersManagement() {
                                         <div className="flex flex-wrap gap-2 items-center">
                                             <div
                                                 className={`px-3 py-2 rounded text-sm font-semibold ${
-                                                    getStatusDisplay(
-                                                        order.status
-                                                    ).color
+                                                    orderDetail.status ===
+                                                    'pending'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : orderDetail.status ===
+                                                          'confirmed'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : orderDetail.status ===
+                                                          'shipping'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : orderDetail.status ===
+                                                          'delivered'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
                                                 }`}>
                                                 {
-                                                    getStatusDisplay(
-                                                        order.status
-                                                    ).label
+                                                    statusLabels[
+                                                        orderDetail.status
+                                                    ]
                                                 }
                                             </div>
 
                                             <div className="flex-1"></div>
 
                                             {/* Action buttons */}
-                                            {order.status === 'pending' && (
-                                                <button
-                                                    onClick={() =>
-                                                        updateOrderStatus(
-                                                            order._id,
-                                                            'confirmed',
-                                                            order
-                                                        )
-                                                    }
-                                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold">
-                                                    ✓ Xác nhận đơn
-                                                </button>
+                                            {orderDetail.status ===
+                                                'pending' && (
+                                                <>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleConfirmOrderDetail(
+                                                                orderDetail._id
+                                                            )
+                                                        }
+                                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold">
+                                                        ✓ Xác nhận đơn
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleCancelOrderDetail(
+                                                                orderDetail._id
+                                                            )
+                                                        }
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-semibold">
+                                                        ✕ Hủy đơn
+                                                    </button>
+                                                </>
                                             )}
-                                            {order.status === 'confirmed' && (
+                                            {orderDetail.status ===
+                                                'confirmed' && (
                                                 <button
                                                     onClick={() =>
-                                                        updateOrderStatus(
-                                                            order._id,
-                                                            'picking'
-                                                        )
-                                                    }
-                                                    className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-sm font-semibold">
-                                                    ▶ Bắt đầu lấy hàng
-                                                </button>
-                                            )}
-                                            {order.status === 'picking' && (
-                                                <button
-                                                    onClick={() =>
-                                                        updateOrderStatus(
-                                                            order._id,
-                                                            'packed'
-                                                        )
-                                                    }
-                                                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
-                                                    ✓ Đã đóng gói
-                                                </button>
-                                            )}
-                                            {order.status === 'packed' && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleStartHandoff(
-                                                            order._id
+                                                        handleStartShipping(
+                                                            orderDetail._id
                                                         )
                                                     }
                                                     className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm font-semibold">
-                                                    🚚 Giao cho vận chuyển
+                                                    🚚 Giao hàng
                                                 </button>
                                             )}
                                         </div>
                                     </div>
 
                                     {/* Delivery notes */}
-                                    {order.notes && order.notes.length > 0 && (
-                                        <div>
-                                            <h4 className="font-bold mb-2">
-                                                📋 Ghi chú:
-                                            </h4>
-                                            <div className="space-y-1 text-xs">
-                                                {order.notes
-                                                    .slice(-3)
-                                                    .map((note, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="bg-white p-2 rounded border-l-2 border-blue-500">
-                                                            <p className="font-semibold">
-                                                                {note.message}
-                                                            </p>
-                                                            <p className="text-gray-500">
-                                                                {new Date(
-                                                                    note.timestamp
-                                                                ).toLocaleString(
-                                                                    'vi-VN'
-                                                                )}{' '}
-                                                                - {note.addedBy}
-                                                            </p>
-                                                        </div>
-                                                    ))}
+                                    {orderDetail.notes &&
+                                        orderDetail.notes.length > 0 && (
+                                            <div>
+                                                <h4 className="font-bold mb-2">
+                                                    📋 Ghi chú:
+                                                </h4>
+                                                <div className="space-y-1 text-xs">
+                                                    {orderDetail.notes
+                                                        .slice(-3)
+                                                        .map((note, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="bg-white p-2 rounded border-l-2 border-blue-500">
+                                                                <p className="font-semibold">
+                                                                    {
+                                                                        note.message
+                                                                    }
+                                                                </p>
+                                                                <p className="text-gray-500">
+                                                                    {new Date(
+                                                                        note.timestamp
+                                                                    ).toLocaleString(
+                                                                        'vi-VN'
+                                                                    )}{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        note.addedBy
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
                                 </div>
                             )}
                         </div>
@@ -441,25 +465,25 @@ function SellerOrdersManagement() {
                 </div>
             )}
 
-            {/* Handoff modal */}
-            {showHandoffModal && (
+            {/* Shipping modal (for confirmed orders) */}
+            {showShippingModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
                         <h3 className="text-lg font-bold mb-4">
-                            🚚 Giao hàng cho vận chuyển
+                            🚚 Cập nhật thông tin giao hàng
                         </h3>
 
                         <div className="space-y-4 mb-6">
                             <div>
                                 <label className="block text-sm font-semibold mb-2">
-                                    Tên vận chuyển
+                                    Hãng vận chuyển
                                 </label>
                                 <input
                                     type="text"
-                                    value={handoffData.carrierName}
+                                    value={shippingData.carrierName}
                                     onChange={(e) =>
-                                        setHandoffData({
-                                            ...handoffData,
+                                        setShippingData({
+                                            ...shippingData,
                                             carrierName: e.target.value,
                                         })
                                     }
@@ -470,14 +494,14 @@ function SellerOrdersManagement() {
 
                             <div>
                                 <label className="block text-sm font-semibold mb-2">
-                                    Mã theo dõi
+                                    Mã vận đơn
                                 </label>
                                 <input
                                     type="text"
-                                    value={handoffData.trackingNumber}
+                                    value={shippingData.trackingNumber}
                                     onChange={(e) =>
-                                        setHandoffData({
-                                            ...handoffData,
+                                        setShippingData({
+                                            ...shippingData,
                                             trackingNumber: e.target.value,
                                         })
                                     }
@@ -488,36 +512,18 @@ function SellerOrdersManagement() {
 
                             <div>
                                 <label className="block text-sm font-semibold mb-2">
-                                    ID người giao hàng (tuỳ chọn)
+                                    Ngày dự kiến giao (tuỳ chọn)
                                 </label>
                                 <input
-                                    type="text"
-                                    value={handoffData.shipperId}
+                                    type="date"
+                                    value={shippingData.estimatedDeliveryDate}
                                     onChange={(e) =>
-                                        setHandoffData({
-                                            ...handoffData,
-                                            shipperId: e.target.value,
+                                        setShippingData({
+                                            ...shippingData,
+                                            estimatedDeliveryDate:
+                                                e.target.value,
                                         })
                                     }
-                                    placeholder="ID shipper"
-                                    className="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">
-                                    Tên người giao hàng (tuỳ chọn)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={handoffData.shipperName}
-                                    onChange={(e) =>
-                                        setHandoffData({
-                                            ...handoffData,
-                                            shipperName: e.target.value,
-                                        })
-                                    }
-                                    placeholder="Tên shipper"
                                     className="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-500"
                                 />
                             </div>
@@ -525,12 +531,12 @@ function SellerOrdersManagement() {
 
                         <div className="flex gap-2">
                             <button
-                                onClick={() => setShowHandoffModal(null)}
+                                onClick={() => setShowShippingModal(null)}
                                 className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">
                                 Hủy
                             </button>
                             <button
-                                onClick={handleConfirmHandoff}
+                                onClick={handleConfirmShipping}
                                 className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
                                 Xác nhận
                             </button>
