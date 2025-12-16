@@ -15,7 +15,7 @@ Both controllers now use **identical warehouse handling patterns** for consisten
 
 for (const item of order.items) {
     // ... get warehouse selection ...
-    
+
     const updatedWarehouseStock = await validateAndLockWarehouseStock(
         WarehouseStock,
         selectedWarehouse.warehouseId,
@@ -24,10 +24,10 @@ for (const item of order.items) {
         quantity,
         session
     );
-    
+
     const quantityBefore = updatedWarehouseStock.quantity + quantity;
     const quantityAfter = updatedWarehouseStock.quantity;
-    
+
     // Create WarehouseLog
     const log = new WarehouseLog({
         sellerId,
@@ -43,7 +43,7 @@ for (const item of order.items) {
         performedBy: userId,
         status: 'success',
     });
-    
+
     await log.save({ session });
 }
 ```
@@ -55,7 +55,7 @@ for (const item of order.items) {
 
 for (const item of orderDetail.items) {
     // ... get warehouse selection ...
-    
+
     let updatedStock = await validateAndLockWarehouseStock(
         WarehouseStock,
         selectedWarehouse.warehouseId,
@@ -64,10 +64,10 @@ for (const item of orderDetail.items) {
         quantity,
         session
     );
-    
+
     const quantityBefore = updatedStock.quantity + quantity;
     const quantityAfter = updatedStock.quantity;
-    
+
     // Create WarehouseLog
     const log = new WarehouseLog({
         sellerId: seller._id,
@@ -83,7 +83,7 @@ for (const item of orderDetail.items) {
         performedBy: userId,
         status: 'success',
     });
-    
+
     await log.save({ session });
 }
 ```
@@ -106,24 +106,24 @@ const orderLogs = await WarehouseLog.find({
 
 for (const log of orderLogs) {
     const { sellerId, bookId, warehouseId, quantity } = log;
-    
+
     const warehouseStock = await WarehouseStock.findOne({
         sellerId,
         bookId,
         warehouseId,
     }).session(session);
-    
+
     if (!warehouseStock) {
         throw new Error(`Không tìm thấy WarehouseStock để hoàn (${bookId})`);
     }
-    
+
     const quantityBefore = warehouseStock.quantity;
     const quantityAfter = quantityBefore + quantity;
-    
+
     warehouseStock.quantity = quantityAfter;
     warehouseStock.lastUpdatedStock = new Date();
     await warehouseStock.save({ session });
-    
+
     // Create cancellation log
     const cancelLog = new WarehouseLog({
         sellerId,
@@ -139,7 +139,7 @@ for (const log of orderLogs) {
         performedBy: userId,
         status: 'success',
     });
-    
+
     await cancelLog.save({ session });
 }
 ```
@@ -159,24 +159,24 @@ for (const log of orderLogs) {
         (i) => i.bookId.toString() === log.bookId.toString()
     );
     if (!item) continue;
-    
+
     const { warehouseId, bookId, quantity } = log;
-    
+
     const warehouseStock = await WarehouseStock.findOne({
         warehouseId,
         bookId,
         sellerId: seller._id,
     }).session(session);
-    
+
     if (warehouseStock) {
         const quantityBefore = warehouseStock.quantity;
         const quantityAfter = quantityBefore + quantity;
-        
+
         warehouseStock.quantity = quantityAfter;
         warehouseStock.lastUpdatedStock = new Date();
         await warehouseStock.save({ session });
     }
-    
+
     // Create cancellation log
     const cancelLog = new WarehouseLog({
         sellerId: seller._id,
@@ -192,15 +192,16 @@ for (const log of orderLogs) {
         performedBy: userId,
         status: 'success',
     });
-    
+
     await cancelLog.save({ session });
 }
 ```
 
-**Differences**: 
-- orderDetailController adds item filtering for multi-seller scenarios
-- Uses optional chaining for safety
-- Otherwise logic is identical ✅
+**Differences**:
+
+-   orderDetailController adds item filtering for multi-seller scenarios
+-   Uses optional chaining for safety
+-   Otherwise logic is identical ✅
 
 ---
 
@@ -266,21 +267,21 @@ WarehouseLog {
     bookId: ObjectId,             // Which book
     warehouseId: ObjectId,        // Which warehouse
     warehouseName: String,        // Cache warehouse name
-    
+
     // Operation details
     type: 'order_create',         // ✅ ENUM value
     quantity: 5,                  // ✅ Amount changed (always positive)
     quantityBefore: 100,          // ✅ Stock before operation
     quantityAfter: 95,            // ✅ Stock after operation
-    
+
     // References
     orderId: ObjectId,            // Which order
-    
+
     // Audit trail
     reason: String,               // Why it happened
     performedBy: ObjectId,        // ✅ WHO did it (userId)
     status: 'success',            // ✅ Operation successful
-    
+
     // Metadata
     createdAt: Date,              // Auto
     updatedAt: Date               // Auto
@@ -298,21 +299,21 @@ WarehouseLog {
     bookId: ObjectId,             // Which book
     warehouseId: ObjectId,        // Which warehouse
     warehouseName: String,        // Cache warehouse name
-    
+
     // Operation details
     type: 'order_cancel',         // ✅ ENUM value
     quantity: 5,                  // ✅ Amount restored (always positive)
     quantityBefore: 95,           // ✅ Stock before restoration
     quantityAfter: 100,           // ✅ Stock after restoration
-    
+
     // References
     orderId: ObjectId,            // Which order
-    
+
     // Audit trail
     reason: String,               // Why it happened
     performedBy: ObjectId,        // ✅ WHO did it (userId)
     status: 'success',            // ✅ Operation successful
-    
+
     // Metadata
     createdAt: Date,              // Auto
     updatedAt: Date               // Auto
@@ -359,16 +360,16 @@ try {
 
 ## Summary Table
 
-| Aspect | orderManagementController | orderDetailSellerController | Status |
-|--------|---------------------------|----------------------------|--------|
-| Confirm flow | ✅ Correct | ✅ Now aligned | ✅ CONSISTENT |
-| Cancel flow | ✅ Correct | ✅ Now aligned | ✅ CONSISTENT |
-| WarehouseLog fields | ✅ All required | ✅ All required | ✅ MATCHING |
-| Transaction atomicity | ✅ ATOMIC | ✅ ATOMIC | ✅ CONSISTENT |
-| Error handling | ✅ Try-catch-finally | ✅ Try-catch-finally | ✅ CONSISTENT |
-| Stock calculation | ✅ before/after | ✅ before/after | ✅ CONSISTENT |
-| performedBy tracking | ✅ userId | ✅ userId | ✅ CONSISTENT |
-| Type enums | ✅ order_create/order_cancel | ✅ order_create/order_cancel | ✅ MATCHING |
+| Aspect                | orderManagementController    | orderDetailSellerController  | Status        |
+| --------------------- | ---------------------------- | ---------------------------- | ------------- |
+| Confirm flow          | ✅ Correct                   | ✅ Now aligned               | ✅ CONSISTENT |
+| Cancel flow           | ✅ Correct                   | ✅ Now aligned               | ✅ CONSISTENT |
+| WarehouseLog fields   | ✅ All required              | ✅ All required              | ✅ MATCHING   |
+| Transaction atomicity | ✅ ATOMIC                    | ✅ ATOMIC                    | ✅ CONSISTENT |
+| Error handling        | ✅ Try-catch-finally         | ✅ Try-catch-finally         | ✅ CONSISTENT |
+| Stock calculation     | ✅ before/after              | ✅ before/after              | ✅ CONSISTENT |
+| performedBy tracking  | ✅ userId                    | ✅ userId                    | ✅ CONSISTENT |
+| Type enums            | ✅ order_create/order_cancel | ✅ order_create/order_cancel | ✅ MATCHING   |
 
 ---
 
@@ -377,10 +378,11 @@ try {
 ✅ **Both controllers now follow identical patterns for warehouse transaction handling**
 
 This ensures:
-- **Consistency**: Same logic in both code paths
-- **Reliability**: Proven implementation from orderManagementController
-- **Maintainability**: Single pattern to understand and maintain
-- **Auditability**: Complete transaction history with all required fields
-- **Traceability**: performedBy field tracks user actions
+
+-   **Consistency**: Same logic in both code paths
+-   **Reliability**: Proven implementation from orderManagementController
+-   **Maintainability**: Single pattern to understand and maintain
+-   **Auditability**: Complete transaction history with all required fields
+-   **Traceability**: performedBy field tracks user actions
 
 **Implementation Status**: COMPLETE ✅

@@ -68,9 +68,32 @@ exports.getSellerOrderDetails = async (req, res) => {
             OrderDetail.countDocuments(query),
         ]);
 
+        // ✅ Thêm warehouse info từ seller.warehouses
+        const orderDetailsWithWarehouse = orderDetails.map((orderDetail) => {
+            const detail = orderDetail.toObject();
+            if (detail.warehouseId) {
+                const warehouse = seller.warehouses.find(
+                    (w) => w._id.toString() === detail.warehouseId.toString()
+                );
+                if (warehouse) {
+                    detail.warehouseId = {
+                        _id: warehouse._id,
+                        name: warehouse.name,
+                        street: warehouse.street,
+                        ward: warehouse.ward,
+                        district: warehouse.district,
+                        province: warehouse.province,
+                        managerName: warehouse.managerName,
+                        managerPhone: warehouse.managerPhone,
+                    };
+                }
+            }
+            return detail;
+        });
+
         res.status(200).json({
             success: true,
-            data: orderDetails,
+            data: orderDetailsWithWarehouse,
             pagination: {
                 current: parseInt(page),
                 pages: Math.ceil(total / limit),
@@ -133,9 +156,29 @@ exports.getSellerOrderDetailInfo = async (req, res) => {
             });
         }
 
+        // ✅ Thêm warehouse info từ seller.warehouses
+        const detail = orderDetail.toObject();
+        if (detail.warehouseId) {
+            const warehouse = seller.warehouses.find(
+                (w) => w._id.toString() === detail.warehouseId.toString()
+            );
+            if (warehouse) {
+                detail.warehouseId = {
+                    _id: warehouse._id,
+                    name: warehouse.name,
+                    street: warehouse.street,
+                    ward: warehouse.ward,
+                    district: warehouse.district,
+                    province: warehouse.province,
+                    managerName: warehouse.managerName,
+                    managerPhone: warehouse.managerPhone,
+                };
+            }
+        }
+
         res.json({
             success: true,
-            data: orderDetail,
+            data: detail,
         });
     } catch (err) {
         console.error('Error:', err);
@@ -379,7 +422,7 @@ exports.confirmOrderDetail = async (req, res) => {
 /**
  * ✅ [POST] /api/orders/seller/details/:orderDetailId/ship
  *
- * Seller cập nhật vận chuyển
+ * Seller cập nhật vận chuyển (gọi createDeliveryStages nếu liên tỉnh)
  */
 exports.shipOrderDetail = async (req, res) => {
     try {
@@ -402,7 +445,9 @@ exports.shipOrderDetail = async (req, res) => {
         }
 
         // Get OrderDetail
-        const orderDetail = await OrderDetail.findById(orderDetailId);
+        const orderDetail = await OrderDetail.findById(orderDetailId).populate(
+            'mainOrderId'
+        );
         if (!orderDetail) {
             return res.status(404).json({
                 success: false,
@@ -426,8 +471,69 @@ exports.shipOrderDetail = async (req, res) => {
             });
         }
 
-        // Update
-        orderDetail.status = 'shipping';
+        // Lấy warehouse info
+        const warehouse = seller.warehouses.find(
+            (w) =>
+                w._id.toString() === (orderDetail.warehouseId?.toString() || '')
+        );
+
+        // Lấy customer location từ MainOrder
+        const mainOrder = await Order.findById(
+            orderDetail.mainOrderId._id
+        ).populate('profileId');
+
+        if (!mainOrder) {
+            return res.status(404).json({
+                success: false,
+                message: 'MainOrder không tìm thấy',
+            });
+        }
+
+        // ========== MULTI-STAGE DELIVERY LOGIC ==========
+        // Nếu warehouse province !== customer province → liên tỉnh
+        const fromWarehouse = {
+            warehouseId: orderDetail.warehouseId,
+            name: warehouse?.name || 'Warehouse',
+            address: warehouse?.street || '',
+            province: warehouse?.province || '',
+            latitude: warehouse?.location?.latitude,
+            longitude: warehouse?.location?.longitude,
+        };
+
+        const toCustomer = {
+            address: orderDetail.shippingAddress?.address || '',
+            province: orderDetail.shippingAddress?.province || '',
+            // Geocoded coordinates từ confirm endpoint
+            latitude: 0, // TODO: lấy từ customer location history
+            longitude: 0, // TODO: lấy từ customer location history
+            customerName: orderDetail.shippingAddress?.fullName || '',
+            customerPhone: orderDetail.shippingAddress?.phone || '',
+        };
+
+        // ✅ Nếu liên tỉnh → tạo delivery stages
+        if (
+            fromWarehouse.province &&
+            toCustomer.province &&
+            fromWarehouse.province !== toCustomer.province
+        ) {
+            const deliveryStageRes = await createDeliveryStagesHelper(
+                orderDetailId,
+                fromWarehouse,
+                toCustomer
+            );
+
+            if (!deliveryStageRes.success) {
+                return res.status(400).json(deliveryStageRes);
+            }
+
+            // Update status thành in_delivery_stage (không còn là shipping)
+            orderDetail.status = 'in_delivery_stage';
+            orderDetail.deliveryRouteNotes = `Liên tỉnh: ${fromWarehouse.province} → ${toCustomer.province}`;
+        } else {
+            // Nội tỉnh → status bình thường
+            orderDetail.status = 'shipping';
+        }
+
         orderDetail.shippedAt = new Date();
         orderDetail.trackingNumber = trackingNumber;
         orderDetail.shippingMethod = shippingMethod;
@@ -445,7 +551,11 @@ exports.shipOrderDetail = async (req, res) => {
         res.json({
             success: true,
             message: 'Cập nhật vận chuyển thành công',
-            data: orderDetail,
+            data: {
+                ...orderDetail.toObject(),
+                isMultiStageDelivery:
+                    fromWarehouse.province !== toCustomer.province,
+            },
         });
     } catch (err) {
         console.error('Error:', err);
@@ -594,5 +704,176 @@ exports.cancelOrderDetail = async (req, res) => {
         session.endSession();
     }
 };
+
+/**
+ * Helper function: Tạo delivery stages cho multi-stage delivery
+ * (gọi từ shipOrderDetail)
+ */
+async function createDeliveryStagesHelper(
+    orderDetailId,
+    fromWarehouse,
+    toCustomer
+) {
+    try {
+        const DeliveryStage = require('../models/deliveryStageModel');
+        const orderDetail = await OrderDetail.findById(orderDetailId).populate(
+            'mainOrderId'
+        );
+
+        if (!orderDetail) {
+            return {
+                success: false,
+                message: 'OrderDetail không tồn tại',
+                statusCode: 404,
+            };
+        }
+
+        const stages = [];
+        const isInterProvincial =
+            fromWarehouse.province !== toCustomer.province;
+
+        if (!isInterProvincial) {
+            // Nội tỉnh: 1 stage
+            const stage = new DeliveryStage({
+                mainOrderId: orderDetail.mainOrderId._id,
+                orderDetailId: orderDetail._id,
+                stageNumber: 1,
+                totalStages: 1,
+                isLastStage: true,
+
+                fromLocation: {
+                    locationType: 'warehouse',
+                    warehouseId: fromWarehouse.warehouseId,
+                    warehouseName: fromWarehouse.name,
+                    address: fromWarehouse.address,
+                    province: fromWarehouse.province,
+                    latitude: fromWarehouse.latitude || 0,
+                    longitude: fromWarehouse.longitude || 0,
+                },
+
+                toLocation: {
+                    locationType: 'customer',
+                    address: toCustomer.address,
+                    province: toCustomer.province,
+                    latitude: toCustomer.latitude || 0,
+                    longitude: toCustomer.longitude || 0,
+                    contactName: toCustomer.customerName,
+                    contactPhone: toCustomer.customerPhone,
+                },
+
+                status: 'pending',
+            });
+
+            await stage.save();
+            stages.push(stage._id);
+        } else {
+            // Liên tỉnh: 3 stages
+            const stage1 = new DeliveryStage({
+                mainOrderId: orderDetail.mainOrderId._id,
+                orderDetailId: orderDetail._id,
+                stageNumber: 1,
+                totalStages: 3,
+                isLastStage: false,
+
+                fromLocation: {
+                    locationType: 'warehouse',
+                    warehouseId: fromWarehouse.warehouseId,
+                    warehouseName: fromWarehouse.name,
+                    address: fromWarehouse.address,
+                    province: fromWarehouse.province,
+                    latitude: fromWarehouse.latitude || 0,
+                    longitude: fromWarehouse.longitude || 0,
+                },
+
+                toLocation: {
+                    locationType: 'transfer_hub',
+                    warehouseName: `Transfer Hub ${fromWarehouse.province}`,
+                    address: `Trung tâm chuyển tiếp - ${fromWarehouse.province}`,
+                    province: fromWarehouse.province,
+                },
+
+                status: 'pending',
+            });
+
+            const stage2 = new DeliveryStage({
+                mainOrderId: orderDetail.mainOrderId._id,
+                orderDetailId: orderDetail._id,
+                stageNumber: 2,
+                totalStages: 3,
+                isLastStage: false,
+
+                fromLocation: {
+                    locationType: 'transfer_hub',
+                    warehouseName: `Transfer Hub ${fromWarehouse.province}`,
+                    address: `Trung tâm chuyển tiếp - ${fromWarehouse.province}`,
+                    province: fromWarehouse.province,
+                },
+
+                toLocation: {
+                    locationType: 'transfer_hub',
+                    warehouseName: `Transfer Hub ${toCustomer.province}`,
+                    address: `Trung tâm chuyển tiếp - ${toCustomer.province}`,
+                    province: toCustomer.province,
+                },
+
+                status: 'pending',
+            });
+
+            const stage3 = new DeliveryStage({
+                mainOrderId: orderDetail.mainOrderId._id,
+                orderDetailId: orderDetail._id,
+                stageNumber: 3,
+                totalStages: 3,
+                isLastStage: true,
+
+                fromLocation: {
+                    locationType: 'transfer_hub',
+                    warehouseName: `Transfer Hub ${toCustomer.province}`,
+                    address: `Trung tâm chuyển tiếp - ${toCustomer.province}`,
+                    province: toCustomer.province,
+                },
+
+                toLocation: {
+                    locationType: 'customer',
+                    address: toCustomer.address,
+                    province: toCustomer.province,
+                    latitude: toCustomer.latitude || 0,
+                    longitude: toCustomer.longitude || 0,
+                    contactName: toCustomer.customerName,
+                    contactPhone: toCustomer.customerPhone,
+                },
+
+                status: 'pending',
+            });
+
+            await Promise.all([stage1.save(), stage2.save(), stage3.save()]);
+            stages.push(stage1._id, stage2._id, stage3._id);
+        }
+
+        // Update OrderDetail
+        orderDetail.deliveryStages = stages;
+        orderDetail.currentStageIndex = 0;
+        orderDetail.fromProvince = fromWarehouse.province;
+        orderDetail.toProvince = toCustomer.province;
+        orderDetail.isInterProvincial = isInterProvincial;
+        await orderDetail.save();
+
+        return {
+            success: true,
+            data: {
+                stages,
+                isInterProvincial,
+                totalStages: stages.length,
+            },
+        };
+    } catch (err) {
+        console.error('❌ Lỗi tạo delivery stages:', err);
+        return {
+            success: false,
+            message: err.message,
+            statusCode: 500,
+        };
+    }
+}
 
 module.exports = exports;

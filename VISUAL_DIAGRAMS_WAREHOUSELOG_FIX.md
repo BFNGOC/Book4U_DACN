@@ -57,6 +57,7 @@
 ## 2️⃣ Confirm Flow (Before vs After)
 
 ### BEFORE ❌
+
 ```
 ┌─────────────────────┐
 │  confirmOrderDetail │
@@ -94,6 +95,7 @@
 ```
 
 ### AFTER ✅
+
 ```
 ┌─────────────────────┐
 │  confirmOrderDetail │
@@ -146,6 +148,7 @@
 ## 3️⃣ Cancel Flow (Before vs After)
 
 ### BEFORE ❌
+
 ```
 ┌────────────────────┐
 │ cancelOrderDetail  │
@@ -180,6 +183,7 @@
 ```
 
 ### AFTER ✅
+
 ```
 ┌────────────────────┐
 │ cancelOrderDetail  │
@@ -232,6 +236,7 @@
 ## 4️⃣ WarehouseLog Data Structure
 
 ### BEFORE ❌ (confirmOrderDetail)
+
 ```
 ┌─────────────────────────────────────┐
 │       WarehouseLog (INVALID)        │
@@ -258,6 +263,7 @@
 ```
 
 ### AFTER ✅ (confirmOrderDetail)
+
 ```
 ┌─────────────────────────────────────┐
 │       WarehouseLog (VALID)          │
@@ -286,6 +292,7 @@
 ## 5️⃣ Stock Quantity Timeline
 
 ### CONFIRM Operation
+
 ```
 State Timeline:
 ───────────────
@@ -313,6 +320,7 @@ Confirmed:      Order status = 'confirmed'
 ```
 
 ### CANCEL Operation
+
 ```
 State Timeline:
 ───────────────
@@ -355,6 +363,7 @@ Cancelled:      Order status = 'cancelled'
 ## 6️⃣ System Consistency Achievement
 
 ### BEFORE ❌
+
 ```
 ┌──────────────────────────────────────┐
 │  orderManagementController           │
@@ -378,6 +387,7 @@ Result: ❌ INCONSISTENT SYSTEM
 ```
 
 ### AFTER ✅
+
 ```
 ┌──────────────────────────────────────┐
 │  orderManagementController           │
@@ -436,6 +446,7 @@ RESULT: All 12 WarehouseLog fields now provided ✅
 ## 8️⃣ Error Prevention Flow
 
 ### Validation Gate (NEW)
+
 ```
 Create WarehouseLog
        │
@@ -472,6 +483,7 @@ Create WarehouseLog
 ## 9️⃣ Transaction Isolation
 
 ### Atomic Stock Locking
+
 ```
 Request 1                    Request 2
 (Qty: 5)                     (Qty: 5)
@@ -539,8 +551,7 @@ RESULT: Both orders succeed with correct quantities
 
 ✅ **All diagrams show the transformation from broken to fixed state**
 
-- ❌ BEFORE: Inconsistent, invalid, error-prone
-- ✅ AFTER: Consistent, valid, reliable
+-   ❌ BEFORE: Inconsistent, invalid, error-prone
+-   ✅ AFTER: Consistent, valid, reliable
 
 **Key Achievement**: Both controllers now follow identical patterns ✨
-

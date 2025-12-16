@@ -49,6 +49,7 @@ const shippingSchema = new mongoose.Schema({
     fullName: String,
     phone: String,
     address: String,
+    province: String, // ✅ MỚI: Tỉnh/Thành phố (để so sánh với warehouse.province)
 });
 
 // Delivery attempt tracking
@@ -136,12 +137,47 @@ const orderDetailSchema = new mongoose.Schema(
                 'confirmed', // 1️⃣ Seller xác nhận, chuẩn bị hàng
                 'packing', // 2️⃣ Đang đóng gói
                 'shipping', // 3️⃣ Đã giao carrier (đã ship)
+                'in_delivery_stage', // 🚚 Đang vận chuyển trong giai đoạn nào đó
                 'delivered', // 4️⃣ Đã giao tới customer
                 'cancelled', // ❌ Huỷ
             ],
             default: 'pending',
             index: true,
         },
+
+        /**
+         * ====== MULTI-STAGE DELIVERY (LIÊN TỈNH) ======
+         */
+        // Các giai đoạn vận chuyển
+        deliveryStages: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'DeliveryStage',
+            },
+        ],
+
+        // Giai đoạn hiện tại
+        currentStageIndex: {
+            type: Number,
+            default: 0,
+        },
+
+        // Từ tỉnh (warehouse location)
+        fromProvince: String,
+        fromProvinceCode: String,
+
+        // Đến tỉnh (customer location)
+        toProvince: String,
+        toProvinceCode: String,
+
+        // Có phải liên tỉnh không
+        isInterProvincial: {
+            type: Boolean,
+            default: false,
+        },
+
+        // Lộ trình vận chuyển (ghi chú)
+        deliveryRouteNotes: String,
 
         /**
          * THANH TOÁN (Cập nhật khi MainOrder được thanh toán)

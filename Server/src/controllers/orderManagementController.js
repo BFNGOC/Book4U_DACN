@@ -104,6 +104,16 @@ exports.validateStockBeforeOrder = async (req, res) => {
  *
  * Được gọi từ createOrder() để tạo sub-orders
  */
+
+// ✅ Extract province từ address string
+const extractProvinceFromAddress = (address) => {
+    if (!address) return '';
+    // Format: "Số nhà, Phường, Quận, Tỉnh/Thành phố"
+    const parts = address.split(',').map((p) => p.trim());
+    const province = parts[parts.length - 1];
+    return province;
+};
+
 exports.createOrderDetailsForMultiSeller = async (
     mainOrderId,
     items,
@@ -150,7 +160,10 @@ exports.createOrderDetailsForMultiSeller = async (
             items: sellerItems,
             subtotal,
             totalAmount: subtotal, // Chỉ hàng, chưa tính vận chuyển
-            shippingAddress,
+            shippingAddress: {
+                ...shippingAddress,
+                province: extractProvinceFromAddress(shippingAddress.address), // ✅ Extract province
+            },
             status: 'pending', // Chờ seller xác nhận
             paymentStatus: 'unpaid', // Sẽ update khi thanh toán
         });

@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import ShipperOrderList from '../../components/shipper/ShipperOrderList';
 import ShipperOrderMap from '../../components/shipper/ShipperOrderMap';
+import ShipperPendingOrders from '../../components/shipper/ShipperPendingOrders';
+import ShipperAssignedOrders from '../../components/shipper/ShipperAssignedOrders';
 import {
-    getShipperOrders,
-    updateShipperLocation,
-} from '../../services/api/shipperApi';
+    getShipperOrders as getMultiDeliveryOrders,
+    getShipperAssignedOrders,
+} from '../../services/api/multiDeliveryApi';
+import { updateShipperLocation } from '../../services/api/shipperApi';
 
 export default function ShipperDashboard() {
     const [orders, setOrders] = useState([]);
+    const [pendingOrders, setPendingOrders] = useState([]);
+    const [assignedStages, setAssignedStages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
     const [currentLocation, setCurrentLocation] = useState(null);
@@ -23,11 +28,28 @@ export default function ShipperDashboard() {
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const response = await getShipperOrders();
-            if (response.success) {
-                setOrders(response.data);
+            // ✅ Fetch pending + assigned orders in parallel
+            const [pendingRes, assignedRes] = await Promise.all([
+                getMultiDeliveryOrders(),
+                getShipperAssignedOrders(),
+            ]);
+
+            // Handle pending orders
+            if (pendingRes.success && pendingRes.data?.pendingOrders) {
+                setPendingOrders(pendingRes.data.pendingOrders);
             } else {
-                toast.error(response.message || 'Lỗi lấy danh sách đơn hàng');
+                setPendingOrders([]);
+            }
+
+            // Handle assigned orders
+            if (assignedRes.success) {
+                setAssignedStages(
+                    Array.isArray(assignedRes.data)
+                        ? assignedRes.data
+                        : assignedRes.data?.assignedStages || []
+                );
+            } else {
+                setAssignedStages([]);
             }
         } catch (error) {
             toast.error('Lỗi kết nối');
@@ -90,14 +112,30 @@ export default function ShipperDashboard() {
                     <div className="bg-white rounded-lg shadow p-6">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
+                                <span className="text-2xl">�</span>
+                            </div>
+                            <div className="ml-5">
+                                <p className="text-gray-500 text-sm font-medium">
+                                    Chờ Nhận
+                                </p>
+                                <p className="text-gray-900 text-lg font-bold">
+                                    {pendingOrders.length}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
                                 <span className="text-2xl">📋</span>
                             </div>
                             <div className="ml-5">
                                 <p className="text-gray-500 text-sm font-medium">
-                                    Tổng Đơn
+                                    Đang Giao
                                 </p>
                                 <p className="text-gray-900 text-lg font-bold">
-                                    {orders.length}
+                                    {assignedStages.length}
                                 </p>
                             </div>
                         </div>
@@ -117,26 +155,6 @@ export default function ShipperDashboard() {
                                         orders.filter(
                                             (o) =>
                                                 o.status === 'out_for_delivery'
-                                        ).length
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <span className="text-2xl">✅</span>
-                            </div>
-                            <div className="ml-5">
-                                <p className="text-gray-500 text-sm font-medium">
-                                    Hoàn Thành
-                                </p>
-                                <p className="text-gray-900 text-lg font-bold">
-                                    {
-                                        orders.filter(
-                                            (o) => o.status === 'completed'
                                         ).length
                                     }
                                 </p>
@@ -199,16 +217,39 @@ export default function ShipperDashboard() {
                     <div className="bg-white rounded-lg shadow p-8 text-center">
                         <p className="text-gray-500">Đang tải...</p>
                     </div>
-                ) : viewMode === 'list' ? (
-                    <ShipperOrderList
-                        orders={orders}
-                        onOrderUpdate={fetchOrders}
-                    />
                 ) : (
-                    <ShipperOrderMap
-                        orders={orders}
-                        currentLocation={currentLocation}
-                    />
+                    <>
+                        {/* Pending Orders Section */}
+                        {pendingOrders.length > 0 && (
+                            <div className="mb-8">
+                                <ShipperPendingOrders
+                                    pendingOrders={pendingOrders}
+                                    onOrderAccepted={fetchOrders}
+                                />
+                            </div>
+                        )}
+
+                        {/* Assigned Orders Section */}
+                        <div className="mb-8">
+                            <ShipperAssignedOrders
+                                assignedStages={assignedStages}
+                                onStageCompleted={fetchOrders}
+                            />
+                        </div>
+
+                        {/* Legacy Orders Section (kept for compatibility) */}
+                        {viewMode === 'list' && orders.length > 0 ? (
+                            <ShipperOrderList
+                                orders={orders}
+                                onOrderUpdate={fetchOrders}
+                            />
+                        ) : viewMode === 'map' && orders.length > 0 ? (
+                            <ShipperOrderMap
+                                orders={orders}
+                                currentLocation={currentLocation}
+                            />
+                        ) : null}
+                    </>
                 )}
             </div>
         </div>

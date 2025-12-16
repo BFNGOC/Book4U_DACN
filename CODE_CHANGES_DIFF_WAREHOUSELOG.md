@@ -10,6 +10,7 @@
 **Type**: Field structure correction + completeness
 
 ### REMOVED (Lines 313-325)
+
 ```diff
 -            // Ghi log
 -            await WarehouseLog.create(
@@ -29,6 +30,7 @@
 ```
 
 ### ADDED (Lines 301-327)
+
 ```diff
 +            // Tính quantityBefore (trước khi trừ)
 +            const quantityBefore = updatedStock.quantity + quantity;
@@ -59,9 +61,10 @@
 ```
 
 ### Summary
-- ❌ Removed: `transactionType`, `quantityChange`, `orderDetailId`, `create()` with array
-- ✅ Added: `type`, `quantity`, `quantityBefore`, `quantityAfter`, `warehouseName`, `reason`, `performedBy`, `status`
-- ✅ Changed: From `create([])` to `new` instance + `save()`
+
+-   ❌ Removed: `transactionType`, `quantityChange`, `orderDetailId`, `create()` with array
+-   ✅ Added: `type`, `quantity`, `quantityBefore`, `quantityAfter`, `warehouseName`, `reason`, `performedBy`, `status`
+-   ✅ Changed: From `create([])` to `new` instance + `save()`
 
 ---
 
@@ -71,6 +74,7 @@
 **Type**: Complete restructure to follow orderManagementController pattern
 
 ### REMOVED (Lines 513-553)
+
 ```diff
 -        // Nếu đã confirmed (đã trừ stock), hoàn lại stock
 -        if (orderDetail.status === 'confirmed') {
@@ -112,6 +116,7 @@
 ```
 
 ### ADDED (Lines 511-566)
+
 ```diff
 +        // Nếu đã confirmed (đã trừ stock), hoàn lại stock
 +        if (orderDetail.status === 'confirmed') {
@@ -177,54 +182,59 @@
 ```
 
 ### Summary
-- ❌ Removed: Direct item-based approach, wrong field names
-- ✅ Added: Log-based approach (fetching original transaction logs)
-- ✅ Changed: From `create([])` to `new` instance + `save()`
-- ✅ Added: Proper quantity calculation (before/after)
-- ✅ Added: `performedBy`, `warehouseName`, `reason`, `status` fields
-- ✅ Added: Item filtering to handle multi-seller scenarios
-- ✅ Enhanced: soldCount tracking for Book model
+
+-   ❌ Removed: Direct item-based approach, wrong field names
+-   ✅ Added: Log-based approach (fetching original transaction logs)
+-   ✅ Changed: From `create([])` to `new` instance + `save()`
+-   ✅ Added: Proper quantity calculation (before/after)
+-   ✅ Added: `performedBy`, `warehouseName`, `reason`, `status` fields
+-   ✅ Added: Item filtering to handle multi-seller scenarios
+-   ✅ Enhanced: soldCount tracking for Book model
 
 ---
 
 ## Summary of Changes
 
 ### Total Lines Changed: 42
-- **Removed**: 13 lines (old incorrect implementation)
-- **Added**: 55 lines (new correct implementation)
+
+-   **Removed**: 13 lines (old incorrect implementation)
+-   **Added**: 55 lines (new correct implementation)
 
 ### Fields Fixed
 
 #### confirmOrderDetail() - 8 field changes
-| Old | New | Type |
-|-----|-----|------|
-| N/A | `type` | Added (REQUIRED) |
-| `transactionType` | (removed) | Deleted |
-| `quantityChange: -5` | `quantity: 5, quantityBefore: 100, quantityAfter: 95` | Restructured |
-| N/A | `performedBy` | Added (REQUIRED) |
-| N/A | `warehouseName` | Added |
-| N/A | `reason` | Added |
-| N/A | `status` | Added |
-| `orderDetailId` | (removed) | Deleted |
+
+| Old                  | New                                                   | Type             |
+| -------------------- | ----------------------------------------------------- | ---------------- |
+| N/A                  | `type`                                                | Added (REQUIRED) |
+| `transactionType`    | (removed)                                             | Deleted          |
+| `quantityChange: -5` | `quantity: 5, quantityBefore: 100, quantityAfter: 95` | Restructured     |
+| N/A                  | `performedBy`                                         | Added (REQUIRED) |
+| N/A                  | `warehouseName`                                       | Added            |
+| N/A                  | `reason`                                              | Added            |
+| N/A                  | `status`                                              | Added            |
+| `orderDetailId`      | (removed)                                             | Deleted          |
 
 #### cancelOrderDetail() - 10 field changes
-| Old | New | Type |
-|-----|-----|------|
-| `transactionType: 'order_cancelled'` | `type: 'order_cancel'` | Changed enum value |
-| `quantityChange` | `quantity, quantityBefore, quantityAfter` | Restructured |
-| N/A | `performedBy` | Added (REQUIRED) |
-| N/A | `warehouseName` | Added |
-| N/A | `reason` | Added |
-| N/A | `status` | Added |
-| `orderDetailId` | (removed) | Deleted |
-| Item-based | Log-based | Logic change |
-| N/A | `soldCount: -1` | Added (Book update) |
+
+| Old                                  | New                                       | Type                |
+| ------------------------------------ | ----------------------------------------- | ------------------- |
+| `transactionType: 'order_cancelled'` | `type: 'order_cancel'`                    | Changed enum value  |
+| `quantityChange`                     | `quantity, quantityBefore, quantityAfter` | Restructured        |
+| N/A                                  | `performedBy`                             | Added (REQUIRED)    |
+| N/A                                  | `warehouseName`                           | Added               |
+| N/A                                  | `reason`                                  | Added               |
+| N/A                                  | `status`                                  | Added               |
+| `orderDetailId`                      | (removed)                                 | Deleted             |
+| Item-based                           | Log-based                                 | Logic change        |
+| N/A                                  | `soldCount: -1`                           | Added (Book update) |
 
 ---
 
 ## Validation Matrix
 
 ### Before Changes ❌
+
 ```
 Field              confirmOrderDetail  cancelOrderDetail  Schema Requirement  Status
 ─────────────────────────────────────────────────────────────────────────────────
@@ -245,6 +255,7 @@ VALIDATION RESULT: ❌ FAILS (Missing 7 required fields)
 ```
 
 ### After Changes ✅
+
 ```
 Field              confirmOrderDetail  cancelOrderDetail  Schema Requirement  Status
 ─────────────────────────────────────────────────────────────────────────────────
@@ -364,16 +375,16 @@ Response 200:
 
 ## Code Review Checklist
 
-- ✅ All required WarehouseLog fields provided
-- ✅ Field names match schema exactly
-- ✅ Type enum values valid (`'order_create'`, `'order_cancel'`)
-- ✅ Quantity calculations correct (before/after)
-- ✅ performedBy set to userId (audit trail)
-- ✅ Transaction session passed to all queries
-- ✅ Error handling preserved
-- ✅ Backward compatible (no API changes)
-- ✅ No breaking changes
-- ✅ Syntax valid (no parser errors)
+-   ✅ All required WarehouseLog fields provided
+-   ✅ Field names match schema exactly
+-   ✅ Type enum values valid (`'order_create'`, `'order_cancel'`)
+-   ✅ Quantity calculations correct (before/after)
+-   ✅ performedBy set to userId (audit trail)
+-   ✅ Transaction session passed to all queries
+-   ✅ Error handling preserved
+-   ✅ Backward compatible (no API changes)
+-   ✅ No breaking changes
+-   ✅ Syntax valid (no parser errors)
 
 ---
 
@@ -384,7 +395,7 @@ Response 200:
  Lines changed: 42
  + Additions: 55
  - Deletions: 13
- 
+
 Confirmation: Improved
 Cancellation: Improved
 Validation: Fixed
