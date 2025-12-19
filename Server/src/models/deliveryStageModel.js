@@ -125,7 +125,10 @@ const deliveryStageSchema = new mongoose.Schema(
         /**
          * TRÁCH NHIỆM GIAO HÀNG
          */
-        assignedShipperId: mongoose.Schema.Types.ObjectId, // Shipper hoặc Regional Carrier
+        assignedShipperId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Profile',
+        },
         shippingCompany: String, // "Giao hàng Nhanh", "BE", etc
         trackingNumber: String,
         estimatedDeliveryDate: Date,

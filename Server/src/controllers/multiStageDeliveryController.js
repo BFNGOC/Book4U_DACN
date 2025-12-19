@@ -337,7 +337,11 @@ exports.getDeliveryStages = async (req, res) => {
 
         const orderDetail = await OrderDetail.findById(orderDetailId).populate({
             path: 'deliveryStages',
-            select: 'stageNumber status fromLocation toLocation assignedShipperId currentLocation deliveryAttempts createdAt deliveredAt',
+            select: 'stageNumber status fromLocation toLocation assignedShipperId currentLocation deliveryAttempts createdAt deliveredAt inTransitAt shippingCompany trackingNumber locationHistory',
+            populate: {
+                path: 'assignedShipperId',
+                select: 'firstName lastName primaryPhone currentLocation performance',
+            },
         });
 
         if (!orderDetail) {
@@ -580,15 +584,15 @@ exports.completeDeliveryStage = async (req, res) => {
             });
         }
 
-        // Status workflow: accepted -> in_transit -> completed
+        // Status workflow: accepted -> in_transit -> delivered
         if (stage.status === 'accepted') {
             // Lần click đầu: chuyển sang in_transit
             stage.status = 'in_transit';
-            stage.startedAt = new Date();
+            stage.inTransitAt = new Date();
         } else if (stage.status === 'in_transit') {
             // Lần click thứ 2: hoàn tất stage
-            stage.status = 'completed';
-            stage.completedAt = new Date();
+            stage.status = 'delivered';
+            stage.deliveredAt = new Date();
         } else {
             return res.status(400).json({
                 success: false,
@@ -622,8 +626,8 @@ exports.completeDeliveryStage = async (req, res) => {
 
         await stage.save();
 
-        // Chỉ xử lý next stage khi stage hoàn tất (status = completed)
-        if (stage.status === 'completed') {
+        // Chỉ xử lý next stage khi stage hoàn tất (status = delivered)
+        if (stage.status === 'delivered') {
             // Kiểm tra xem có phải stage cuối không
             if (stage.isLastStage) {
                 // Cập nhật OrderDetail status thành delivered
@@ -647,8 +651,8 @@ exports.completeDeliveryStage = async (req, res) => {
                 );
                 if (allDelivered) {
                     await Order.findByIdAndUpdate(stage.mainOrderId._id, {
-                        status: 'completed',
-                        completedAt: new Date(),
+                        status: 'delivered',
+                        deliveredAt: new Date(),
                     });
                 }
             } else {
@@ -659,17 +663,14 @@ exports.completeDeliveryStage = async (req, res) => {
                 });
 
                 if (nextStage) {
-                    nextStage.status = 'pending';
-
-                    // Nếu stage 2 (trung chuyển liên tỉnh), tự động tìm regional carrier
+                    // 🆕 Nếu là Stage 2 (regional transfer): AUTO-START ngay (không cần shipper nhận)
                     if (nextStage.stageNumber === 2 && !nextStage.isLastStage) {
                         const ShipperCoverageArea = require('../models/shipperCoverageAreaModel');
 
-                        // Tìm regional carrier có cả fromProvince và toProvince trong coverage
                         const fromProvince = nextStage.fromLocation.province;
                         const toProvince = nextStage.toLocation.province;
 
-                        // Regional carrier phải có cả 2 tỉnh trong coverageAreas
+                        // Tìm regional carrier có cả 2 tỉnh
                         const regionalCarrier =
                             await ShipperCoverageArea.findOne({
                                 shipperType: 'regional',
@@ -679,16 +680,32 @@ exports.completeDeliveryStage = async (req, res) => {
                                 },
                             });
 
+                        // ✅ Tự động gán tracking number
+                        nextStage.trackingNumber = `STG2-${Date.now()}-${stage.orderDetailId._id
+                            .toString()
+                            .slice(-6)}`;
+
                         if (regionalCarrier) {
-                            // Gán carrier cho stage 2
+                            // ✅ Gán carrier từ database
                             nextStage.assignedShipperId =
                                 regionalCarrier.shipperId;
                             nextStage.shippingCompany =
                                 regionalCarrier.companyName ||
                                 regionalCarrier.name;
-                            // Không set status = accepted, để carrier phải nhận trước
-                            nextStage.status = 'pending'; // Chờ regional carrier nhận
+                        } else {
+                            // 🆕 DEFAULT: Nếu không tìm thấy regional → dùng J&T Express (default carrier)
+                            console.log(
+                                `⚠️ Không tìm thấy regional carrier cho ${fromProvince} → ${toProvince}, dùng default J&T Express`
+                            );
+                            nextStage.shippingCompany = 'J&T Express';
                         }
+
+                        // ✅ Khởi động ngay (không cần carrier "nhận")
+                        nextStage.status = 'in_transit';
+                        nextStage.inTransitAt = new Date();
+                    } else {
+                        // Các stage khác chờ shipper nhận
+                        nextStage.status = 'pending';
                     }
 
                     await nextStage.save();
@@ -1121,8 +1138,8 @@ exports.getRegionalCarrierAssignedOrders = async (req, res) => {
             },
             timeline: {
                 acceptedAt: stage.acceptedAt,
-                startedAt: stage.startedAt,
-                completedAt: stage.completedAt,
+                inTransitAt: stage.inTransitAt,
+                deliveredAt: stage.deliveredAt,
             },
         }));
 
@@ -1136,6 +1153,134 @@ exports.getRegionalCarrierAssignedOrders = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Đã xảy ra lỗi máy chủ',
+        });
+    }
+};
+
+/**
+ * [PUT] /api/multi-delivery/stages/:stageId/confirm-carrier-delivery
+ * 🆕 Seller confirm khi dịch vụ vận chuyển báo tới hub2
+ * Chỉ dùng cho Stage 2 (Regional transfer)
+ *
+ * Flow:
+ * 1. Stage 2 đang in_transit (vận chuyển từ hub1 → hub2)
+ * 2. Dịch vụ vận chuyển báo cho seller khi tới hub2
+ * 3. Seller nhấn nút confirm → Stage 2 marked as delivered
+ * 4. Stage 3 auto-activate với status='pending' (chờ shipper nhận)
+ */
+exports.confirmCarrierDelivery = async (req, res) => {
+    try {
+        const { stageId } = req.params;
+        const { notes } = req.body;
+
+        // Validate
+        if (!stageId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cần cung cấp stageId',
+            });
+        }
+
+        const DeliveryStage = require('../models/deliveryStageModel');
+        const OrderDetail = require('../models/orderDetailModel');
+        const Order = require('../models/orderModel');
+        const ShipperCoverageArea = require('../models/shipperCoverageAreaModel');
+
+        // Lấy stage 2
+        const stage = await DeliveryStage.findById(stageId).populate(
+            'mainOrderId orderDetailId'
+        );
+
+        if (!stage) {
+            return res.status(404).json({
+                success: false,
+                message: 'Giai đoạn không tồn tại',
+            });
+        }
+
+        // ✅ Chỉ dùng cho stage 2
+        if (stage.stageNumber !== 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'API này chỉ dùng cho Stage 2 (regional transfer)',
+            });
+        }
+
+        // ✅ Stage 2 phải đang in_transit
+        if (stage.status !== 'in_transit') {
+            return res.status(400).json({
+                success: false,
+                message: `Stage 2 phải có status 'in_transit' để confirm. Hiện tại: ${stage.status}`,
+            });
+        }
+
+        // ✅ Mark Stage 2 as delivered
+        stage.status = 'delivered';
+        stage.deliveredAt = new Date();
+        if (notes) stage.notes = notes;
+        await stage.save();
+
+        // ✅ Auto-activate Stage 3
+        const stage3 = await DeliveryStage.findOne({
+            orderDetailId: stage.orderDetailId._id,
+            stageNumber: 3,
+        });
+
+        if (stage3) {
+            // Tìm shipper tỉnh đích để giao hàng
+            const toProvince = stage3.toLocation.province;
+
+            // Tìm local shipper có phục vụ tỉnh đích
+            const shipper3 = await ShipperCoverageArea.findOne({
+                shipperType: 'local',
+                status: 'active',
+                'coverageAreas.province': toProvince,
+            });
+
+            if (shipper3) {
+                // ✅ Gán shipper tùy chọn (nếu tìm thấy)
+                stage3.assignedShipperId = shipper3.shipperId;
+                stage3.shippingCompany = shipper3.companyName || shipper3.name;
+            }
+            // Nếu không tìm thấy, còn pending để admin gán thủ công
+
+            // ✅ Stage 3 status = pending (chờ shipper nhận, không tự động gán)
+            stage3.status = 'pending';
+            await stage3.save();
+
+            // ✅ Update OrderDetail currentStageIndex
+            await OrderDetail.findByIdAndUpdate(
+                stage.orderDetailId._id,
+                { currentStageIndex: 2 } // 0-indexed: stage 3 = index 2
+            );
+        }
+
+        return res.status(200).json({
+            success: true,
+            message:
+                'Stage 2 confirmed. Stage 3 activated waiting for shipper pickup.',
+            data: {
+                stage2: {
+                    id: stage._id,
+                    status: 'delivered',
+                    deliveredAt: stage.deliveredAt,
+                },
+                stage3: {
+                    id: stage3?._id,
+                    status: 'pending',
+                    assignedShipperId: stage3?.assignedShipperId || null,
+                    message: stage3?.assignedShipperId
+                        ? 'Shipper đã được gán, chờ nhận hàng'
+                        : 'Chờ admin gán shipper',
+                },
+            },
+        });
+    } catch (err) {
+        console.error('❌ Lỗi confirm stage 2:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ',
+            error: err.message,
         });
     }
 };

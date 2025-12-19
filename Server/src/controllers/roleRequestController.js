@@ -6,6 +6,7 @@ const {
     AdminProfile,
 } = require('../models/profileModel');
 const RoleRequest = require('../models/roleRequestModel');
+const ShipperCoverageArea = require('../models/shipperCoverageAreaModel');
 const {
     updateProfileForRole,
 } = require('../helpers/updateProfileForRoleHelper');
@@ -416,6 +417,61 @@ exports.approveRequest = async (req, res) => {
                     ...request.details,
                     profileType: 'shipper',
                 });
+            }
+
+            // 🆕 Tự động tạo ShipperCoverageArea
+            const existingCoverage = await ShipperCoverageArea.findOne({
+                shipperId: profile._id,
+            });
+
+            if (!existingCoverage) {
+                const { serviceArea, vehicleType } = request.details;
+
+                // Xác định shipperType dựa vào serviceArea
+                let shipperType = 'local'; // Default
+                if (
+                    serviceArea &&
+                    serviceArea.length > 1 &&
+                    serviceArea.some(
+                        (a) => a.province !== serviceArea[0].province
+                    )
+                ) {
+                    shipperType = 'regional'; // Nhiều tỉnh = regional
+                }
+
+                // Tạo coverage area mới
+                await ShipperCoverageArea.create({
+                    shipperId: profile._id,
+                    shipperType,
+                    name:
+                        request.details.firstName +
+                        ' ' +
+                        request.details.lastName,
+                    phone: request.details.primaryPhone,
+                    coverageAreas:
+                        serviceArea?.map((area) => ({
+                            province: area.provinceName || area.province, // Tên thay vì code
+                            district: area.districtName || area.district,
+                            districts: [],
+                            wards: [],
+                        })) || [],
+                    capacity: {
+                        maxOrdersPerDay: shipperType === 'regional' ? 10 : 20, // Regional ít hơn
+                        currentActiveOrders: 0,
+                        isAvailable: true,
+                    },
+                    status: 'active',
+                    performance: {
+                        totalDeliveries: 0,
+                        successfulDeliveries: 0,
+                        averageRating: 5.0,
+                        onTimeDeliveryRate: 100,
+                    },
+                });
+
+                console.log(
+                    `✅ Tự động tạo ShipperCoverageArea cho shipper ${profile._id}`
+                );
             }
         }
 

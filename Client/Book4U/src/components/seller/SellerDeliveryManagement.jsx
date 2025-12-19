@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Truck, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import {
+    MapPin,
+    Truck,
+    CheckCircle,
+    AlertCircle,
+    Loader,
+    Edit2,
+} from 'lucide-react';
 import { multiDeliveryApi } from '@/services/api/multiDeliveryApi';
 
 /**
@@ -10,6 +17,7 @@ import { multiDeliveryApi } from '@/services/api/multiDeliveryApi';
  * - Xem chi tiết từng stage
  * - Xem vị trí shipper realtime
  * - Xem lịch sử vận chuyển
+ * 🆕 - Confirm button cho Stage 2
  */
 
 const SellerDeliveryManagement = ({ orderDetailId }) => {
@@ -17,6 +25,8 @@ const SellerDeliveryManagement = ({ orderDetailId }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedStage, setExpandedStage] = useState(null);
+    const [confirmingStage, setConfirmingStage] = useState(null);
+    const [confirmNotes, setConfirmNotes] = useState('');
 
     useEffect(() => {
         if (orderDetailId) {
@@ -42,6 +52,32 @@ const SellerDeliveryManagement = ({ orderDetailId }) => {
             console.error('Error fetching stages:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // 🆕 Confirm Stage 2 delivery
+    const handleConfirmStage2 = async (stageId) => {
+        try {
+            setConfirmingStage(stageId);
+            const response = await multiDeliveryApi.confirmCarrierDelivery(
+                stageId,
+                { notes: confirmNotes }
+            );
+
+            if (response.success) {
+                // Refresh data
+                await fetchDeliveryStages();
+                setConfirmNotes('');
+                alert(
+                    '✅ Xác nhận Stage 2 hoàn thành. Stage 3 đã được kích hoạt!'
+                );
+            } else {
+                alert(`❌ Lỗi: ${response.message}`);
+            }
+        } catch (err) {
+            alert(`❌ Lỗi: ${err.message}`);
+        } finally {
+            setConfirmingStage(null);
         }
     };
 
@@ -340,6 +376,71 @@ const SellerDeliveryManagement = ({ orderDetailId }) => {
                                         </p>
                                     </div>
                                 </div>
+
+                                {/* 🆕 Stage 2 Confirm Button */}
+                                {stage.stageNumber === 2 &&
+                                    stage.status === 'in_transit' && (
+                                        <div className="border-t border-gray-200 pt-4">
+                                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                                                <div className="flex items-start gap-2 mb-2">
+                                                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-amber-900">
+                                                            🚚 Stage 2 đang vận
+                                                            chuyển
+                                                        </p>
+                                                        <p className="text-xs text-amber-700 mt-1">
+                                                            Khi dịch vụ vận
+                                                            chuyển báo tới Hub
+                                                            2, nhấn xác nhận để
+                                                            kích hoạt Stage 3
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <textarea
+                                                    value={confirmNotes}
+                                                    onChange={(e) =>
+                                                        setConfirmNotes(
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="Ghi chú (tùy chọn): VD: Đã tới Hub 2 lúc 15h30..."
+                                                    className="w-full px-3 py-2 border border-amber-300 rounded text-xs mb-2 focus:outline-none focus:border-amber-500 resize-none"
+                                                    rows="2"
+                                                />
+                                                <button
+                                                    onClick={() =>
+                                                        handleConfirmStage2(
+                                                            stage._id
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        confirmingStage ===
+                                                        stage._id
+                                                    }
+                                                    className={`w-full px-3 py-2 ${
+                                                        confirmingStage ===
+                                                        stage._id
+                                                            ? 'bg-gray-400 cursor-not-allowed'
+                                                            : 'bg-amber-600 hover:bg-amber-700'
+                                                    } text-white text-sm font-medium rounded transition flex items-center justify-center gap-2`}>
+                                                    {confirmingStage ===
+                                                    stage._id ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                            Đang xác nhận...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            Xác nhận Stage 2
+                                                            Hoàn Thành
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                             </div>
                         )}
                     </div>

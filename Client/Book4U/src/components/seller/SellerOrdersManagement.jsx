@@ -7,6 +7,7 @@ import {
     confirmOrderDetail,
 } from '../../services/api/sellerOrderApi.js';
 import { createDeliveryStages } from '../../services/api/multiDeliveryApi.js';
+import DeliveryStageTracker from '../tracking/DeliveryStageTracker.jsx';
 import {
     formatOrderItem,
     getStatusDisplay,
@@ -426,20 +427,29 @@ function SellerOrdersManagement() {
                                                     : '—'}
                                             </p>
                                         </div>
-
-                                        <div className="bg-white p-3 rounded text-sm border border-gray-200">
-                                            <p className="text-xs text-gray-500 font-semibold">
-                                                Mã vận đơn
-                                            </p>
-                                            <p className="font-semibold text-xs break-all">
-                                                {orderDetail.trackingNumber ||
-                                                    '—'}
-                                            </p>
-                                            <p className="text-xs text-gray-600">
-                                                {orderDetail.carrierName || '—'}
-                                            </p>
-                                        </div>
                                     </div>
+
+                                    {/* 🆕 Delivery Tracking Section - Full Details */}
+                                    {(orderDetail.status === 'shipping' ||
+                                        orderDetail.status ===
+                                            'in_delivery_stage' ||
+                                        orderDetail.status === 'delivered') &&
+                                        orderDetail.mainOrderId && (
+                                            <div className="mt-4">
+                                                <h4 className="font-bold mb-3 text-blue-700">
+                                                    📍 Theo dõi vận chuyển:
+                                                </h4>
+                                                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-lg border border-blue-200">
+                                                    <DeliveryStageTracker
+                                                        orderDetailId={
+                                                            orderDetail._id
+                                                        }
+                                                        showMap={true}
+                                                        userRole="seller"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
 
                                     {/* Current status and actions */}
                                     <div>

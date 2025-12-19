@@ -134,4 +134,24 @@ router.get(
     multiStageDeliveryController.trackOrderRealtime
 );
 
+/**
+ * [PUT] /api/multi-delivery/stages/:stageId/confirm-carrier-delivery
+ * 🆕 Seller confirm khi dịch vụ vận chuyển báo tới hub2
+ * Chỉ dùng cho Stage 2 (Regional transfer)
+ * Required: User is Seller (của OrderDetail này)
+ *
+ * Body: { notes (optional) }
+ *
+ * Flow:
+ * 1. Stage 2 đang in_transit (vận chuyển từ hub1 → hub2)
+ * 2. Dịch vụ vận chuyển báo cho seller khi tới hub2
+ * 3. Seller nhấn nút confirm → Stage 2 marked as delivered
+ * 4. Stage 3 auto-activate với status='pending' (chờ shipper nhận)
+ */
+router.put(
+    '/stages/:stageId/confirm-carrier-delivery',
+    authMiddleware,
+    multiStageDeliveryController.confirmCarrierDelivery
+);
+
 module.exports = router;

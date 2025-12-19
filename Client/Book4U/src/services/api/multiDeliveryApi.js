@@ -117,6 +117,29 @@ export const completeDeliveryStage = (stageId, deliveryData) =>
     );
 
 /**
+ * 🆕 Seller xác nhận Stage 2 hoàn thành khi dịch vụ vận chuyển báo tới hub2
+ * PUT /api/multi-delivery/stages/:stageId/confirm-carrier-delivery
+ *
+ * Flow:
+ * 1. Dịch vụ vận chuyển báo cho seller khi tới hub2
+ * 2. Seller nhấn nút confirm Stage 2
+ * 3. Stage 2 marked as delivered
+ * 4. Stage 3 auto-activate với status='pending' (chờ shipper nhận)
+ *
+ * @param {string} stageId - ID của delivery stage (Stage 2)
+ * @param {Object} data - {notes (optional)}
+ * @returns {Promise}
+ */
+export const confirmCarrierDelivery = (stageId, data = {}) =>
+    fetchHandler(
+        axiosPrivate,
+        `${MULTI_DELIVERY_API_URL}/stages/${stageId}/confirm-carrier-delivery`,
+        data,
+        'Lỗi khi xác nhận Stage 2 hoàn thành.',
+        'PUT'
+    );
+
+/**
  * Lấy danh sách đơn hàng chờ pickup cho shipper (lọc theo coverage area)
  * GET /api/multi-delivery/shipper/orders
  *
@@ -295,6 +318,7 @@ export const multiDeliveryApi = {
     pickupPackage,
     updateShipperLocation,
     completeDeliveryStage,
+    confirmCarrierDelivery, // 🆕 Seller confirm Stage 2
     getShipperOrders,
     getShipperAssignedOrders,
     trackOrderRealtime,
