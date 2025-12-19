@@ -56,13 +56,11 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route
-                    path="/reset-password/:token"
-                    element={<ResetPassword />}
-                />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/book/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/seller/:sellerId" element={<SellerStore />} />
+                <Route path="/profile/:profileId" element={<Profile />} />
 
                 {/* Private Routes */}
                 <Route
@@ -186,18 +184,9 @@ function AppRoutes() {
                     }
                 />
                 {/* Payment Callback Routes */}
-                <Route
-                    path="/payment/vnpay/callback"
-                    element={<PaymentCallback />}
-                />
-                <Route
-                    path="/payment/momo/callback"
-                    element={<PaymentCallback />}
-                />
-                <Route
-                    path="/payment/momo/test"
-                    element={<MomoTestPayment />}
-                />
+                <Route path="/payment/vnpay/callback" element={<PaymentCallback />} />
+                <Route path="/payment/momo/callback" element={<PaymentCallback />} />
+                <Route path="/payment/momo/test" element={<MomoTestPayment />} />
                 <Route
                     path="/live/:streamId"
                     element={
@@ -214,7 +203,7 @@ function AppRoutes() {
                         </PrivateRoute>
                     }
                 />
-                <Route path="/profile/:profileId" element={<Profile />} />
+
                 {/* Not Found Route */}
                 <Route path="*" element={<NotFound />} />
             </Routes>

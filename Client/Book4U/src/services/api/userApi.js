@@ -14,25 +14,18 @@ export const requestOtp = async ({ email }) => {
 
         return res.data;
     } catch (error) {
-        const message =
-            error.response?.data?.message || 'Đã xảy ra lỗi khi gửi mã OTP.';
+        const message = error.response?.data?.message || 'Đã xảy ra lỗi khi gửi mã OTP.';
         return { error: true, message };
     }
 };
 
 export const verifyOtp = async ({ otp }) => {
     try {
-        const res = await axios.post(
-            `${API_URL}/verify-otp`,
-            { otp },
-            { withCredentials: true }
-        );
+        const res = await axios.post(`${API_URL}/verify-otp`, { otp }, { withCredentials: true });
 
         return res.data;
     } catch (error) {
-        const message =
-            error.response?.data?.message ||
-            'Đã xảy ra lỗi khi xác thực mã OTP.';
+        const message = error.response?.data?.message || 'Đã xảy ra lỗi khi xác thực mã OTP.';
         return { error: true, message };
     }
 };
@@ -46,8 +39,7 @@ export const register = async ({ tempToken, password }) => {
 
         return res.data;
     } catch (error) {
-        const message =
-            error.response?.data?.message || 'Đã xảy ra lỗi khi đăng ký.';
+        const message = error.response?.data?.message || 'Đã xảy ra lỗi khi đăng ký.';
 
         return { error: true, message: message };
     }
@@ -59,8 +51,7 @@ export const loginPassword = async (formData) => {
 
         return res.data;
     } catch (error) {
-        const message =
-            error.response?.data?.message || 'Đã xảy ra lỗi khi đăng nhập.';
+        const message = error.response?.data?.message || 'Đã xảy ra lỗi khi đăng nhập.';
 
         return { error: true, message: message };
     }
@@ -71,9 +62,7 @@ export const googleLogin = async (credential) => {
         const res = await axios.post(`${API_URL}/login-google`, { credential });
         return res.data;
     } catch (error) {
-        const message =
-            error.response?.data?.message ||
-            'Đã xảy ra lỗi khi đăng nhập Google.';
+        const message = error.response?.data?.message || 'Đã xảy ra lỗi khi đăng nhập Google.';
         return { error: true, message };
     }
 };
@@ -84,8 +73,7 @@ export const forgotPassword = async ({ email }) => {
         return res.data;
     } catch (error) {
         const message =
-            error.response?.data?.message ||
-            'Đã xảy ra lỗi khi yêu cầu đặt lại mật khẩu.';
+            error.response?.data?.message || 'Đã xảy ra lỗi khi yêu cầu đặt lại mật khẩu.';
         return { error: true, message };
     }
 };
@@ -98,9 +86,27 @@ export const resetPassword = async ({ token, newPassword }) => {
         });
         return res.data;
     } catch (error) {
-        const message =
-            error.response?.data?.message ||
-            'Đã xảy ra lỗi khi đặt lại mật khẩu.';
+        const message = error.response?.data?.message || 'Đã xảy ra lỗi khi đặt lại mật khẩu.';
         return { error: true, message };
     }
 };
+
+export const getUserProfile = (profileId) =>
+    fetchHandler(axios, `${API_URL}/profile/${profileId}`, {}, 'Lỗi khi lấy thông tin cá nhân.');
+
+export const getCurrentUserProfile = () =>
+    fetchHandler(
+        axiosPrivate,
+        `${API_URL}/profile/current/me`,
+        {},
+        'Lỗi khi lấy thông tin cá nhân hiện tại.'
+    );
+
+export const updateUserProfile = (data) =>
+    fetchHandler(
+        axiosPrivate,
+        `${API_URL}/profile/update`,
+        data,
+        'Lỗi khi cập nhật thông tin cá nhân.',
+        'PUT'
+    );

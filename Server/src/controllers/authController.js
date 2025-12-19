@@ -50,10 +50,7 @@ exports.verifyOtp = async (req, res) => {
         const { otp } = req.body;
         const otpData = req.cookies.otpData;
 
-        if (!otpData)
-            return res
-                .status(400)
-                .json({ message: 'OTP hết hạn hoặc không tồn tại' });
+        if (!otpData) return res.status(400).json({ message: 'OTP hết hạn hoặc không tồn tại' });
 
         const isValid = await comparePassword(otp, otpData.otp);
         if (!isValid) return res.status(400).json({ message: 'OTP sai' });
@@ -77,8 +74,7 @@ exports.register = async (req, res) => {
         const email = decoded.email;
 
         const existingUser = await User.findOne({ email });
-        if (existingUser)
-            return res.status(400).json({ message: 'Email đã được sử dụng' });
+        if (existingUser) return res.status(400).json({ message: 'Email đã được sử dụng' });
 
         const hashedPassword = password ? await hashPassword(password) : null;
         const newUser = new User({ email, password: hashedPassword });
@@ -95,14 +91,10 @@ exports.loginPassword = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user)
-            return res
-                .status(404)
-                .json({ message: 'Tài khoản không tồn tại!' });
+        if (!user) return res.status(404).json({ message: 'Tài khoản không tồn tại!' });
 
         const isMatchPassword = await comparePassword(password, user.password);
-        if (!isMatchPassword)
-            return res.status(401).json({ message: 'Sai mật khẩu!' });
+        if (!isMatchPassword) return res.status(401).json({ message: 'Sai mật khẩu!' });
 
         const token = generateToken({ userId: user._id, role: user.role });
         const profile = await Profile.findOne({ userId: user._id });
@@ -157,8 +149,7 @@ exports.googleLogin = async (req, res) => {
                 !profile.firstName ||
                 profile.firstName === 'user' ||
                 profile.lastName === profile.userId.toString().slice(-5);
-            const isDefaultAvatar =
-                !profile.avatar || profile.avatar.includes('default');
+            const isDefaultAvatar = !profile.avatar || profile.avatar.includes('default');
 
             if (isDefaultName || isDefaultAvatar) {
                 if (isDefaultName) {
@@ -197,8 +188,7 @@ exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         const user = await User.findOne({ email });
-        if (!user)
-            return res.status(404).json({ message: 'Email không tồn tại' });
+        if (!user) return res.status(404).json({ message: 'Email không tồn tại' });
 
         const { resetToken, resetExpires } = generateResetToken();
         user.resetPasswordToken = resetToken;
@@ -222,17 +212,13 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
     try {
         const { token, newPassword } = req.body;
-        if (!token || !newPassword)
-            return res.status(400).json({ message: 'Thiếu dữ liệu' });
+        if (!token || !newPassword) return res.status(400).json({ message: 'Thiếu dữ liệu' });
 
         const user = await User.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() },
         });
-        if (!user)
-            return res
-                .status(400)
-                .json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+        if (!user) return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
 
         user.password = await hashPassword(newPassword);
         user.resetPasswordToken = undefined;
@@ -242,5 +228,98 @@ exports.resetPassword = async (req, res) => {
         res.json({ message: 'Đặt lại mật khẩu thành công' });
     } catch (err) {
         res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+// ===== Get User Profile (by profileId) =====
+exports.getUserProfile = async (req, res) => {
+    try {
+        const { profileId } = req.params;
+
+        const profile = await Profile.findById(profileId).populate('userId', 'email role');
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy profile.',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: profile,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi lấy profile:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// ===== Update User Profile (private) =====
+exports.updateUserProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { firstName, lastName, dateOfBirth, primaryPhone, avatar, addresses } = req.body;
+
+        const profile = await Profile.findOne({ userId });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy profile.',
+            });
+        }
+
+        // Cập nhật các field
+        if (firstName) profile.firstName = firstName;
+        if (lastName) profile.lastName = lastName;
+        if (dateOfBirth) profile.dateOfBirth = dateOfBirth;
+        if (primaryPhone) profile.primaryPhone = primaryPhone;
+        if (avatar) profile.avatar = avatar;
+        if (addresses) profile.addresses = addresses;
+
+        await profile.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Cập nhật profile thành công.',
+            data: profile,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi cập nhật profile:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
+// ===== Get Current User Profile (private) =====
+exports.getCurrentUserProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const profile = await Profile.findOne({ userId }).populate('userId', 'email role');
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy profile.',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: profile,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi lấy profile hiện tại:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
     }
 };

@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, MapPin } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
-import {
-    getSellerStore,
-    getSellerProducts,
-} from '../../services/api/sellerApi';
+import { getSellerStore, getSellerProducts } from '../../services/api/sellerApi';
 import Loading from '../../components/common/Loading';
 import API_URL from '../../configs/api';
 
@@ -22,10 +19,10 @@ function SellerStore() {
 
     useEffect(() => {
         // Kiểm tra nếu sellerId là của user hiện tại thì chuyển hướng đến dashboard
-        if (user?._id === sellerId) {
-            navigate('/dashboard/seller', { replace: true });
-            return;
-        }
+        // if (user?._id === sellerId) {
+        //     navigate('/dashboard/seller', { replace: true });
+        //     return;
+        // }
 
         const fetchSellerData = async () => {
             try {
@@ -71,18 +68,8 @@ function SellerStore() {
     };
 
     if (loading) return <Loading context="Đang tải thông tin cửa hàng..." />;
-    if (error)
-        return (
-            <p className="text-center text-red-500 mt-10 font-medium">
-                {error}
-            </p>
-        );
-    if (!seller)
-        return (
-            <p className="text-center mt-10 text-gray-500">
-                Không tìm thấy cửa hàng.
-            </p>
-        );
+    if (error) return <p className="text-center text-red-500 mt-10 font-medium">{error}</p>;
+    if (!seller) return <p className="text-center mt-10 text-gray-500">Không tìm thấy cửa hàng.</p>;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -101,9 +88,7 @@ function SellerStore() {
 
                         {/* Thông tin cửa hàng */}
                         <div className="flex-grow">
-                            <h1 className="text-4xl font-bold mb-2">
-                                {seller.storeName}
-                            </h1>
+                            <h1 className="text-4xl font-bold mb-2">{seller.storeName}</h1>
 
                             {/* Mô tả cửa hàng */}
                             {seller.storeDescription && (
@@ -120,10 +105,7 @@ function SellerStore() {
                                             <Star
                                                 key={i}
                                                 className={`w-4 h-4 ${
-                                                    i <
-                                                    Math.floor(
-                                                        seller.rating || 0
-                                                    )
+                                                    i < Math.floor(seller.rating || 0)
                                                         ? 'fill-yellow-300 text-yellow-300'
                                                         : 'text-white/40'
                                                 }`}
@@ -150,9 +132,7 @@ function SellerStore() {
 
             <div className="max-w-7xl mx-auto px-4 py-12">
                 <div>
-                    <h2 className="text-3xl font-bold mb-8 text-gray-900">
-                        Danh sách sản phẩm
-                    </h2>
+                    <h2 className="text-3xl font-bold mb-8 text-gray-900">Danh sách sản phẩm</h2>
 
                     {products.length === 0 ? (
                         <div className="bg-white rounded-xl p-16 text-center shadow-sm border border-gray-100">
@@ -161,7 +141,8 @@ function SellerStore() {
                                     className="w-16 h-16 mx-auto opacity-50"
                                     fill="none"
                                     stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                                    viewBox="0 0 24 24"
+                                >
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -179,15 +160,15 @@ function SellerStore() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {products.map((product) => {
                                     const discountedPrice = product.discount
-                                        ? product.price *
-                                          (1 - product.discount / 100)
+                                        ? product.price * (1 - product.discount / 100)
                                         : product.price;
 
                                     return (
                                         <Link
                                             to={`/product/${product.slug}`}
                                             key={product._id}
-                                            className="group bg-white rounded-xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-blue-200 transition-all duration-300 overflow-hidden">
+                                            className="group bg-white rounded-xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-blue-200 transition-all duration-300 overflow-hidden"
+                                        >
                                             <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 h-40">
                                                 <img
                                                     src={`${API_URL}${product.images?.[0]}`}
@@ -211,40 +192,32 @@ function SellerStore() {
 
                                                 <div className="flex items-center gap-1 mb-3">
                                                     <div className="flex gap-0.5">
-                                                        {[...Array(5)].map(
-                                                            (_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={`w-3 h-3 ${
-                                                                        i <
-                                                                        Math.floor(
-                                                                            product.ratingAvg ||
-                                                                                0
-                                                                        )
-                                                                            ? 'fill-yellow-400 text-yellow-400'
-                                                                            : 'text-gray-300'
-                                                                    }`}
-                                                                />
-                                                            )
-                                                        )}
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star
+                                                                key={i}
+                                                                className={`w-3 h-3 ${
+                                                                    i <
+                                                                    Math.floor(
+                                                                        product.ratingAvg || 0
+                                                                    )
+                                                                        ? 'fill-yellow-400 text-yellow-400'
+                                                                        : 'text-gray-300'
+                                                                }`}
+                                                            />
+                                                        ))}
                                                     </div>
                                                     <span className="text-xs font-semibold text-gray-700 ml-1">
-                                                        {(
-                                                            product.ratingAvg ||
-                                                            0
-                                                        ).toFixed(1)}
+                                                        {(product.ratingAvg || 0).toFixed(1)}
                                                     </span>
                                                 </div>
 
                                                 <div className="flex items-baseline gap-1">
                                                     <span className="text-sm font-bold text-blue-600">
-                                                        {discountedPrice.toLocaleString()}
-                                                        ₫
+                                                        {discountedPrice.toLocaleString()}₫
                                                     </span>
                                                     {product.discount > 0 && (
                                                         <span className="text-xs line-through text-gray-400">
-                                                            {product.price.toLocaleString()}
-                                                            ₫
+                                                            {product.price.toLocaleString()}₫
                                                         </span>
                                                     )}
                                                 </div>
@@ -254,16 +227,16 @@ function SellerStore() {
                                 })}
                             </div>
 
-                            {pagination &&
-                                pagination.current < pagination.pages && (
-                                    <div className="text-center mt-12">
-                                        <button
-                                            onClick={handleLoadMore}
-                                            className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3 rounded-lg hover:shadow-lg hover:from-blue-700 hover:to-blue-600 transition-all font-semibold">
-                                            Xem thêm sản phẩm
-                                        </button>
-                                    </div>
-                                )}
+                            {pagination && pagination.current < pagination.pages && (
+                                <div className="text-center mt-12">
+                                    <button
+                                        onClick={handleLoadMore}
+                                        className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-8 py-3 rounded-lg hover:shadow-lg hover:from-blue-700 hover:to-blue-600 transition-all font-semibold"
+                                    >
+                                        Xem thêm sản phẩm
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
