@@ -6,6 +6,7 @@ import SearchBar from '../common/SearchBar';
 import { CartContext } from '../../contexts/CartContext';
 import NotificationBell from '../notifications/NotificationBell';
 import LiveAdmin from '../../pages/LiveAdmin';
+import { MessageCircle } from 'lucide-react';
 
 const roleConfigs = {
     customer: (userId) => {
@@ -53,6 +54,12 @@ function Navbar() {
                     {/* Live Admin */}
                     <button title="Danh sách livestream">
                         <Link to="/lives">🔴</Link>
+                    </button>
+
+                    <button title="chat">
+                        <Link to="/chat">
+                            <MessageCircle className="w-6 h-6 text-gray-700" />
+                        </Link>
                     </button>
 
                     {/* Notifications */}

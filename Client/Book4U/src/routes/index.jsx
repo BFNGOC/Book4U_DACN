@@ -41,6 +41,7 @@ import PaymentCallback from '../pages/payment/PaymentCallback';
 import MomoTestPayment from '../pages/payment/MomoTestPayment';
 
 import Profile from '../pages/Profile';
+import Chat from '../pages/Chat';
 
 import NotFound from '../pages/NotFound';
 
@@ -200,6 +201,14 @@ function AppRoutes() {
                     element={
                         <PrivateRoute>
                             <LiveListPage />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="/chat"
+                    element={
+                        <PrivateRoute>
+                            <Chat />
                         </PrivateRoute>
                     }
                 />
