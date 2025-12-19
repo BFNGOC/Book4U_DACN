@@ -51,6 +51,77 @@ export const sendMessage = async (conversationId, senderId, message, senderInfo)
     }
 };
 
+// Gửi file/ảnh
+export const sendFile = async (conversationId, senderId, fileData, senderInfo) => {
+    try {
+        const messagesRef = ref(db, `chats/${conversationId}/messages`);
+        const newMessageRef = push(messagesRef);
+
+        await set(newMessageRef, {
+            id: newMessageRef.key,
+            senderId,
+            senderName: senderInfo.firstName + ' ' + senderInfo.lastName,
+            senderAvatar: senderInfo.storeLogo || senderInfo.profilePicture || '',
+            senderRole: senderInfo.role,
+            fileUrl: fileData.fileUrl,
+            fileType: fileData.fileType, // 'image' hoặc 'file'
+            fileName: fileData.fileName,
+            fileSize: fileData.fileSize,
+            mimeType: fileData.mimeType,
+            timestamp: Date.now(),
+            read: false,
+            isFile: true,
+        });
+
+        // Cập nhật lastMessage của conversation
+        const conversationRef = ref(db, `chats/${conversationId}`);
+        const lastMessageText =
+            fileData.fileType === 'image'
+                ? `[Gửi ảnh: ${fileData.fileName}]`
+                : `[Gửi file: ${fileData.fileName}]`;
+        await update(conversationRef, {
+            lastMessage: lastMessageText,
+            lastMessageTime: Date.now(),
+            lastMessageSenderId: senderId,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Lỗi gửi file:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Upload file lên server
+export const uploadChatFile = async (file) => {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/api/uploads/chat-files`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+                body: formData,
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Lỗi upload file:', error);
+        throw error;
+    }
+};
+
 // Lấy tất cả messages của conversation
 export const getMessages = (conversationId, callback) => {
     try {

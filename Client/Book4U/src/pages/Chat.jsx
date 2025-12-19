@@ -25,7 +25,7 @@ function Chat() {
 
     if (!currentUser) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="flex items-center justify-center">
                 <p className="text-gray-600 text-center">
                     Vui lòng đăng nhập để sử dụng chức năng chat
                 </p>
@@ -34,7 +34,7 @@ function Chat() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-4">
+        <div className="bg-gray-50 pb-4">
             <div className="h-[calc(100vh-theme(spacing.20))] max-w-7xl mx-auto flex bg-white rounded-lg shadow-lg overflow-hidden">
                 {/* Chat List - Sidebar */}
                 <div className="w-full md:w-80 border-r border-gray-200">

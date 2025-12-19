@@ -20,9 +20,7 @@ router.post(
     authMiddleware,
     createUploader('identification').array('images', 2),
     (req, res) => {
-        const paths = req.files.map(
-            (f) => `/uploads/identification/${f.filename}`
-        );
+        const paths = req.files.map((f) => `/uploads/identification/${f.filename}`);
         res.status(200).json({ success: true, paths });
     }
 );
@@ -32,9 +30,7 @@ router.post(
     authMiddleware,
     createUploader('business-license').array('images', 2),
     (req, res) => {
-        const paths = req.files.map(
-            (f) => `/uploads/business-license/${f.filename}`
-        );
+        const paths = req.files.map((f) => `/uploads/business-license/${f.filename}`);
         res.status(200).json({ success: true, paths });
     }
 );
@@ -44,23 +40,52 @@ router.post(
     authMiddleware,
     createUploader('driver-license').array('images', 2),
     (req, res) => {
-        const paths = req.files.map(
-            (f) => `/uploads/driver-license/${f.filename}`
-        );
+        const paths = req.files.map((f) => `/uploads/driver-license/${f.filename}`);
         res.status(200).json({ success: true, paths });
     }
 );
 
 router.post(
-    '/portrait',
+    '/chat-files',
     authMiddleware,
-    createUploader('portrait').single('image'),
+    createUploader('chat-files').single('file'),
     (req, res) => {
-        res.status(200).json({
-            success: true,
-            path: `/uploads/portrait/${req.file.filename}`,
-        });
+        try {
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Không có file được upload',
+                });
+            }
+
+            const fileUrl = `/uploads/chat-files/${req.file.filename}`;
+            const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'file';
+            const fileName = req.file.originalname;
+            const fileSize = req.file.size;
+
+            res.status(200).json({
+                success: true,
+                fileUrl,
+                fileType,
+                fileName,
+                fileSize,
+                mimeType: req.file.mimetype,
+            });
+        } catch (error) {
+            console.error('Upload error:', error);
+            res.status(500).json({
+                success: false,
+                error: error.message,
+            });
+        }
     }
 );
+
+router.post('/portrait', authMiddleware, createUploader('portrait').single('image'), (req, res) => {
+    res.status(200).json({
+        success: true,
+        path: `/uploads/portrait/${req.file.filename}`,
+    });
+});
 
 module.exports = router;
