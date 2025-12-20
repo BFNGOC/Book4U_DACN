@@ -14,6 +14,8 @@ const { authMiddleware } = require('../middlewares/authMiddleware');
  * POST   /:orderId/cancel     - Hủy đơn
  * GET    /:orderId            - Lấy đơn
  * GET    /user/:profileId     - Danh sách đơn
+ * GET    /detail/list         - ✅ Danh sách OrderDetail của customer
+ * GET    /detail/:orderDetailId - ✅ Chi tiết 1 OrderDetail
  */
 
 // 1️⃣ Kiểm tra stock trước tạo đơn
@@ -55,6 +57,20 @@ router.get(
     '/user/:profileId',
     authMiddleware,
     orderManagementController.getCustomerOrders
+);
+
+// ✅ Danh sách OrderDetail của khách hàng (thay thế Order cũ)
+router.get(
+    '/detail/list',
+    authMiddleware,
+    orderManagementController.getCustomerOrderDetails
+);
+
+// ✅ Chi tiết 1 OrderDetail (cho detail page)
+router.get(
+    '/detail/:orderDetailId',
+    authMiddleware,
+    orderManagementController.getCustomerOrderDetail
 );
 
 module.exports = router;

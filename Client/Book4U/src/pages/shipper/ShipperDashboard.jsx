@@ -65,33 +65,136 @@ export default function ShipperDashboard() {
             return;
         }
 
-        // Get location every 30 seconds
-        navigator.geolocation.watchPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                setCurrentLocation({ latitude, longitude });
-
-                // Update to server
-                try {
-                    await updateShipperLocation({
+        // First, try with high accuracy
+        const watchWithHighAccuracy = () => {
+            return navigator.geolocation.watchPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    console.log(
+                        '✅ High Accuracy GPS Success:',
                         latitude,
-                        longitude,
-                        address: `${latitude}, ${longitude}`,
-                    });
-                } catch (error) {
-                    console.error('Failed to update location:', error);
+                        longitude
+                    );
+                    setCurrentLocation({ latitude, longitude });
+
+                    // Update to server
+                    try {
+                        const response = await updateShipperLocation({
+                            latitude,
+                            longitude,
+                            address: `${latitude}, ${longitude}`,
+                        });
+                        console.log('📡 Server response:', response);
+                        toast.success('📍 Cập nhật vị trí thành công');
+                    } catch (error) {
+                        console.error('❌ Failed to update location:', error);
+                        toast.error(
+                            'Lỗi gửi vị trí đến server: ' + error.message
+                        );
+                    }
+                },
+                (error) => {
+                    console.warn('⚠️ High accuracy location error:', error);
+                    console.warn(
+                        'Error code:',
+                        error.code,
+                        '| Message:',
+                        error.message
+                    );
+
+                    // If timeout (code 3) with high accuracy, try without high accuracy
+                    if (error.code === 3) {
+                        console.log(
+                            '⏱️ High accuracy timeout, retrying with standard accuracy...'
+                        );
+                        toast.error(
+                            'GPS đang chuyển sang chế độ tiêu chuẩn...'
+                        );
+                        watchWithStandardAccuracy();
+                    } else if (error.code === 1) {
+                        toast.error(
+                            'Từ chối quyền truy cập GPS. Vui lòng bật quyền vị trí trong cài đặt.'
+                        );
+                    } else if (error.code === 2) {
+                        toast.error(
+                            'Không thể lấy vị trí GPS. Kiểm tra kết nối Internet hoặc bật GPS.'
+                        );
+                    } else {
+                        toast.error('Không thể lấy vị trí GPS');
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000, // Increased from 5s to 10s
+                    maximumAge: 0,
                 }
-            },
-            (error) => {
-                console.warn('Location error:', error);
-                toast.error('Không thể lấy vị trí GPS');
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0,
-            }
-        );
+            );
+        };
+
+        // Fallback: try without high accuracy requirement
+        const watchWithStandardAccuracy = () => {
+            return navigator.geolocation.watchPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    console.log(
+                        '✅ Standard Accuracy GPS Success:',
+                        latitude,
+                        longitude
+                    );
+                    setCurrentLocation({ latitude, longitude });
+
+                    // Update to server
+                    try {
+                        const response = await updateShipperLocation({
+                            latitude,
+                            longitude,
+                            address: `${latitude}, ${longitude}`,
+                        });
+                        console.log('📡 Server response:', response);
+                        toast.success(
+                            '📍 Cập nhật vị trí thành công (tiêu chuẩn)'
+                        );
+                    } catch (error) {
+                        console.error('❌ Failed to update location:', error);
+                        toast.error(
+                            'Lỗi gửi vị trí đến server: ' + error.message
+                        );
+                    }
+                },
+                (error) => {
+                    console.warn('⚠️ Standard accuracy location error:', error);
+                    console.warn(
+                        'Error code:',
+                        error.code,
+                        '| Message:',
+                        error.message
+                    );
+
+                    if (error.code === 1) {
+                        toast.error(
+                            'Từ chối quyền truy cập GPS. Vui lòng bật quyền vị trí trong cài đặt.'
+                        );
+                    } else if (error.code === 2) {
+                        toast.error(
+                            'Không thể lấy vị trí GPS. Kiểm tra kết nối Internet hoặc bật GPS.'
+                        );
+                    } else {
+                        toast.error(
+                            'Không thể lấy vị trí GPS. Vui lòng kiểm tra cài đặt vị trí trên thiết bị.'
+                        );
+                    }
+                },
+                {
+                    enableHighAccuracy: false,
+                    timeout: 15000, // Longer timeout for standard accuracy
+                    maximumAge: 30000, // Accept location up to 30s old
+                }
+            );
+        };
+
+        // Start with high accuracy
+        console.log('🚀 Starting location tracking (High Accuracy)...');
+        watchWithHighAccuracy();
     };
 
     return (

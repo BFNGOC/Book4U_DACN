@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getUserOrders, cancelOrder } from '../services/api/orderApi.js';
+import { getUserOrdersDetail, cancelOrder } from '../services/api/orderApi.js';
 import { useUser } from '../contexts/userContext.jsx';
 
 function Orders() {
@@ -56,16 +56,9 @@ function Orders() {
         try {
             setLoading(true);
 
-            // Kiểm tra user từ context
-            if (!user || !user._id) {
-                toast.error('Vui lòng đăng nhập');
-                navigate('/login');
-                return;
-            }
-
-            // Lấy danh sách đơn với profileId từ user context
+            // Lấy danh sách OrderDetails của khách hàng
             const params = filter !== 'all' ? { status: filter } : {};
-            const response = await getUserOrders(user._id, params);
+            const response = await getUserOrdersDetail(params);
 
             if (response.success) {
                 setOrders(response.data || []);
@@ -149,13 +142,23 @@ function Orders() {
                         <div
                             key={order._id}
                             className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
-                            onClick={() => navigate(`/orders/${order._id}`)}>
+                            onClick={() =>
+                                navigate(`/order-detail/${order._id}`)
+                            }>
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <p className="font-bold text-lg">
-                                        Đơn hàng #{order._id}
+                                        Đơn hàng #
+                                        {order._id?.slice(-8).toUpperCase() ||
+                                            order._id}
                                     </p>
                                     <p className="text-sm text-gray-500">
+                                        {order.sellerId?.shopName && (
+                                            <span className="mr-3">
+                                                Cửa hàng:{' '}
+                                                {order.sellerId.shopName}
+                                            </span>
+                                        )}
                                         {new Date(
                                             order.createdAt
                                         ).toLocaleString('vi-VN')}
@@ -169,34 +172,67 @@ function Orders() {
                                 </span>
                             </div>
 
+                            {/* Items preview */}
                             <div className="border-t pt-4 mb-4">
-                                <p className="text-sm text-gray-600 mb-2">
-                                    <strong>Địa chỉ:</strong>{' '}
-                                    {order.shippingAddress?.address}
-                                </p>
-                                {order.items && (
+                                {order.items && order.items.length > 0 && (
+                                    <div className="mb-3">
+                                        <p className="text-sm font-semibold text-gray-700 mb-2">
+                                            📦 Sản phẩm ({order.items.length})
+                                        </p>
+                                        <div className="space-y-1">
+                                            {order.items
+                                                .slice(0, 2)
+                                                .map((item, idx) => (
+                                                    <p
+                                                        key={idx}
+                                                        className="text-xs text-gray-600">
+                                                        •{' '}
+                                                        {item.bookId?.title ||
+                                                            'Sản phẩm'}{' '}
+                                                        x{item.quantity}
+                                                    </p>
+                                                ))}
+                                            {order.items.length > 2 && (
+                                                <p className="text-xs text-gray-500">
+                                                    ... và{' '}
+                                                    {order.items.length - 2} sản
+                                                    phẩm khác
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                {order.shippingAddress && (
                                     <p className="text-sm text-gray-600">
-                                        <strong>{order.items.length}</strong>{' '}
-                                        sản phẩm
+                                        <strong>📍 Giao đến:</strong>{' '}
+                                        {order.shippingAddress.fullName} -{' '}
+                                        {order.shippingAddress.address}
                                     </p>
                                 )}
                             </div>
 
                             <div className="flex justify-between items-center pt-4 border-t">
-                                <p className="text-lg font-bold">
-                                    Tổng:{' '}
-                                    <span className="text-red-500">
-                                        {order.totalAmount?.toLocaleString()}₫
-                                    </span>
-                                </p>
+                                <div>
+                                    <p className="text-xs text-gray-500 mb-1">
+                                        Tổng tiền
+                                    </p>
+                                    <p className="text-lg font-bold">
+                                        <span className="text-red-500">
+                                            {order.totalAmount?.toLocaleString()}
+                                            ₫
+                                        </span>
+                                    </p>
+                                </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate(`/orders/${order._id}`);
+                                            navigate(
+                                                `/order-detail/${order._id}`
+                                            );
                                         }}
-                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
-                                        Chi tiết
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-medium">
+                                        Xem chi tiết
                                     </button>
                                     {[
                                         'pending',
@@ -209,8 +245,8 @@ function Orders() {
                                                 e.stopPropagation();
                                                 handleCancelOrder(order._id);
                                             }}
-                                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
-                                            Hủy
+                                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-medium">
+                                            Hủy đơn
                                         </button>
                                     )}
                                 </div>

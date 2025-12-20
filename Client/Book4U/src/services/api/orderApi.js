@@ -81,3 +81,21 @@ export const approveReturn = (orderId, approved, reason) =>
         'Lỗi khi duyệt hoàn hàng.',
         'POST'
     );
+
+// ✅ Lấy danh sách OrderDetail của khách hàng (với delivery stages)
+export const getUserOrdersDetail = (filters = {}) =>
+    fetchHandler(
+        axiosPrivate,
+        'api/orders/detail/list',
+        filters,
+        'Lỗi khi lấy danh sách chi tiết đơn hàng.'
+    );
+
+// ✅ Lấy chi tiết OrderDetail theo ID
+export const getOrderDetailInfo = (orderDetailId) =>
+    fetchHandler(
+        axiosPrivate,
+        `api/orders/detail/${orderDetailId}`,
+        {},
+        'Lỗi khi lấy thông tin chi tiết đơn hàng.'
+    );

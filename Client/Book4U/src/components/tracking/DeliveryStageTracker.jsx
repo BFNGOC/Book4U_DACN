@@ -396,7 +396,6 @@ const DeliveryStageTracker = ({
                     </div>
                 </div>
             </div>
-
             {/* ===== CURRENT STAGE DETAILS ===== */}
             {currentStage && (
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
@@ -481,75 +480,130 @@ const DeliveryStageTracker = ({
                         )}
                 </div>
             )}
-
             {/* ===== MAP INTEGRATION ===== */}
-            {showMap && (
-                <div className="rounded-lg overflow-hidden border border-gray-300">
-                    {currentStage?.currentLocation ? (
-                        // GPS Location available
-                        <a
-                            href={`https://www.google.com/maps/search/${currentStage.currentLocation.latitude},${currentStage.currentLocation.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block bg-gradient-to-br from-gray-100 to-gray-200 h-64 flex items-center justify-center hover:from-gray-200 hover:to-gray-300 transition">
-                            <div className="text-center text-gray-700">
-                                <MapPin className="w-8 h-8 mx-auto mb-2 text-red-600" />
-                                <p className="text-sm font-bold">
-                                    📍 Xem trên Google Maps
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2">
-                                    {currentStage.currentLocation.latitude?.toFixed(
-                                        4
-                                    )}
-                                    ,{' '}
-                                    {currentStage.currentLocation.longitude?.toFixed(
-                                        4
-                                    )}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    ✓ Nhấn để xem bản đồ chi tiết
-                                </p>
-                            </div>
-                        </a>
-                    ) : (
-                        // No GPS but show stage address on maps
-                        <a
-                            href={`https://www.google.com/maps/search/${
-                                currentStage?.toLocation?.province ||
-                                currentStage?.fromLocation?.province ||
-                                'Việt Nam'
-                            }`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block bg-gradient-to-br from-blue-100 to-cyan-100 h-64 flex items-center justify-center hover:from-blue-200 hover:to-cyan-200 transition">
-                            <div className="text-center text-blue-700">
-                                <MapPin className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                                <p className="text-sm font-bold">
-                                    📍 Xem khu vực giao hàng
-                                </p>
-                                <p className="text-xs text-blue-600 mt-2 max-w-xs">
-                                    {currentStage?.toLocation?.province ||
-                                        currentStage?.fromLocation?.province ||
-                                        'Vị trí vận chuyển'}
-                                </p>
-                                <p className="text-xs text-blue-500 mt-2">
-                                    Chờ cập nhật GPS...
-                                </p>
-                                <p className="text-xs text-blue-500 mt-1">
-                                    ✓ Nhấn để xem bản đồ
-                                </p>
-                            </div>
-                        </a>
-                    )}
-                </div>
-            )}
+            {showMap &&
+                currentStage?.status !== 'delivered' &&
+                (() => {
+                    // Helper to convert GeoJSON Point to lat/lng format
+                    const getCoordinates = (location) => {
+                        if (!location) return null;
+                        // Handle GeoJSON Point format: { type: "Point", coordinates: [lng, lat] }
+                        if (
+                            location.type === 'Point' &&
+                            Array.isArray(location.coordinates)
+                        ) {
+                            return {
+                                latitude: location.coordinates[1],
+                                longitude: location.coordinates[0],
+                            };
+                        }
+                        // Handle direct lat/lng format: { latitude: X, longitude: Y }
+                        if (
+                            location.latitude !== undefined &&
+                            location.longitude !== undefined
+                        ) {
+                            return location;
+                        }
+                        return null;
+                    };
 
+                    const stageCoords = getCoordinates(
+                        currentStage?.currentLocation
+                    );
+                    const shipperCoords = getCoordinates(
+                        currentStage?.assignedShipperId?.currentLocation
+                    );
+
+                    return (
+                        <div className="rounded-lg overflow-hidden border border-gray-300">
+                            {stageCoords ? (
+                                // GPS Location from stage
+                                <a
+                                    href={`https://www.google.com/maps/search/${stageCoords.latitude},${stageCoords.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block bg-gradient-to-br from-gray-100 to-gray-200 h-64 flex items-center justify-center hover:from-gray-200 hover:to-gray-300 transition">
+                                    <div className="text-center text-gray-700">
+                                        <MapPin className="w-8 h-8 mx-auto mb-2 text-red-600" />
+                                        <p className="text-sm font-bold">
+                                            📍 Xem trên Google Maps (Stage)
+                                        </p>
+                                        <p className="text-xs text-gray-600 mt-2">
+                                            {stageCoords.latitude?.toFixed(4)},{' '}
+                                            {stageCoords.longitude?.toFixed(4)}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            ✓ Nhấn để xem bản đồ chi tiết
+                                        </p>
+                                    </div>
+                                </a>
+                            ) : shipperCoords ? (
+                                // GPS Location from shipper
+                                <a
+                                    href={`https://www.google.com/maps/search/${shipperCoords.latitude},${shipperCoords.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block bg-gradient-to-br from-purple-100 to-pink-100 h-64 flex items-center justify-center hover:from-purple-200 hover:to-pink-200 transition">
+                                    <div className="text-center text-purple-700">
+                                        <MapPin className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                                        <p className="text-sm font-bold">
+                                            📍 Vị trí Shipper
+                                        </p>
+                                        <p className="text-xs text-purple-600 mt-2">
+                                            {shipperCoords.latitude?.toFixed(4)}
+                                            ,{' '}
+                                            {shipperCoords.longitude?.toFixed(
+                                                4
+                                            )}
+                                        </p>
+                                        <p className="text-xs text-purple-500 mt-1">
+                                            ✓ Vị trí người giao hàng
+                                        </p>
+                                    </div>
+                                </a>
+                            ) : (
+                                // No GPS but show stage address on maps
+                                <a
+                                    href={`https://www.google.com/maps/search/${
+                                        currentStage?.toLocation?.province ||
+                                        currentStage?.fromLocation?.province ||
+                                        'Việt Nam'
+                                    }`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block bg-gradient-to-br from-blue-100 to-cyan-100 h-64 flex items-center justify-center hover:from-blue-200 hover:to-cyan-200 transition">
+                                    <div className="text-center text-blue-700">
+                                        <MapPin className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                                        <p className="text-sm font-bold">
+                                            📍 Xem khu vực giao hàng
+                                        </p>
+                                        <p className="text-xs text-blue-600 mt-2 max-w-xs">
+                                            {currentStage?.toLocation
+                                                ?.province ||
+                                                currentStage?.fromLocation
+                                                    ?.province ||
+                                                'Vị trí vận chuyển'}
+                                        </p>
+                                        <p className="text-xs text-blue-500 mt-2">
+                                            Chờ cập nhật GPS...
+                                        </p>
+                                        <p className="text-xs text-blue-500 mt-1">
+                                            ✓ Nhấn để xem bản đồ
+                                        </p>
+                                    </div>
+                                </a>
+                            )}
+                        </div>
+                    );
+                })()}
             {/* ===== REFRESH BUTTON ===== */}
-            <button
-                onClick={fetchDeliveryStages}
-                className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition">
-                Cập nhật thông tin
-            </button>
+            {currentStage?.status !== 'delivered' && (
+                <button
+                    onClick={fetchDeliveryStages}
+                    className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition">
+                    Cập nhật thông tin
+                </button>
+            )}
         </div>
     );
 };

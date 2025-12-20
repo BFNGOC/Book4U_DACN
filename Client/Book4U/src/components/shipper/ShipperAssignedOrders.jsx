@@ -160,6 +160,8 @@ export default function ShipperAssignedOrders({
                                                 <p className="text-sm font-medium text-gray-900">
                                                     {stage.toLocation
                                                         ?.warehouseName ||
+                                                        stage.toLocation
+                                                            ?.address ||
                                                         customer?.firstName}
                                                 </p>
                                             </div>

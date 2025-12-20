@@ -27,6 +27,7 @@ import Cart from '../pages/Cart';
 import Checkout from '../pages/Checkout';
 import Orders from '../pages/Orders';
 import OrderDetail from '../pages/OrderDetail';
+import OrderDetailPage from '../pages/OrderDetailPage';
 import SellerConfirmation from '../pages/SellerConfirmation';
 
 import RoleRequestsPage from '../pages/admin/RoleRequestsPage';
@@ -57,7 +58,10 @@ function AppRoutes() {
                 <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/profile-setup" element={<ProfileSetup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route
+                    path="/reset-password/:token"
+                    element={<ResetPassword />}
+                />
                 <Route path="/book/:slug" element={<ProductDetails />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/seller/:sellerId" element={<SellerStore />} />
@@ -129,6 +133,14 @@ function AppRoutes() {
                     }
                 />
                 <Route
+                    path="/order-detail/:orderDetailId"
+                    element={
+                        <PrivateRoute>
+                            <OrderDetailPage />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
                     path="/admin/role-requests"
                     element={
                         <PrivateRoute>
@@ -185,9 +197,18 @@ function AppRoutes() {
                     }
                 />
                 {/* Payment Callback Routes */}
-                <Route path="/payment/vnpay/callback" element={<PaymentCallback />} />
-                <Route path="/payment/momo/callback" element={<PaymentCallback />} />
-                <Route path="/payment/momo/test" element={<MomoTestPayment />} />
+                <Route
+                    path="/payment/vnpay/callback"
+                    element={<PaymentCallback />}
+                />
+                <Route
+                    path="/payment/momo/callback"
+                    element={<PaymentCallback />}
+                />
+                <Route
+                    path="/payment/momo/test"
+                    element={<MomoTestPayment />}
+                />
                 <Route
                     path="/live/:streamId"
                     element={

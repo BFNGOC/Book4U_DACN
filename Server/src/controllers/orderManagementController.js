@@ -3,7 +3,7 @@ const OrderDetail = require('../models/orderDetailModel');
 const WarehouseStock = require('../models/warehouseStockModel');
 const WarehouseLog = require('../models/warehouseLogModel');
 const Book = require('../models/bookModel');
-const { SellerProfile } = require('../models/profileModel');
+const { SellerProfile, Profile } = require('../models/profileModel');
 const mongoose = require('mongoose');
 const {
     selectNearestWarehouse,
@@ -785,6 +785,172 @@ exports.getCustomerOrders = async (req, res) => {
     } catch (err) {
         console.error('Error:', err);
         res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * ✅ [GET] /api/orders/detail/list
+ * Danh sách OrderDetail của customer (thay thế cho Order cũ)
+ * Lấy chi tiết đơn hàng theo từng seller
+ */
+exports.getCustomerOrderDetails = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        const { status = null, page = 1, limit = 10 } = req.query;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Cần đăng nhập',
+            });
+        }
+        console.log(
+            `🔍 Fetching OrderDetails for userId=${userId}, status=${status}, page=${page}, limit=${limit}`
+        );
+        // Tìm profile của customer
+        const { Profile } = require('../models/profileModel');
+        const profile = await Profile.findOne({ userId });
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Profile không tồn tại',
+            });
+        }
+        console.log(`✅ Found profile: ${profile._id}`);
+
+        // Bước 1: Tìm tất cả MainOrder của customer
+        const mainOrders = await Order.find({ profileId: profile._id })
+            .select('_id')
+            .lean();
+        const mainOrderIds = mainOrders.map((o) => o._id);
+
+        console.log(`📦 Found ${mainOrderIds.length} main orders`);
+
+        // Bước 2: Query OrderDetail dựa trên mainOrderId (không dựa vào customerId)
+        const query = { mainOrderId: { $in: mainOrderIds } };
+        if (status) {
+            query.status = status;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [orderDetails, total] = await Promise.all([
+            OrderDetail.find(query)
+                .populate(
+                    'sellerId',
+                    'firstName lastName primaryPhone role shopName'
+                )
+                .populate('items.bookId', 'title slug images')
+                .populate(
+                    'mainOrderId',
+                    'totalAmount paymentStatus paymentMethod'
+                )
+                .populate('deliveryStages', 'stageNumber status')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit))
+                .lean(),
+            OrderDetail.countDocuments(query),
+        ]);
+
+        console.log(`✅ Found ${orderDetails.length} order details`);
+
+        res.status(200).json({
+            success: true,
+            data: orderDetails,
+            pagination: {
+                current: parseInt(page),
+                pages: Math.ceil(total / limit),
+                total,
+            },
+        });
+    } catch (err) {
+        console.error('❌ Error getCustomerOrderDetails:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message || 'Lỗi lấy danh sách đơn hàng',
+        });
+    }
+};
+
+// 📋 GET CHI TIẾT ĐƠNHÀNG (CHO CUSTOMER DETAIL PAGE)
+/**
+ * Lấy chi tiết 1 OrderDetail để hiển thị trên detail page
+ * - Verify quyền sở hữu (JWT userId → mainOrder.profileId)
+ * - Populate: sellerId, items.bookId, deliveryStages (populated trước)
+ * - Return đầy đủ thông tin cho detail page
+ */
+exports.getCustomerOrderDetail = async (req, res) => {
+    try {
+        const { orderDetailId } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Chưa xác thực',
+            });
+        }
+
+        // Get profile
+        const profile = await Profile.findOne({ userId });
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy profile',
+            });
+        }
+
+        // Get OrderDetail
+        const orderDetail = await OrderDetail.findById(orderDetailId)
+            .populate({
+                path: 'sellerId',
+                select: 'shopName firstName lastName primaryPhone performance.averageRating',
+            })
+            .populate({
+                path: 'items.bookId',
+                select: 'title authors coverImageUrl price',
+            })
+            .populate({
+                path: 'mainOrderId',
+                select: 'profileId paymentStatus paymentMethod createdAt',
+            })
+            .populate({
+                path: 'deliveryStages',
+            });
+
+        if (!orderDetail) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy OrderDetail',
+            });
+        }
+
+        // Verify ownership: mainOrder.profileId must match current user's profile
+        if (
+            orderDetail.mainOrderId.profileId.toString() !==
+            profile._id.toString()
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: 'Không có quyền xem OrderDetail này',
+            });
+        }
+
+        console.log(
+            `✅ Retrieved OrderDetail ${orderDetailId} for user ${userId}`
+        );
+
+        res.status(200).json({
+            success: true,
+            data: orderDetail,
+        });
+    } catch (err) {
+        console.error('❌ Error getCustomerOrderDetail:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message || 'Lỗi lấy chi tiết đơn hàng',
+        });
     }
 };
 

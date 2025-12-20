@@ -61,16 +61,17 @@ exports.updateShipperLocation = async (req, res) => {
             });
         }
 
+        // Convert to GeoJSON Point format: { type: "Point", coordinates: [lng, lat] }
+        const currentLocation = {
+            type: 'Point',
+            coordinates: [longitude, latitude], // GeoJSON format: [lng, lat]
+        };
+
         // Update shipper profile location
         const shipper = await ShipperProfile.findOneAndUpdate(
             { userId },
             {
-                currentLocation: {
-                    latitude,
-                    longitude,
-                    address,
-                    lastUpdated: new Date(),
-                },
+                currentLocation,
             },
             { new: true }
         );
