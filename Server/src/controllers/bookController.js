@@ -30,6 +30,28 @@ exports.getAllBooks = async (req, res) => {
     }
 };
 
+// [GET] /api/books/featured - Lấy sách nổi bật
+exports.getFeaturedBooks = async (req, res) => {
+    try {
+        const books = await Book.find({ isPublished: true, isFeatured: true })
+            .populate('categoryId', 'name slug')
+            .populate('sellerId', 'firstName lastName')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: books.length,
+            data: books,
+        });
+    } catch (err) {
+        console.error('❌ Lỗi khi lấy sách nổi bật:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi máy chủ.',
+        });
+    }
+};
+
 // [GET] /api/books/seller/my-books - Lấy sách của seller (bao gồm draft)
 exports.getSellerBooks = async (req, res) => {
     try {
@@ -113,17 +135,13 @@ exports.getBookBySlug = async (req, res) => {
         const { slug } = req.params;
 
         if (!slug) {
-            return res
-                .status(400)
-                .json({ message: 'Slug không được để trống.' });
+            return res.status(400).json({ message: 'Slug không được để trống.' });
         }
 
-        const book = await Book.findOne({ slug })
-            .populate('categoryId', 'name slug')
-            .populate({
-                path: 'sellerId',
-                select: 'firstName lastName avatar storeName storeLogo storeDescription rating totalSales _id',
-            });
+        const book = await Book.findOne({ slug }).populate('categoryId', 'name slug').populate({
+            path: 'sellerId',
+            select: 'firstName lastName avatar storeName storeLogo storeDescription rating totalSales _id',
+        });
 
         if (!book) {
             return res.status(404).json({ message: 'Không tìm thấy sách.' });
@@ -254,18 +272,13 @@ exports.createBook = async (req, res) => {
                 message: 'Không tìm thấy hồ sơ người bán.',
             });
 
-        const imagePaths = req.files
-            ? req.files.map((f) => `/uploads/books/${f.filename}`)
-            : [];
+        const imagePaths = req.files ? req.files.map((f) => `/uploads/books/${f.filename}`) : [];
 
         // Parse tags from JSON string if provided
         let tags = [];
         if (body.tags) {
             try {
-                tags =
-                    typeof body.tags === 'string'
-                        ? JSON.parse(body.tags)
-                        : body.tags;
+                tags = typeof body.tags === 'string' ? JSON.parse(body.tags) : body.tags;
             } catch (e) {
                 tags = Array.isArray(body.tags) ? body.tags : [];
             }
@@ -282,8 +295,7 @@ exports.createBook = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message:
-                'Tạo sách (draft) thành công. Bước tiếp: Nhập kho → Đăng bán',
+            message: 'Tạo sách (draft) thành công. Bước tiếp: Nhập kho → Đăng bán',
             data: book,
         });
     } catch (err) {
@@ -342,11 +354,7 @@ exports.updateBook = async (req, res) => {
         // Xử lý ảnh
         if (req.files && req.files.length > 0) {
             for (const imgPath of book.images) {
-                const fullPath = path.join(
-                    __dirname,
-                    '..',
-                    imgPath.replace(/^\//, '')
-                );
+                const fullPath = path.join(__dirname, '..', imgPath.replace(/^\//, ''));
                 if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
             }
             book.images = req.files.map((f) => `/uploads/books/${f.filename}`);
@@ -379,9 +387,7 @@ exports.updateBook = async (req, res) => {
             let tags = [];
             try {
                 tags =
-                    typeof req.body.tags === 'string'
-                        ? JSON.parse(req.body.tags)
-                        : req.body.tags;
+                    typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
             } catch (e) {
                 tags = Array.isArray(req.body.tags) ? req.body.tags : [];
             }
@@ -471,8 +477,7 @@ exports.publishBook = async (req, res) => {
         if (book.stock <= 0) {
             return res.status(400).json({
                 success: false,
-                message:
-                    'Không thể đăng bán sách khi tồn kho = 0. Vui lòng nhập kho trước.',
+                message: 'Không thể đăng bán sách khi tồn kho = 0. Vui lòng nhập kho trước.',
                 required: 'Bước 2: Nhập kho',
             });
         }
