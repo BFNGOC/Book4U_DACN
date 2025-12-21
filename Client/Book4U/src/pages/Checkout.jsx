@@ -97,8 +97,8 @@ function Checkout() {
 
             // Xử lý thanh toán dựa vào phương thức
             if (paymentMethod === 'COD') {
-                // COD: Redirect trực tiếp tới order detail
-                navigate(`/orders/${orderId}`);
+                // COD: Redirect trực tiếp tới home
+                navigate(`/`);
             } else if (paymentMethod === 'VNPAY') {
                 // VNPAY: Tạo link thanh toán và redirect
                 toast.loading('Đang chuyển hướng tới VNPAY...');

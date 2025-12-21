@@ -100,14 +100,10 @@ export default function ShipperPendingOrders({
                                                 </p>
                                                 <p className="text-sm font-medium text-gray-900">
                                                     {stage.fromLocation
-                                                        ?.warehouseName ||
-                                                        'Transfer Hub'}
-                                                </p>
-                                                <p className="text-xs text-gray-600">
-                                                    {
+                                                        .address ||
                                                         stage.fromLocation
-                                                            ?.province
-                                                    }
+                                                            ?.warehouseName ||
+                                                        'Transfer Hub'}
                                                 </p>
                                             </div>
 
@@ -117,12 +113,10 @@ export default function ShipperPendingOrders({
                                                     📍 Giao tới
                                                 </p>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {stage.toLocation
-                                                        ?.warehouseName ||
+                                                    {stage.toLocation.address ||
+                                                        stage.toLocation
+                                                            ?.warehouseName ||
                                                         customer?.firstName}
-                                                </p>
-                                                <p className="text-xs text-gray-600">
-                                                    {stage.toLocation?.province}
                                                 </p>
                                             </div>
                                         </div>

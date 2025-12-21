@@ -11,6 +11,8 @@ router.use(roleMiddleware('seller'));
 
 // Statistics (MUST be before /:orderId to avoid param matching)
 router.get('/stats/revenue', orderSellerController.getRevenueStats);
+router.get('/stats/top-products', orderSellerController.getTopProducts);
+router.get('/stats/breakdown', orderSellerController.getRevenueBreakdown);
 
 // Orders management
 router.get('/', orderSellerController.getSellerOrders);

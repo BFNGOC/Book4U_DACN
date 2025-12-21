@@ -62,7 +62,7 @@ export default function ShipperAssignedOrders({
                 text: 'text-blue-700',
                 label: '🚚 Đang Lấy/Giao',
             },
-            completed: {
+            delivered: {
                 bg: 'bg-green-100',
                 text: 'text-green-700',
                 label: '✅ Hoàn Thành',

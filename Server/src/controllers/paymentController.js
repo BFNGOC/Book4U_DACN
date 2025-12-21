@@ -131,7 +131,7 @@ exports.handleVNPayCallback = async (req, res) => {
                 return res.status(200).json({
                     success: true,
                     message: 'Thanh toán thành công',
-                    data: { orderId: order._id },
+                    data: { orderDetailId: order._id },
                 });
             }
         }

@@ -500,15 +500,32 @@ exports.shipOrderDetail = async (req, res) => {
             longitude: warehouse?.location?.longitude,
         };
 
+        // ✅ Helper function to normalize province names
+        const normalizeProvince = (province) => {
+            if (!province) return '';
+            const normalized = {
+                'Thành phố Hồ Chí Minh': 'TPHCM',
+                'Thành phố Hà Nội': 'Hà Nội',
+                'TP. Hồ Chí Minh': 'TPHCM',
+                'TP. Hà Nội': 'Hà Nội',
+            };
+            return normalized[province] || province;
+        };
+
         const toCustomer = {
             address: orderDetail.shippingAddress?.address || '',
-            province: orderDetail.shippingAddress?.province || '',
+            province: normalizeProvince(
+                orderDetail.shippingAddress?.province || ''
+            ),
             // Geocoded coordinates từ confirm endpoint
             latitude: 0, // TODO: lấy từ customer location history
             longitude: 0, // TODO: lấy từ customer location history
             customerName: orderDetail.shippingAddress?.fullName || '',
             customerPhone: orderDetail.shippingAddress?.phone || '',
         };
+
+        // ✅ Also normalize warehouse province
+        fromWarehouse.province = normalizeProvince(fromWarehouse.province);
 
         // ✅ Nếu liên tỉnh → tạo delivery stages
         if (

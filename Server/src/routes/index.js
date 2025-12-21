@@ -18,6 +18,7 @@ const shipperCoverageRoutes = require('./shipperCoverageRoutes');
 const paymentRoutes = require('./paymentRoutes');
 const aiRoutes = require('./aiRoutes');
 const provinceRoutes = require('./provinceRoutes');
+const reviewRoutes = require('./reviewRoutes');
 
 function route(app) {
     app.get('/', (req, res) => {
@@ -44,6 +45,7 @@ function route(app) {
     app.use('/api/payment', paymentRoutes);
     app.use('/api/ai', aiRoutes);
     app.use('/api/province', provinceRoutes);
+    app.use('/api/reviews', reviewRoutes);
 }
 
 module.exports = route;

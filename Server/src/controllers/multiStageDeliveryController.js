@@ -17,6 +17,21 @@ const mongoose = require('mongoose');
  */
 
 /**
+ * ✅ Helper function to normalize province names
+ * Dùng để so sánh province giữa stage.toLocation.province vs coverageAreas.province
+ */
+const normalizeProvince = (province) => {
+    if (!province) return '';
+    const normalized = {
+        'Thành phố Hồ Chí Minh': 'TPHCM',
+        'Thành phố Hà Nội': 'Hà Nội',
+        'TP. Hồ Chí Minh': 'TPHCM',
+        'TP. Hà Nội': 'Hà Nội',
+    };
+    return normalized[province] || province;
+};
+
+/**
  * [POST] /api/delivery/create-stages
  * Tạo các giai đoạn vận chuyển khi order được xác nhận
  *
@@ -69,18 +84,19 @@ exports.createDeliveryStages = async (req, res) => {
             });
         }
 
-        // ✅ Xây dựng fromWarehouse object
-        const fromWarehouse = {
-            warehouseId: warehouse._id,
-            name: warehouse.name,
-            address: `${warehouse.street}, ${warehouse.ward}, ${warehouse.district}, ${warehouse.province}`,
-            province: warehouse.province,
-            latitude: warehouse.location?.latitude || 0,
-            longitude: warehouse.location?.longitude || 0,
+        // ✅ Helper function to normalize province names (định nghĩa trước khi sử dụng)
+        const normalizeProvince = (province) => {
+            if (!province) return '';
+            const normalized = {
+                'Thành phố Hồ Chí Minh': 'TPHCM',
+                'Thành phố Hà Nội': 'Hà Nội',
+                'TP. Hồ Chí Minh': 'TPHCM',
+                'TP. Hà Nội': 'Hà Nội',
+            };
+            return normalized[province] || province;
         };
 
-        // ✅ Xây dựng toCustomer object từ shippingAddress
-        // Helper function to extract province from address if not in province field
+        // ✅ Helper function to extract province from address if not in province field
         const extractProvinceFromAddress = (address) => {
             if (!address) return '';
             // Format: "Số nhà, Phường, Quận, Tỉnh/Thành phố"
@@ -89,13 +105,26 @@ exports.createDeliveryStages = async (req, res) => {
             return province;
         };
 
+        // ✅ Xây dựng fromWarehouse object
+        const fromWarehouse = {
+            warehouseId: warehouse._id,
+            name: warehouse.name,
+            address: `${warehouse.street}, ${warehouse.ward}, ${warehouse.district}, ${warehouse.province}`,
+            province: normalizeProvince(warehouse.province),
+            latitude: warehouse.location?.latitude || 0,
+            longitude: warehouse.location?.longitude || 0,
+        };
+
+        // ✅ Xây dựng toCustomer object từ shippingAddress
+
         const toCustomer = {
             address: orderDetail.shippingAddress?.address || '',
-            province:
+            province: normalizeProvince(
                 orderDetail.shippingAddress?.province ||
-                extractProvinceFromAddress(
-                    orderDetail.shippingAddress?.address || ''
-                ),
+                    extractProvinceFromAddress(
+                        orderDetail.shippingAddress?.address || ''
+                    )
+            ),
             latitude: 0, // TODO: Lấy từ geolocation nếu có
             longitude: 0,
             customerName: orderDetail.shippingAddress?.fullName || '',
@@ -396,12 +425,24 @@ exports.acceptDeliveryStage = async (req, res) => {
         }
 
         // Kiểm tra shipper có quyền không (phải phục vụ khu vực này)
+        const normalizedToProvince = normalizeProvince(
+            stage.toLocation.province
+        );
+
         const coverage = await ShipperCoverageArea.findOne({
             shipperId: shipper._id,
-            'coverageAreas.province': stage.toLocation.province,
         });
 
-        if (!coverage && stage.stageNumber > 1) {
+        // ✅ Kiểm tra xem shipper có phục vụ province này không (chuẩn hóa tên tỉnh)
+        let hasCoverage = false;
+        if (coverage && coverage.coverageAreas) {
+            hasCoverage = coverage.coverageAreas.some(
+                (area) =>
+                    normalizeProvince(area.province) === normalizedToProvince
+            );
+        }
+
+        if (!hasCoverage && stage.stageNumber > 1) {
             // Stage 2 (liên tỉnh) có thể không cần check
             if (coverage?.shipperType !== 'regional') {
                 return res.status(403).json({
@@ -667,18 +708,32 @@ exports.completeDeliveryStage = async (req, res) => {
                     if (nextStage.stageNumber === 2 && !nextStage.isLastStage) {
                         const ShipperCoverageArea = require('../models/shipperCoverageAreaModel');
 
-                        const fromProvince = nextStage.fromLocation.province;
-                        const toProvince = nextStage.toLocation.province;
+                        const normalizedFromProvince = normalizeProvince(
+                            nextStage.fromLocation.province
+                        );
+                        const normalizedToProvince = normalizeProvince(
+                            nextStage.toLocation.province
+                        );
 
-                        // Tìm regional carrier có cả 2 tỉnh
-                        const regionalCarrier =
-                            await ShipperCoverageArea.findOne({
-                                shipperType: 'regional',
-                                status: 'active',
-                                'coverageAreas.province': {
-                                    $all: [fromProvince, toProvince],
-                                },
-                            });
+                        // Tìm regional carrier có cả 2 tỉnh (chuẩn hóa khi query)
+                        const allCarriers = await ShipperCoverageArea.find({
+                            shipperType: 'regional',
+                            status: 'active',
+                        });
+
+                        const regionalCarrier = allCarriers.find((carrier) => {
+                            const normalizedProvinces = (
+                                carrier.coverageAreas || []
+                            ).map((area) => normalizeProvince(area.province));
+                            return (
+                                normalizedProvinces.includes(
+                                    normalizedFromProvince
+                                ) &&
+                                normalizedProvinces.includes(
+                                    normalizedToProvince
+                                )
+                            );
+                        });
 
                         // ✅ Tự động gán tracking number
                         nextStage.trackingNumber = `STG2-${Date.now()}-${stage.orderDetailId._id
@@ -1228,14 +1283,23 @@ exports.confirmCarrierDelivery = async (req, res) => {
 
         if (stage3) {
             // Tìm shipper tỉnh đích để giao hàng
-            const toProvince = stage3.toLocation.province;
+            const normalizedToProvince = normalizeProvince(
+                stage3.toLocation.province
+            );
 
-            // Tìm local shipper có phục vụ tỉnh đích
-            const shipper3 = await ShipperCoverageArea.findOne({
+            // Tìm local shipper có phục vụ tỉnh đích (chuẩn hóa khi query)
+            const allShippers = await ShipperCoverageArea.find({
                 shipperType: 'local',
                 status: 'active',
-                'coverageAreas.province': toProvince,
             });
+
+            const shipper3 = allShippers.find((shipper) =>
+                (shipper.coverageAreas || []).some(
+                    (area) =>
+                        normalizeProvince(area.province) ===
+                        normalizedToProvince
+                )
+            );
 
             if (shipper3) {
                 // ✅ Gán shipper tùy chọn (nếu tìm thấy)

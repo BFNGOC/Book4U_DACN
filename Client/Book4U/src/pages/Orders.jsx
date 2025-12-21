@@ -36,7 +36,7 @@ function Orders() {
             label: '🚴 Đang giao',
             color: 'bg-cyan-100 text-cyan-800',
         },
-        completed: {
+        delivered: {
             label: '🎉 Đã giao',
             color: 'bg-green-100 text-green-800',
         },
@@ -111,7 +111,7 @@ function Orders() {
                     'picking',
                     'packed',
                     'in_transit',
-                    'completed',
+                    'delivered',
                     'cancelled',
                 ].map((status) => (
                     <button
@@ -223,7 +223,7 @@ function Orders() {
                                         </span>
                                     </p>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -249,6 +249,25 @@ function Orders() {
                                             Hủy đơn
                                         </button>
                                     )}
+                                    {order.status === 'delivered' &&
+                                        order.items &&
+                                        order.items.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(
+                                                        `/book/${
+                                                            order.items[0]
+                                                                .bookId?.slug ||
+                                                            order.items[0]
+                                                                .bookId._id
+                                                        }?orderId=${order._id}`
+                                                    );
+                                                }}
+                                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm font-medium">
+                                                ⭐ Đánh giá
+                                            </button>
+                                        )}
                                 </div>
                             </div>
                         </div>

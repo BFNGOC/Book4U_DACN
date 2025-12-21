@@ -42,7 +42,7 @@ export default function ShipperOrderList({ orders, onOrderUpdate }) {
                 text: 'text-yellow-800',
                 label: '📍 Đang giao hàng',
             },
-            completed: {
+            delivered: {
                 bg: 'bg-green-100',
                 text: 'text-green-800',
                 label: '✅ Hoàn thành',

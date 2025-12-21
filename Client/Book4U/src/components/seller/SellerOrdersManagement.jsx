@@ -51,6 +51,18 @@ function SellerOrdersManagement() {
         return normalized[province] || province;
     };
 
+    // ✅ Helper: Normalize province name
+    const normalizeProvince = (province) => {
+        if (!province) return '';
+        const normalized = {
+            'Thành phố Hồ Chí Minh': 'TPHCM',
+            'Thành phố Hà Nội': 'Hà Nội',
+            'TP. Hồ Chí Minh': 'TPHCM',
+            'TP. Hà Nội': 'Hà Nội',
+        };
+        return normalized[province] || province;
+    };
+
     useEffect(() => {
         fetchOrderDetails();
     }, [filter]);
@@ -154,7 +166,9 @@ function SellerOrdersManagement() {
 
     const handleStartShipping = (orderDetail) => {
         // ✅ Kiểm tra nội tỉnh vs liên tỉnh
-        const warehouseProvince = orderDetail.warehouseId?.province || 'TPHCM'; // Fallback
+        const warehouseProvince = normalizeProvince(
+            orderDetail.warehouseId?.province || 'TPHCM'
+        ); // Fallback
 
         // Extract province từ address string
         const customerAddress = orderDetail.shippingAddress?.address;

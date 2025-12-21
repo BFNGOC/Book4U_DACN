@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { useNotification } from '../../context/NotificationContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 function NotificationBell() {
     const {

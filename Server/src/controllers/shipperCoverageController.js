@@ -124,10 +124,31 @@ exports.getShippersForProvince = async (req, res) => {
     try {
         const { province } = req.params;
 
-        const shippers = await ShipperCoverageArea.find({
-            'coverageAreas.province': province,
+        // ✅ Helper to normalize province
+        const normalizeProvince = (p) => {
+            if (!p) return '';
+            const normalized = {
+                'Thành phố Hồ Chí Minh': 'TPHCM',
+                'Thành phố Hà Nội': 'Hà Nội',
+                'TP. Hồ Chí Minh': 'TPHCM',
+                'TP. Hà Nội': 'Hà Nội',
+            };
+            return normalized[p] || p;
+        };
+
+        const normalizedProvince = normalizeProvince(province);
+
+        // Lấy tất cả shippers và filter theo province (chuẩn hóa)
+        const allShippers = await ShipperCoverageArea.find({
             status: 'active',
         }).lean();
+
+        const shippers = allShippers.filter((shipper) =>
+            (shipper.coverageAreas || []).some(
+                (area) =>
+                    normalizeProvince(area.province) === normalizedProvince
+            )
+        );
 
         return res.status(200).json({
             success: true,

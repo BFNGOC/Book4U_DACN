@@ -61,12 +61,28 @@ export const handoffToCarrier = (orderId, handoffData) =>
         'PUT'
     );
 
-export const getRevenueStats = (period = 'month') =>
+export const getRevenueStats = (period = 'month', month, year) =>
     fetchHandler(
         axiosPrivate,
         `${ORDER_SELLER_API_URL}/stats/revenue`,
-        { period },
+        { period, month, year },
         'Lỗi khi lấy thống kê doanh thu.'
+    );
+
+export const getTopProducts = (period = 'month', month, year, limit = 10) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_SELLER_API_URL}/stats/top-products`,
+        { period, month, year, limit },
+        'Lỗi khi lấy sản phẩm bán chạy.'
+    );
+
+export const getRevenueBreakdown = (period = 'month', month, year) =>
+    fetchHandler(
+        axiosPrivate,
+        `${ORDER_SELLER_API_URL}/stats/breakdown`,
+        { period, month, year },
+        'Lỗi khi lấy doanh thu chi tiết.'
     );
 
 /**

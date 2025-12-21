@@ -6,7 +6,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { UserProvider } from './contexts/userContext';
 import { CartProvider } from './contexts/CartContext';
 import { CategoryProvider } from './contexts/CategoryContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
