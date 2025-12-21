@@ -22,37 +22,56 @@ class AIService {
                 .join('\n');
 
             const context = `
-You are the assistant of Book4U bookstore.
+Bạn là trợ lý AI chuyên về gợi ý sách của cửa hàng Book4U (Tiếng Việt).
 
-IMPORTANT RULES:
-- YOU MUST RETURN RAW JSON ONLY.
-- DO NOT wrap with \`\`\` or \`\`\`json.
-- DO NOT add descriptions.
-- DO NOT output anything outside JSON.
-- The output must ALWAYS be valid JSON.
+📌 QUY TẮC QUAN TRỌNG:
+- CHỈ TRẢN VỀ JSON THÔI, không kèm \`\`\` hay mô tả bổ sung.
+- Output PHẢI là JSON hợp lệ.
+- Không thêm text ngoài JSON.
+- Luôn trả lời bằng Tiếng Việt.
 
-Correct format:
+📋 CẤU TRÚC JSON CHÍNH XÁC:
 
 {
-  "reply": "string",
-  "suggestions": [
-    { "bookTitle": "string", "slug": "string" }
+  "reply": "Lời chào hoặc phản hồi gợi ý của bạn (Tiếng Việt)",
+  "recommendations": [
+    {
+      "_id": "MongoDB ID",
+      "title": "Tên sách chính xác từ DB",
+      "author": "Tác giả",
+      "price": 199000,
+      "currency": "VND",
+      "ratingAvg": 4.5,
+      "ratingCount": 120,
+      "description": "Mô tả ngắn 1-2 câu",
+      "slug": "slug-sach",
+      "images": ["url-image-1"],
+      "publisher": "Nhà xuất bản",
+      "reason": "Vì sao phù hợp với yêu cầu người dùng"
+    }
   ]
 }
 
-If information is missing, return EXACTLY:
-
+⚠️ NẾU KHÔNG CÓ SỐ LIỆU:
 {
-  "reply": "I don't know",
-  "suggestions": []
+  "reply": "Xin lỗi, tôi không tìm thấy sách phù hợp",
+  "recommendations": []
 }
 
-Database info:
-Books: ${JSON.stringify(books)}
-Orders: ${JSON.stringify(orders)}
-User info: ${JSON.stringify(user)}
+🔍 HƯỚNG DẪN GỢI Ý:
+1. Đọc yêu cầu người dùng (thể loại, tác giả, giá, từ khóa, v.v.).
+2. TÌM KIẾM trong danh sách sách theo tiêu chí phù hợp.
+3. Chọn tối đa 5 sách TỐT NHẤT theo đúng yêu cầu.
+4. SẮP XẾP: ưu tiên sách có rating cao + giá phù hợp.
+5. KIỂM TRA: đảm bảo giá, tác giả, rating có thực từ DB.
+6. GỢI Ý: viết lý do rõ ràng vì sao sách phù hợp.
 
-Chat history:
+📚 THÔNG TIN DATABASE:
+Danh sách sách: ${JSON.stringify(books.slice(0, 50))}
+Đơn hàng người dùng: ${JSON.stringify(orders.slice(0, 5))}
+Thông tin người dùng: ${JSON.stringify(user)}
+
+Lịch sử chat:
 ${chatLog}
 `;
 
@@ -76,8 +95,20 @@ ${chatLog}
                 console.error('AI JSON parse error:', parseErr);
                 parsed = {
                     reply: cleaned,
-                    suggestions: [],
+                    recommendations: [],
                 };
+            }
+
+            // Support both old format (suggestions) and new format (recommendations)
+            if (!parsed.recommendations && parsed.suggestions) {
+                parsed.recommendations = parsed.suggestions.map((sug) => ({
+                    title: sug.bookTitle,
+                    slug: sug.slug,
+                    author: 'Unknown',
+                    price: 0,
+                    ratingAvg: 0,
+                    reason: 'Gợi ý từ hệ thống',
+                }));
             }
 
             return parsed;
