@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Send, MessageCircle, X } from 'lucide-react';
 import { chatAi, getAiChatHistory } from '../services/api/aiApi';
@@ -9,6 +9,16 @@ function ChatWidget() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]); // messages là state danh sách tin
 
     // 📌 Format AI JSON - hỗ trợ cả format cũ và mới
     const formatAiResponse = (res) => {
@@ -192,6 +202,8 @@ function ChatWidget() {
                                 )}
                             </div>
                         ))}
+
+                        <div ref={messagesEndRef} />
 
                         {loading && (
                             <div className="flex justify-start">
