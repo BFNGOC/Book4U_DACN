@@ -5,6 +5,7 @@ import {
     addToCart,
     removeFromCart,
     updateCartItemQuantity,
+    removeMultipleFromCart,
 } from '../services/api/cartApi.js';
 import toast from 'react-hot-toast';
 
@@ -37,7 +38,10 @@ export const CartProvider = ({ children }) => {
 
     useEffect(() => {
         if (cart?.items?.length > 0) {
-            const total = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+            const total = cart.items.reduce(
+                (sum, item) => sum + item.quantity,
+                0
+            );
             setCartCount(total);
         } else {
             setCartCount(0);
@@ -82,6 +86,27 @@ export const CartProvider = ({ children }) => {
         }
     };
 
+    // ✅ Xóa multiple sản phẩm cùng lúc (dùng khi đặt hàng thành công)
+    const removeMultipleFromCartContext = async (bookIds) => {
+        try {
+            if (!bookIds || bookIds.length === 0) {
+                console.warn('Không có sản phẩm để xóa');
+                return;
+            }
+
+            const res = await removeMultipleFromCart(bookIds);
+
+            if (res.success) {
+                setCart(res.data);
+                console.log(`✅ Xóa ${bookIds.length} sản phẩm khỏi giỏ hàng`);
+            } else {
+                console.error('Lỗi xóa multiple sản phẩm:', res.message);
+            }
+        } catch (err) {
+            console.error('Lỗi xóa multiple sản phẩm từ giỏ hàng:', err);
+        }
+    };
+
     return (
         <CartContext.Provider
             value={{
@@ -90,10 +115,10 @@ export const CartProvider = ({ children }) => {
                 addToCartContext,
                 removeFromCartContext,
                 updateCartItemQuantityContext,
+                removeMultipleFromCartContext,
                 loading,
                 cartCount,
-            }}
-        >
+            }}>
             {children}
         </CartContext.Provider>
     );

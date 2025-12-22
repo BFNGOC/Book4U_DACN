@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { createOrder } from '../services/api/orderApi.js';
 import { useUser } from '../contexts/userContext';
+import { useCart } from '../hooks/useCart.js';
 import ProgressSteps from '../components/ui/ProgressSteps.jsx';
 import {
     createVNPayPayment,
@@ -10,6 +11,7 @@ import {
 } from '../services/api/paymentApi.js';
 function Checkout() {
     const { user } = useUser();
+    const { removeMultipleFromCartContext } = useCart();
     const [checkoutItems, setCheckoutItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [shippingAddress, setShippingAddress] = useState({
@@ -93,6 +95,11 @@ function Checkout() {
 
             const orderId = response.data._id;
             toast.success('Đặt hàng thành công!');
+
+            // ✅ Xóa những sản phẩm đã đặt khỏi giỏ hàng
+            const bookIds = checkoutItems.map((item) => item.bookId._id);
+            await removeMultipleFromCartContext(bookIds);
+
             localStorage.removeItem('checkoutItems');
 
             // Xử lý thanh toán dựa vào phương thức

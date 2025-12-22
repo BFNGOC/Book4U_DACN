@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { useUser } from '../../contexts/userContext';
@@ -7,6 +7,7 @@ import { CartContext } from '../../contexts/CartContext';
 import NotificationBell from '../notifications/NotificationBell';
 import LiveAdmin from '../../pages/LiveAdmin';
 import { MessageCircle } from 'lucide-react';
+import { useAutoRefreshUserRole } from '../../hooks/useAutoRefreshUserRole';
 
 const roleConfigs = {
     customer: (userId) => {
@@ -30,6 +31,9 @@ const roleConfigs = {
 
 function Navbar() {
     const { user, logoutUser } = useUser();
+
+    // ✅ Tự động refresh user role khi Navbar mount
+    useAutoRefreshUserRole();
 
     const { cartCount } = useContext(CartContext);
 
@@ -67,8 +71,8 @@ function Navbar() {
                         </Link>
                     </button>
 
-                    {/* Notifications */}
-                    {user && <NotificationBell />}
+                    {/* Notifications - Chỉ seller thấy */}
+                    {user?.role === 'seller' && <NotificationBell />}
 
                     {/* Cart */}
                     <Link

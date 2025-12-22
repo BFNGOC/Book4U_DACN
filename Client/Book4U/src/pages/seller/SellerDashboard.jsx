@@ -7,6 +7,10 @@ import SellerProductsManagement from '../../components/seller/SellerProductsMana
 import SellerInventoryManagement from '../../components/seller/SellerInventoryManagement';
 import SellerRevenueStats from '../../components/seller/SellerRevenueStats';
 import { getSellerDashboard } from '../../services/api/sellerApi';
+import {
+    getSellerOrderDetails,
+    getRevenueStats,
+} from '../../services/api/sellerOrderApi';
 import { BarChart3, Package, TrendingUp, ShoppingCart } from 'lucide-react';
 
 function SellerDashboard() {
@@ -15,6 +19,12 @@ function SellerDashboard() {
     const [activeTab, setActiveTab] = useState('overview');
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalProducts: 0,
+        totalOrderDetails: 0,
+        totalRevenue: 0,
+        totalSales: 0,
+    });
 
     useEffect(() => {
         console.log('User data in SellerDashboard:', user);
@@ -25,9 +35,55 @@ function SellerDashboard() {
 
         const fetchDashboard = async () => {
             try {
-                const res = await getSellerDashboard();
-                if (res.success) {
-                    setDashboard(res.data);
+                setLoading(true);
+
+                // ✅ API 1: Lấy thông tin cơ bản (sản phẩm, etc)
+                const dashboardRes = await getSellerDashboard();
+
+                // ✅ API 2: Lấy danh sách OrderDetail của seller
+                const orderDetailsRes = await getSellerOrderDetails({
+                    page: 1,
+                    limit: 1000, // Lấy tất cả để tính stats
+                });
+
+                // ✅ API 3: Lấy thống kê doanh thu theo tháng
+                const revenueRes = await getRevenueStats('month');
+
+                if (dashboardRes.success && orderDetailsRes.success) {
+                    // Tính toán stats từ OrderDetails
+                    const orderDetailsData = orderDetailsRes.data || [];
+                    const totalOrderDetails = orderDetailsData.length;
+
+                    // ✅ Doanh số bán = Tổng số lượng sản phẩm đã bán (từ những OrderDetail đã delivered)
+                    const totalSales = orderDetailsData
+                        .filter((od) => od.status === 'delivered') // Chỉ tính đơn đã giao
+                        .reduce((sum, od) => {
+                            return (
+                                sum +
+                                (od.items || []).reduce(
+                                    (itemSum, item) =>
+                                        itemSum + (item.quantity || 0),
+                                    0
+                                )
+                            );
+                        }, 0);
+
+                    // Doanh thu từ revenue API (tính từ delivered OrderDetails)
+                    const totalRevenue = revenueRes.success
+                        ? revenueRes.data?.revenue || 0
+                        : 0;
+
+                    setStats({
+                        totalProducts:
+                            dashboardRes.data?.stats?.totalProducts || 0,
+                        totalOrderDetails,
+                        totalRevenue,
+                        totalSales, // ✅ Số lượng sản phẩm đã bán
+                    });
+
+                    setDashboard(dashboardRes.data);
+                } else {
+                    throw new Error('Failed to fetch dashboard data');
                 }
             } catch (err) {
                 console.error('Lỗi:', err);
@@ -47,8 +103,6 @@ function SellerDashboard() {
                 Không thể tải dashboard.
             </p>
         );
-
-    const { stats } = dashboard;
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -79,13 +133,13 @@ function SellerDashboard() {
                         },
                         {
                             label: 'Đơn hàng',
-                            value: stats?.totalOrders || 0,
+                            value: stats?.totalOrderDetails || 0,
                             icon: ShoppingCart,
                             color: 'from-green-500 to-green-600',
                             bg: 'bg-green-50',
                         },
                         {
-                            label: 'Doanh số bán',
+                            label: 'Số sản phẩm đã bán',
                             value: stats?.totalSales || 0,
                             icon: TrendingUp,
                             color: 'from-orange-500 to-orange-600',

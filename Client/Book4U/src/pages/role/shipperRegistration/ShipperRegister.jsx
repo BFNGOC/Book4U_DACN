@@ -36,7 +36,21 @@ export default function ShipperRegister() {
                                 new Date(b.createdAt) - new Date(a.createdAt)
                         )[0];
 
-                    if (latest?.status === 'rejected') {
+                    // ✅ MỚI: Kiểm tra nếu request đang pending
+                    if (latest?.status === 'pending') {
+                        console.log(
+                            '📋 Có pending request shipper, đi tới bước cuối cùng'
+                        );
+                        // Đi đến bước cuối cùng (step 2 = index 2 cho shipper)
+                        setCurrentStep(2);
+                        parsed = { formData, currentStep: 2 };
+                        localStorage.setItem(
+                            STORAGE_KEY,
+                            JSON.stringify(parsed)
+                        );
+                    }
+                    // Kiểm tra bị reject
+                    else if (latest?.status === 'rejected') {
                         const lastRejectedId = localStorage.getItem(
                             `lastRejectedId_${userId}`
                         );

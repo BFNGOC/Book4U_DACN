@@ -39,8 +39,21 @@ export default function SellerRegister() {
                                 new Date(a.createdAt).getTime()
                         )[0];
 
+                    // ✅ MỚI: Kiểm tra nếu request đang pending
+                    if (latestSellerRequest?.status === 'pending') {
+                        console.log(
+                            '📋 Có pending request, đi tới bước cuối cùng'
+                        );
+                        // Đi đến bước cuối cùng (step 3 = index 3)
+                        setCurrentStep(3);
+                        parsed = { formData, currentStep: 3 };
+                        localStorage.setItem(
+                            STORAGE_KEY,
+                            JSON.stringify(parsed)
+                        );
+                    }
                     // kiểm tra bị reject
-                    if (latestSellerRequest?.status === 'rejected') {
+                    else if (latestSellerRequest?.status === 'rejected') {
                         const lastRejectedId = localStorage.getItem(
                             `lastRejectedId_${userId}`
                         );

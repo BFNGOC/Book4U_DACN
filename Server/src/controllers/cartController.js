@@ -23,12 +23,17 @@ exports.addToCart = async (req, res) => {
         const { bookId, quantity } = req.body;
 
         const book = await Book.findById(bookId).select('title price sellerId');
-        if (!book) return res.status(404).json({ success: false, message: 'Không tìm thấy sách.' });
+        if (!book)
+            return res
+                .status(404)
+                .json({ success: false, message: 'Không tìm thấy sách.' });
 
         let cart = await Cart.findOne({ userId });
         if (!cart) cart = new Cart({ userId, items: [] });
 
-        const existingItem = cart.items.find((item) => item.bookId.toString() === bookId);
+        const existingItem = cart.items.find(
+            (item) => item.bookId.toString() === bookId
+        );
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
@@ -79,13 +84,18 @@ exports.updateCartItemQuantity = async (req, res) => {
 
         const cart = await Cart.findOne({ userId });
         if (!cart)
-            return res.status(404).json({ success: false, message: 'Không tìm thấy giỏ hàng.' });
+            return res
+                .status(404)
+                .json({ success: false, message: 'Không tìm thấy giỏ hàng.' });
 
         const item = cart.items.find((i) => i.bookId.toString() === bookId);
         if (!item)
             return res
                 .status(404)
-                .json({ success: false, message: 'Sản phẩm không có trong giỏ hàng.' });
+                .json({
+                    success: false,
+                    message: 'Sản phẩm không có trong giỏ hàng.',
+                });
 
         item.quantity = quantity;
         await cart.save();
@@ -110,9 +120,13 @@ exports.removeFromCart = async (req, res) => {
 
         const cart = await Cart.findOne({ userId });
         if (!cart)
-            return res.status(404).json({ success: false, message: 'Không tìm thấy giỏ hàng.' });
+            return res
+                .status(404)
+                .json({ success: false, message: 'Không tìm thấy giỏ hàng.' });
 
-        cart.items = cart.items.filter((item) => item.bookId.toString() !== bookId);
+        cart.items = cart.items.filter(
+            (item) => item.bookId.toString() !== bookId
+        );
         await cart.save();
 
         const populatedCart = await populateCart(cart);
@@ -121,6 +135,54 @@ exports.removeFromCart = async (req, res) => {
             success: true,
             data: populatedCart,
             message: 'Đã xóa sản phẩm khỏi giỏ hàng.',
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ❌ Xóa multiple sản phẩm khỏi giỏ hàng (cho việc đặt hàng thành công)
+/**
+ * POST /api/cart/remove-multiple
+ * Body: { bookIds: ['id1', 'id2', 'id3'] }
+ * Dùng khi order thành công để xóa tất cả sản phẩm đã đặt khỏi giỏ
+ */
+exports.removeMultipleFromCart = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { bookIds } = req.body;
+
+        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'bookIds phải là một mảng không rỗng.',
+            });
+        }
+
+        const cart = await Cart.findOne({ userId });
+        if (!cart) {
+            return res
+                .status(404)
+                .json({ success: false, message: 'Không tìm thấy giỏ hàng.' });
+        }
+
+        // Chuyển bookIds thành string để so sánh
+        const bookIdStrings = bookIds.map((id) => id.toString());
+
+        // Lọc bỏ những item có bookId nằm trong danh sách
+        const originalCount = cart.items.length;
+        cart.items = cart.items.filter(
+            (item) => !bookIdStrings.includes(item.bookId.toString())
+        );
+        const removedCount = originalCount - cart.items.length;
+
+        await cart.save();
+        const populatedCart = await populateCart(cart);
+
+        res.status(200).json({
+            success: true,
+            data: populatedCart,
+            message: `Đã xóa ${removedCount} sản phẩm khỏi giỏ hàng.`,
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
