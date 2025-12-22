@@ -85,7 +85,7 @@ export default function ShipperDashboard() {
                             address: `${latitude}, ${longitude}`,
                         });
                         console.log('📡 Server response:', response);
-                        toast.success('📍 Cập nhật vị trí thành công');
+                        //toast.success('📍 Cập nhật vị trí thành công');
                     } catch (error) {
                         console.error('❌ Failed to update location:', error);
                         toast.error(
@@ -292,21 +292,12 @@ export default function ShipperDashboard() {
                 <div className="mb-6 flex gap-4">
                     <button
                         onClick={() => setViewMode('list')}
-                        className={`px-6 py-2 rounded-lg font-medium transition ${
+                        className={`disable px-6 py-2 rounded-lg font-medium transition ${
                             viewMode === 'list'
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                         }`}>
                         📋 Danh Sách
-                    </button>
-                    <button
-                        onClick={() => setViewMode('map')}
-                        className={`px-6 py-2 rounded-lg font-medium transition ${
-                            viewMode === 'map'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                        }`}>
-                        🗺️ Bản Đồ
                     </button>
                     <button
                         onClick={fetchOrders}
