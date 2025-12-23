@@ -25,9 +25,14 @@ function Home() {
                     const recs = recommendResponse.data || [];
                     setRecommendations(recs);
                     // Sách có rating cao được coi là AI suggested
-                    setAiSuggested(recs.filter((b) => (b.ratingAvg || 0) >= 4.5));
+                    setAiSuggested(
+                        recs.filter((b) => (b.ratingAvg || 0) >= 4.5)
+                    );
                 } else {
-                    console.error('❌ Lỗi khi lấy đề xuất:', recommendResponse.message);
+                    console.error(
+                        '❌ Lỗi khi lấy đề xuất:',
+                        recommendResponse.message
+                    );
                 }
 
                 // Lấy sách nổi bật
@@ -35,7 +40,10 @@ function Home() {
                 if (featuredResponse.success) {
                     setFeaturedBooks(featuredResponse.data || []);
                 } else {
-                    console.error('❌ Lỗi khi lấy sách nổi bật:', featuredResponse.message);
+                    console.error(
+                        '❌ Lỗi khi lấy sách nổi bật:',
+                        featuredResponse.message
+                    );
                 }
             } catch (error) {
                 console.error('⚠️ Lỗi khi lấy dữ liệu:', error);
@@ -48,11 +56,15 @@ function Home() {
     }, []);
 
     const handleCarouselPrev = () => {
-        setCarouselIndex((prev) => (prev === 0 ? featuredBooks.length - 1 : prev - 1));
+        setCarouselIndex((prev) =>
+            prev === 0 ? featuredBooks.length - 1 : prev - 1
+        );
     };
 
     const handleCarouselNext = () => {
-        setCarouselIndex((prev) => (prev === featuredBooks.length - 1 ? 0 : prev + 1));
+        setCarouselIndex((prev) =>
+            prev === featuredBooks.length - 1 ? 0 : prev + 1
+        );
     };
 
     return (
@@ -74,9 +86,10 @@ function Home() {
                             <div
                                 key={idx}
                                 className={`absolute inset-0 transition-opacity duration-500 flex items-center justify-between px-8 ${
-                                    idx === carouselIndex ? 'opacity-100' : 'opacity-0'
-                                }`}
-                            >
+                                    idx === carouselIndex
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                }`}>
                                 {/* Hình ảnh sách - trái */}
                                 <div className="w-1/3 flex justify-center">
                                     <div className="relative">
@@ -106,16 +119,20 @@ function Home() {
                                         {book.title}
                                     </h2>
                                     <p className="text-lg mb-2">
-                                        ✍️ {book.sellerId?.firstName || 'Tác giả'}{' '}
+                                        ✍️{' '}
+                                        {book.sellerId?.firstName || 'Tác giả'}{' '}
                                         {book.sellerId?.lastName || ''}
                                     </p>
                                     {book.categoryId && (
                                         <p className="text-sm mb-4 opacity-90">
-                                            📂 {book.categoryId?.name || 'Thể loại'}
+                                            📂{' '}
+                                            {book.categoryId?.name ||
+                                                'Thể loại'}
                                         </p>
                                     )}
                                     <p className="text-base mb-6 line-clamp-3 opacity-90">
-                                        {book.description || 'Một cuốn sách tuyệt vời'}
+                                        {book.description ||
+                                            'Một cuốn sách tuyệt vời'}
                                     </p>
 
                                     {/* Rating và giá */}
@@ -124,23 +141,32 @@ function Home() {
                                             <span className="text-2xl">⭐</span>
                                             <div>
                                                 <p className="text-xl font-bold">
-                                                    {(book.ratingAvg || 0).toFixed(1)}/5
+                                                    {(
+                                                        book.ratingAvg || 0
+                                                    ).toFixed(1)}
+                                                    /5
                                                 </p>
                                                 <p className="text-xs opacity-80">
-                                                    ({book.ratingCount || 0} đánh giá)
+                                                    ({book.ratingCount || 0}{' '}
+                                                    đánh giá)
                                                 </p>
                                             </div>
                                         </div>
                                         <div>
                                             {book.discount > 0 && (
                                                 <p className="text-sm line-through opacity-80">
-                                                    ₫{book.price.toLocaleString('vi-VN')}
+                                                    ₫
+                                                    {book.price.toLocaleString(
+                                                        'vi-VN'
+                                                    )}
                                                 </p>
                                             )}
                                             <p className="text-3xl font-bold">
                                                 ₫
                                                 {Math.round(
-                                                    book.price * (1 - book.discount / 100)
+                                                    book.price *
+                                                        (1 -
+                                                            book.discount / 100)
                                                 ).toLocaleString('vi-VN')}
                                             </p>
                                         </div>
@@ -149,8 +175,7 @@ function Home() {
                                     {/* Nút hành động */}
                                     <Link
                                         to={`/book/${book.slug}`}
-                                        className="inline-flex items-center gap-2 bg-white text-purple-600 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-all"
-                                    >
+                                        className="inline-flex items-center gap-2 bg-white text-purple-600 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition-all">
                                         Xem chi tiết
                                         <FaArrowRight className="text-sm" />
                                     </Link>
@@ -162,14 +187,12 @@ function Home() {
                     {/* Nút điều hướng */}
                     <button
                         onClick={handleCarouselPrev}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-3 rounded-full transition-all z-10"
-                    >
+                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-3 rounded-full transition-all z-10">
                         <FaChevronLeft />
                     </button>
                     <button
                         onClick={handleCarouselNext}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-3 rounded-full transition-all z-10"
-                    >
+                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white p-3 rounded-full transition-all z-10">
                         <FaChevronRight />
                     </button>
 
@@ -180,7 +203,9 @@ function Home() {
                                 key={idx}
                                 onClick={() => setCarouselIndex(idx)}
                                 className={`w-2 h-2 rounded-full transition-all ${
-                                    idx === carouselIndex ? 'bg-white w-8' : 'bg-white/50'
+                                    idx === carouselIndex
+                                        ? 'bg-white w-8'
+                                        : 'bg-white/50'
                                 }`}
                             />
                         ))}
@@ -188,28 +213,12 @@ function Home() {
                 </div>
             )}
 
-            {/* Gợi ý từ AI */}
-            {aiSuggested.length > 0 && (
-                <Section
-                    title="🤖 Gợi ý từ AI cho bạn"
-                    viewAll={true}
-                    viewAllLink="/daily-discover?page=1"
-                >
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {aiSuggested.slice(0, 8).map((b, i) => (
-                            <BookCard key={i} {...b} />
-                        ))}
-                    </div>
-                </Section>
-            )}
-
             {/* Sách nổi bật trong tháng */}
             {featuredBooks.length > 0 && (
                 <Section
                     title="📚 Sách nổi bật trong tháng"
                     viewAll={true}
-                    viewAllLink="/featured-books"
-                >
+                    viewAllLink="/featured-books">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {featuredBooks.slice(0, 8).map((b, i) => (
                             <BookCard key={i} {...b} />
@@ -227,8 +236,7 @@ function Home() {
                         </h2>
                         <Link
                             to="/featured-books"
-                            className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 font-semibold transition-colors"
-                        >
+                            className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 font-semibold transition-colors">
                             Xem tất cả
                             <FaArrowRight className="text-sm" />
                         </Link>
@@ -236,14 +244,16 @@ function Home() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {featuredBooks
-                            .sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0))
+                            .sort(
+                                (a, b) =>
+                                    (b.ratingAvg || 0) - (a.ratingAvg || 0)
+                            )
                             .slice(0, 4)
                             .map((book, idx) => (
                                 <Link
                                     key={idx}
                                     to={`/book/${book.slug}`}
-                                    className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-5 flex gap-5 cursor-pointer"
-                                >
+                                    className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-5 flex gap-5 cursor-pointer">
                                     {/* Hình ảnh sách */}
                                     <div className="flex-shrink-0 w-32 h-48 rounded-lg overflow-hidden bg-gray-200">
                                         <img
@@ -265,35 +275,48 @@ function Home() {
                                             <p className="text-sm text-gray-600 mb-2">
                                                 ✍️{' '}
                                                 <span className="font-semibold">
-                                                    {book.sellerId?.firstName || 'Tác giả'}
+                                                    {book.sellerId?.firstName ||
+                                                        'Tác giả'}
                                                 </span>
                                             </p>
                                             <p className="text-sm text-gray-500 line-clamp-2 mb-3">
-                                                {book.description || 'Không có mô tả'}
+                                                {book.description ||
+                                                    'Không có mô tả'}
                                             </p>
                                         </div>
 
                                         {/* Rating và giá */}
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-yellow-500 text-lg">★</span>
+                                                <span className="text-yellow-500 text-lg">
+                                                    ★
+                                                </span>
                                                 <span className="font-bold text-gray-900">
-                                                    {(book.ratingAvg || 0).toFixed(1)}
+                                                    {(
+                                                        book.ratingAvg || 0
+                                                    ).toFixed(1)}
                                                 </span>
                                                 <span className="text-xs text-gray-500">
-                                                    ({book.ratingCount || 0} đánh giá)
+                                                    ({book.ratingCount || 0}{' '}
+                                                    đánh giá)
                                                 </span>
                                             </div>
                                             <div className="text-right">
                                                 {book.discount > 0 && (
                                                     <p className="text-xs text-red-500 line-through">
-                                                        ₫{book.price.toLocaleString('vi-VN')}
+                                                        ₫
+                                                        {book.price.toLocaleString(
+                                                            'vi-VN'
+                                                        )}
                                                     </p>
                                                 )}
                                                 <p className="text-lg font-bold text-yellow-600">
                                                     ₫
                                                     {Math.round(
-                                                        book.price * (1 - book.discount / 100)
+                                                        book.price *
+                                                            (1 -
+                                                                book.discount /
+                                                                    100)
                                                     ).toLocaleString('vi-VN')}
                                                 </p>
                                             </div>
@@ -310,8 +333,7 @@ function Home() {
                 <Section
                     title="✨ Gợi ý hôm nay"
                     viewAll={true}
-                    viewAllLink="/daily-discover?page=1"
-                >
+                    viewAllLink="/daily-discover?page=1">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {recommendations.slice(0, 8).map((b, i) => (
                             <BookCard key={i} {...b} />
@@ -326,16 +348,14 @@ function Home() {
                     {token ? (
                         <Link
                             to="/daily-discover?page=1"
-                            className="flex items-center justify-center w-auto gap-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-all font-semibold"
-                        >
+                            className="flex items-center justify-center w-auto gap-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-all font-semibold">
                             <span>Xem thêm gợi ý</span>
                             <FaArrowRight className="text-sm" />
                         </Link>
                     ) : (
                         <Link
                             to="/login"
-                            className="flex items-center justify-center w-auto gap-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-all font-semibold"
-                        >
+                            className="flex items-center justify-center w-auto gap-2 bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-all font-semibold">
                             <span>Đăng nhập để nhận gợi ý cá nhân hóa!</span>
                             <FaArrowRight className="text-sm" />
                         </Link>

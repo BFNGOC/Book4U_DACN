@@ -535,21 +535,15 @@ function Checkout() {
                             {[
                                 {
                                     value: 'COD',
-                                    label: '💵 Thanh toán khi nhận hàng (COD)',
+                                    label: 'Thanh toán khi nhận hàng (COD)',
                                     desc: 'Thanh toán tiền mặt khi nhận sản phẩm - An toàn và tiện lợi',
-                                    icon: '💰',
-                                },
-                                {
-                                    value: 'VNPAY',
-                                    label: '🏦 Thanh toán qua VNPay',
-                                    desc: 'Chuyển khoản ngân hàng trực tuyến - Nhanh chóng và bảo mật',
-                                    icon: '🏧',
+                                    icon: '',
                                 },
                                 {
                                     value: 'MOMO',
-                                    label: '📱 Thanh toán qua Momo',
+                                    label: 'Thanh toán qua Momo',
                                     desc: 'Ví điện tử Momo - Thanh toán tức thì',
-                                    icon: '📲',
+                                    icon: '',
                                 },
                             ].map((method) => (
                                 <label
