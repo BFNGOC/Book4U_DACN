@@ -17,10 +17,8 @@ async function sendOTP(phoneNumber) {
 async function verifyPhoneNumber(phoneNumber, code) {
     const record = otpStore.get(phoneNumber);
     if (!record) return { success: false, message: 'No OTP found' };
-    if (Date.now() > record.expires)
-        return { success: false, message: 'Expired' };
-    if (record.code !== code)
-        return { success: false, message: 'Invalid code' };
+    if (Date.now() > record.expires) return { success: false, message: 'Expired' };
+    if (record.code !== code) return { success: false, message: 'Invalid code' };
 
     otpStore.delete(phoneNumber);
     return { success: true };

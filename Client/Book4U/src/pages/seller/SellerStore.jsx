@@ -165,7 +165,7 @@ function SellerStore() {
 
                                     return (
                                         <Link
-                                            to={`/product/${product.slug}`}
+                                            to={`/book/${product.slug}`}
                                             key={product._id}
                                             className="group bg-white rounded-xl shadow-sm hover:shadow-xl border border-gray-100 hover:border-blue-200 transition-all duration-300 overflow-hidden"
                                         >
